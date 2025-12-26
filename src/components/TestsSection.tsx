@@ -1,13 +1,14 @@
-import { useState } from 'react';
-import { useTrainingStore } from '@/stores/trainingStore';
-import { TestResult } from '@/types/training';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAthletes } from '@/hooks/useAthletes';
+import { useTestNorms } from '@/hooks/useTestNorms';
+import { useTestResults } from '@/hooks/useTestResults';
 import {
   RadarChart,
   PolarGrid,
@@ -16,6 +17,13 @@ import {
   Radar,
   ResponsiveContainer,
 } from 'recharts';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const categories = [
   'Kekuatan',
@@ -35,82 +43,183 @@ const items: Record<string, string[]> = {
   'Koordinasi': ['Hexagon Test', 'Stork Stand'],
 };
 
+const defaultUnits: Record<string, string> = {
+  '1RM Back Squat': 'kg',
+  '1RM Bench Press': 'kg',
+  '1RM Deadlift': 'kg',
+  'Push Up Max': 'reps',
+  'Pull Up Max': 'reps',
+  'Sprint 20m': 's',
+  'Sprint 40m': 's',
+  'Sprint 60m': 's',
+  'Flying 30m': 's',
+  'VO2Max Test': 'ml/kg/min',
+  'Yo-Yo IR1': 'm',
+  'Cooper Test': 'm',
+  'Beep Test': 'level',
+  'Illinois Test': 's',
+  'T-Test': 's',
+  '5-10-5 Drill': 's',
+  'Sit and Reach': 'cm',
+  'Shoulder Flexibility': 'cm',
+  'Hexagon Test': 's',
+  'Stork Stand': 's',
+};
+
 export function TestsSection() {
-  const { tests, addTest, removeTest } = useTrainingStore();
+  const { athletes, loading: athletesLoading, addAthlete } = useAthletes();
+  const { calculateScore, getNormForItem, loading: normsLoading } = useTestNorms();
+  const { results, loading: resultsLoading, addResult, deleteResult } = useTestResults();
   
   const [form, setForm] = useState({
-    athlete: '',
+    athleteId: '',
     date: '',
     category: 'Kekuatan',
     item: '1RM Back Squat',
     value: '',
     unit: 'kg',
-    score: 3,
     notes: '',
   });
 
-  const handleSubmit = () => {
-    if (!form.athlete || !form.date || !form.value) {
+  const [calculatedScore, setCalculatedScore] = useState<number | null>(null);
+  const [selectedAthlete, setSelectedAthlete] = useState<string>('__all__');
+  const [newAthleteDialog, setNewAthleteDialog] = useState(false);
+  const [newAthlete, setNewAthlete] = useState({
+    name: '',
+    gender: 'M' as 'M' | 'F',
+    birthDate: '',
+    weight: '',
+    sport: '',
+  });
+
+  // Get current athlete gender for norm lookup
+  const currentAthlete = athletes.find(a => a.id === form.athleteId);
+  const currentGender = currentAthlete?.gender || 'M';
+
+  // Auto-calculate score when value changes
+  useEffect(() => {
+    if (form.value && !normsLoading) {
+      const value = parseFloat(form.value);
+      if (!isNaN(value)) {
+        const score = calculateScore(form.category, form.item, value, currentGender);
+        setCalculatedScore(score);
+      }
+    } else {
+      setCalculatedScore(null);
+    }
+  }, [form.value, form.category, form.item, currentGender, normsLoading, calculateScore]);
+
+  // Auto-set unit when item changes
+  useEffect(() => {
+    const unit = defaultUnits[form.item] || 'kg';
+    setForm(prev => ({ ...prev, unit }));
+  }, [form.item]);
+
+  const handleSubmit = async () => {
+    if (!form.athleteId || !form.date || !form.value) {
       toast.error('Lengkapi data wajib: Atlet, Tanggal, dan Nilai!');
       return;
     }
 
-    const newTest: TestResult = {
-      id: Date.now().toString(),
-      athlete: form.athlete,
-      date: form.date,
+    const value = parseFloat(form.value);
+    const score = calculatedScore || 3;
+
+    await addResult({
+      athlete_id: form.athleteId,
+      test_date: form.date,
       category: form.category,
       item: form.item,
-      value: parseFloat(form.value),
+      value,
       unit: form.unit,
-      score: form.score,
-      notes: form.notes,
-    };
-
-    addTest(newTest);
-    toast.success('Hasil tes disimpan!');
+      score,
+      notes: form.notes || null,
+    });
     
     setForm(prev => ({
       ...prev,
       value: '',
       notes: '',
     }));
+    setCalculatedScore(null);
   };
 
   const handleClear = () => {
     setForm({
-      athlete: '',
+      athleteId: '',
       date: '',
       category: 'Kekuatan',
       item: '1RM Back Squat',
       value: '',
       unit: 'kg',
-      score: 3,
       notes: '',
     });
+    setCalculatedScore(null);
   };
 
-  // Get unique athletes for radar filter
-  const athletes = [...new Set(tests.map(t => t.athlete))];
-  const [selectedAthlete, setSelectedAthlete] = useState<string>('__all__');
+  const handleAddAthlete = async () => {
+    if (!newAthlete.name) {
+      toast.error('Nama atlet wajib diisi!');
+      return;
+    }
+
+    const result = await addAthlete({
+      name: newAthlete.name,
+      gender: newAthlete.gender,
+      birth_date: newAthlete.birthDate || null,
+      weight: newAthlete.weight ? parseFloat(newAthlete.weight) : null,
+      sport: newAthlete.sport || null,
+    });
+
+    if (result) {
+      setForm(prev => ({ ...prev, athleteId: result.id }));
+      setNewAthleteDialog(false);
+      setNewAthlete({ name: '', gender: 'M', birthDate: '', weight: '', sport: '' });
+    }
+  };
+
+  // Get athlete name by ID
+  const getAthleteName = (athleteId: string | null) => {
+    if (!athleteId) return '-';
+    const athlete = athletes.find(a => a.id === athleteId);
+    return athlete?.name || '-';
+  };
+
+  // Get norm info for display
+  const currentNorm = getNormForItem(form.category, form.item, currentGender);
 
   // Build radar data
   const radarData = categories.map(cat => {
-    const categoryTests = tests.filter(
-      t => t.category === cat && (selectedAthlete === '__all__' || t.athlete === selectedAthlete)
+    const categoryResults = results.filter(
+      r => r.category === cat && (selectedAthlete === '__all__' || r.athlete_id === selectedAthlete)
     );
     
     // Get latest score for each category
-    const latestTest = categoryTests.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    const latestResult = categoryResults.sort(
+      (a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime()
     )[0];
 
     return {
       category: cat,
-      score: latestTest?.score || 0,
+      score: latestResult?.score || 0,
       fullMark: 5,
     };
   });
+
+  const scoreLabels: Record<number, string> = {
+    1: 'Sangat Kurang',
+    2: 'Kurang',
+    3: 'Cukup',
+    4: 'Baik',
+    5: 'Sangat Baik',
+  };
+
+  if (athletesLoading || normsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -123,16 +232,101 @@ export function TestsSection() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div>
+            {/* Athlete Selection */}
+            <div className="col-span-2">
               <Label className="text-xs font-extrabold text-muted-foreground uppercase">
-                Nama Atlet
+                Pilih Atlet
               </Label>
-              <Input
-                value={form.athlete}
-                onChange={(e) => setForm({ ...form, athlete: e.target.value })}
-                placeholder="Contoh: Atlet A"
-                className="mt-1.5"
-              />
+              <div className="flex gap-2 mt-1.5">
+                <Select
+                  value={form.athleteId}
+                  onValueChange={(v) => setForm({ ...form, athleteId: v })}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Pilih atlet..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {athletes.map(athlete => (
+                      <SelectItem key={athlete.id} value={athlete.id}>
+                        {athlete.name} {athlete.gender ? `(${athlete.gender})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Dialog open={newAthleteDialog} onOpenChange={setNewAthleteDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Tambah Atlet Baru</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label>Nama Atlet *</Label>
+                        <Input
+                          value={newAthlete.name}
+                          onChange={(e) => setNewAthlete({ ...newAthlete, name: e.target.value })}
+                          placeholder="Nama lengkap"
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Jenis Kelamin</Label>
+                          <Select
+                            value={newAthlete.gender}
+                            onValueChange={(v) => setNewAthlete({ ...newAthlete, gender: v as 'M' | 'F' })}
+                          >
+                            <SelectTrigger className="mt-1.5">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="M">Laki-laki</SelectItem>
+                              <SelectItem value="F">Perempuan</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Tanggal Lahir</Label>
+                          <Input
+                            type="date"
+                            value={newAthlete.birthDate}
+                            onChange={(e) => setNewAthlete({ ...newAthlete, birthDate: e.target.value })}
+                            className="mt-1.5"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Berat Badan (kg)</Label>
+                          <Input
+                            type="number"
+                            value={newAthlete.weight}
+                            onChange={(e) => setNewAthlete({ ...newAthlete, weight: e.target.value })}
+                            placeholder="70"
+                            className="mt-1.5"
+                          />
+                        </div>
+                        <div>
+                          <Label>Cabang Olahraga</Label>
+                          <Input
+                            value={newAthlete.sport}
+                            onChange={(e) => setNewAthlete({ ...newAthlete, sport: e.target.value })}
+                            placeholder="Sepak Bola"
+                            className="mt-1.5"
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={handleAddAthlete} className="w-full">
+                        Tambah Atlet
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
             
             <div>
@@ -191,61 +385,46 @@ export function TestsSection() {
 
             <div>
               <Label className="text-xs font-extrabold text-muted-foreground uppercase">
-                Nilai Utama
+                Nilai ({form.unit})
               </Label>
               <Input
                 type="number"
+                step="0.01"
                 value={form.value}
                 onChange={(e) => setForm({ ...form, value: e.target.value })}
-                placeholder="Contoh: 120"
+                placeholder="Masukkan nilai"
                 className="mt-1.5"
               />
             </div>
 
-            <div>
+            {/* Auto-calculated Score Display */}
+            <div className="col-span-2">
               <Label className="text-xs font-extrabold text-muted-foreground uppercase">
-                Satuan
+                Skor Otomatis (Norma)
               </Label>
-              <Select
-                value={form.unit}
-                onValueChange={(v) => setForm({ ...form, unit: v })}
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="kg">kg</SelectItem>
-                  <SelectItem value="cm">cm</SelectItem>
-                  <SelectItem value="m">m</SelectItem>
-                  <SelectItem value="s">detik</SelectItem>
-                  <SelectItem value="reps">reps</SelectItem>
-                  <SelectItem value="ml/kg/min">ml/kg/min</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className={`mt-1.5 p-3 rounded-lg border text-center font-bold ${
+                calculatedScore === null ? 'bg-secondary/50 text-muted-foreground' :
+                calculatedScore >= 4 ? 'bg-success/20 text-success border-success/50' :
+                calculatedScore >= 3 ? 'bg-amber-100 text-amber-700 border-amber-300' :
+                'bg-destructive/20 text-destructive border-destructive/50'
+              }`}>
+                {calculatedScore !== null ? (
+                  <span>
+                    {calculatedScore}/5 - {scoreLabels[calculatedScore]}
+                  </span>
+                ) : (
+                  <span>Masukkan nilai untuk melihat skor</span>
+                )}
+              </div>
+              {currentNorm && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Norma: {currentNorm.lower_is_better ? 'Lebih kecil lebih baik' : 'Lebih besar lebih baik'} 
+                  {' '}| Gender: {currentGender === 'M' ? 'Laki-laki' : 'Perempuan'}
+                </p>
+              )}
             </div>
 
-            <div>
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase">
-                Skor (1-5)
-              </Label>
-              <Select
-                value={form.score.toString()}
-                onValueChange={(v) => setForm({ ...form, score: parseInt(v) })}
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Sangat Kurang</SelectItem>
-                  <SelectItem value="2">2 - Kurang</SelectItem>
-                  <SelectItem value="3">3 - Cukup</SelectItem>
-                  <SelectItem value="4">4 - Baik</SelectItem>
-                  <SelectItem value="5">5 - Sangat Baik</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="col-span-2 lg:col-span-3">
+            <div className="col-span-2 lg:col-span-2">
               <Label className="text-xs font-extrabold text-muted-foreground uppercase">
                 Catatan
               </Label>
@@ -259,7 +438,7 @@ export function TestsSection() {
           </div>
 
           <div className="flex gap-3 mt-6">
-            <Button onClick={handleSubmit} className="flex-[2]">
+            <Button onClick={handleSubmit} className="flex-[2]" disabled={calculatedScore === null}>
               SIMPAN HASIL TES
             </Button>
             <Button onClick={handleClear} variant="secondary" className="flex-1">
@@ -276,7 +455,7 @@ export function TestsSection() {
             <div>
               <CardTitle className="text-base">Radar Profil (Skala 1–5)</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Skor otomatis dari norma usia+jenis kelamin. Radar menampilkan skor terbaru per domain.
+                Skor otomatis dihitung dari norma berdasarkan jenis kelamin. Radar menampilkan skor terbaru per domain.
               </p>
             </div>
             <Select
@@ -289,7 +468,7 @@ export function TestsSection() {
               <SelectContent>
                 <SelectItem value="__all__">Semua Atlet</SelectItem>
                 {athletes.map(a => (
-                  <SelectItem key={a} value={a}>{a}</SelectItem>
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -329,61 +508,67 @@ export function TestsSection() {
           <CardTitle className="text-base">Riwayat Tes</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[900px]">
-              <thead>
-                <tr className="bg-secondary/50">
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Tanggal</th>
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Atlet</th>
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Kategori</th>
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Item</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Nilai</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Skor</th>
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Catatan</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-16">Hapus</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tests.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="p-6 text-center text-muted-foreground text-sm">
-                      Belum ada data tes. Tambahkan hasil tes di form di atas.
-                    </td>
+          {resultsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-accent" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full min-w-[900px]">
+                <thead>
+                  <tr className="bg-secondary/50">
+                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Tanggal</th>
+                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Atlet</th>
+                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Kategori</th>
+                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Item</th>
+                    <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Nilai</th>
+                    <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Skor</th>
+                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Catatan</th>
+                    <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-16">Hapus</th>
                   </tr>
-                ) : (
-                  tests.map((test) => (
-                    <tr key={test.id} className="border-t border-border/50 hover:bg-secondary/30 transition-colors">
-                      <td className="p-3 text-sm">{new Date(test.date).toLocaleDateString('id-ID')}</td>
-                      <td className="p-3 text-sm font-semibold">{test.athlete}</td>
-                      <td className="p-3 text-sm">{test.category}</td>
-                      <td className="p-3 text-sm">{test.item}</td>
-                      <td className="p-3 text-sm text-center font-bold text-accent">
-                        {test.value} {test.unit}
-                      </td>
-                      <td className="p-3 text-sm text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          test.score >= 4 ? 'bg-success/20 text-success' :
-                          test.score >= 3 ? 'bg-amber-100 text-amber-700' :
-                          'bg-destructive/20 text-destructive'
-                        }`}>
-                          {test.score}/5
-                        </span>
-                      </td>
-                      <td className="p-3 text-sm text-muted-foreground">{test.notes || '-'}</td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => removeTest(test.id)}
-                          className="w-8 h-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors mx-auto"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                </thead>
+                <tbody>
+                  {results.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-6 text-center text-muted-foreground text-sm">
+                        Belum ada data tes. Tambahkan hasil tes di form di atas.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    results.map((test) => (
+                      <tr key={test.id} className="border-t border-border/50 hover:bg-secondary/30 transition-colors">
+                        <td className="p-3 text-sm">{new Date(test.test_date).toLocaleDateString('id-ID')}</td>
+                        <td className="p-3 text-sm font-semibold">{getAthleteName(test.athlete_id)}</td>
+                        <td className="p-3 text-sm">{test.category}</td>
+                        <td className="p-3 text-sm">{test.item}</td>
+                        <td className="p-3 text-sm text-center font-bold text-accent">
+                          {test.value} {test.unit}
+                        </td>
+                        <td className="p-3 text-sm text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            test.score >= 4 ? 'bg-success/20 text-success' :
+                            test.score >= 3 ? 'bg-amber-100 text-amber-700' :
+                            'bg-destructive/20 text-destructive'
+                          }`}>
+                            {test.score}/5
+                          </span>
+                        </td>
+                        <td className="p-3 text-sm text-muted-foreground">{test.notes || '-'}</td>
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={() => deleteResult(test.id)}
+                            className="w-8 h-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors mx-auto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
