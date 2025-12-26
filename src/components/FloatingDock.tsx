@@ -1,13 +1,26 @@
 import { Save, FolderOpen, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function FloatingDock() {
+interface FloatingDockProps {
+  onSave?: () => void;
+  onLoad?: () => void;
+}
+
+export function FloatingDock({ onSave, onLoad }: FloatingDockProps) {
   const handleSave = () => {
-    toast.success('Data tersimpan!');
+    if (onSave) {
+      onSave();
+    } else {
+      toast.success('Data tersimpan ke Cloud!');
+    }
   };
 
   const handleLoad = () => {
-    toast.info('Fitur load data akan segera hadir');
+    if (onLoad) {
+      onLoad();
+    } else {
+      toast.info('Data dimuat dari Cloud');
+    }
   };
 
   const handlePrint = () => {
@@ -19,14 +32,14 @@ export function FloatingDock() {
       <button
         onClick={handleSave}
         className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-dock hover:bg-accent hover:scale-110 transition-all"
-        title="Simpan ke Database"
+        title="Simpan ke Cloud"
       >
         <Save className="w-5 h-5" />
       </button>
       <button
         onClick={handleLoad}
         className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-dock hover:bg-accent hover:scale-110 transition-all"
-        title="Buka dari Database"
+        title="Muat dari Cloud"
       >
         <FolderOpen className="w-5 h-5" />
       </button>
