@@ -92,12 +92,12 @@ export function TestsSection() {
 
   // Get unique athletes for radar filter
   const athletes = [...new Set(tests.map(t => t.athlete))];
-  const [selectedAthlete, setSelectedAthlete] = useState<string>('');
+  const [selectedAthlete, setSelectedAthlete] = useState<string>('__all__');
 
   // Build radar data
   const radarData = categories.map(cat => {
     const categoryTests = tests.filter(
-      t => t.category === cat && (!selectedAthlete || t.athlete === selectedAthlete)
+      t => t.category === cat && (selectedAthlete === '__all__' || t.athlete === selectedAthlete)
     );
     
     // Get latest score for each category
@@ -287,7 +287,7 @@ export function TestsSection() {
                 <SelectValue placeholder="Pilih Atlet" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua Atlet</SelectItem>
+                <SelectItem value="__all__">Semua Atlet</SelectItem>
                 {athletes.map(a => (
                   <SelectItem key={a} value={a}>{a}</SelectItem>
                 ))}
