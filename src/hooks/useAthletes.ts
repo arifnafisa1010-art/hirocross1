@@ -2,19 +2,28 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { useAuth } from './useAuth';
 
 export type Athlete = Tables<'athletes'>;
 export type AthleteInsert = TablesInsert<'athletes'>;
 
 export function useAthletes() {
+  const { user } = useAuth();
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAthletes = async () => {
+    if (!user) {
+      setAthletes([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from('athletes')
       .select('*')
+      .eq('user_id', user.id)
       .order('name');
     
     if (error) {
@@ -26,10 +35,15 @@ export function useAthletes() {
     setLoading(false);
   };
 
-  const addAthlete = async (athlete: AthleteInsert) => {
+  const addAthlete = async (athlete: Omit<AthleteInsert, 'user_id'>) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('athletes')
-      .insert(athlete)
+      .insert({ ...athlete, user_id: user.id })
       .select()
       .single();
     
@@ -80,7 +94,7 @@ export function useAthletes() {
 
   useEffect(() => {
     fetchAthletes();
-  }, []);
+  }, [user?.id]);
 
   return {
     athletes,

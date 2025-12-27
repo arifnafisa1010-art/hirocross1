@@ -1,25 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-import { Mesocycle, PlanWeek, DaySession, Exercise } from '@/types/training';
+import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup } from '@/types/training';
 import { Json } from '@/integrations/supabase/types';
+import { useAuth } from './useAuth';
 
 export type TrainingProgram = Tables<'training_programs'>;
 export type TrainingProgramInsert = TablesInsert<'training_programs'>;
 export type TrainingSession = Tables<'training_sessions'>;
 
 export function useTrainingPrograms() {
+  const { user } = useAuth();
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [currentProgram, setCurrentProgram] = useState<TrainingProgram | null>(null);
   const [sessions, setSessions] = useState<Record<string, DaySession>>({});
   const [loading, setLoading] = useState(true);
 
-  const fetchPrograms = async () => {
+  const fetchPrograms = useCallback(async () => {
+    if (!user) {
+      setPrograms([]);
+      setCurrentProgram(null);
+      setSessions({});
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from('training_programs')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -27,13 +38,9 @@ export function useTrainingPrograms() {
       console.error(error);
     } else {
       setPrograms(data || []);
-      // Auto-select latest program if exists
-      if (data && data.length > 0 && !currentProgram) {
-        await loadProgram(data[0].id);
-      }
     }
     setLoading(false);
-  };
+  }, [user?.id]);
 
   const loadProgram = async (programId: string) => {
     const { data: program, error: programError } = await supabase
@@ -45,7 +52,7 @@ export function useTrainingPrograms() {
     if (programError) {
       toast.error('Gagal memuat program');
       console.error(programError);
-      return;
+      return null;
     }
 
     setCurrentProgram(program);
@@ -72,25 +79,22 @@ export function useTrainingPrograms() {
       });
       setSessions(sessionsMap);
     }
+
+    return program;
   };
 
   const saveProgram = async (
-    setup: {
-      planName: string;
-      startDate: string;
-      matchDate: string;
-      targets: {
-        strength: number;
-        speed: number;
-        endurance: number;
-        technique: number;
-        tactic: number;
-      };
-    },
+    setup: ProgramSetup,
     mesocycles: Mesocycle[],
     planData: PlanWeek[]
   ) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return false;
+    }
+
     const programData: TrainingProgramInsert = {
+      user_id: user.id,
       name: setup.planName,
       start_date: setup.startDate,
       match_date: setup.matchDate,
@@ -117,6 +121,7 @@ export function useTrainingPrograms() {
       }
       
       setCurrentProgram({ ...currentProgram, ...programData } as TrainingProgram);
+      setPrograms(prev => prev.map(p => p.id === currentProgram.id ? { ...p, ...programData } as TrainingProgram : p));
     } else {
       // Create new
       const { data, error } = await supabase
@@ -136,6 +141,27 @@ export function useTrainingPrograms() {
     }
     
     toast.success('Program berhasil disimpan!');
+    return true;
+  };
+
+  const deleteProgram = async (programId: string) => {
+    const { error } = await supabase
+      .from('training_programs')
+      .delete()
+      .eq('id', programId);
+    
+    if (error) {
+      toast.error('Gagal menghapus program');
+      console.error(error);
+      return false;
+    }
+
+    setPrograms(prev => prev.filter(p => p.id !== programId));
+    if (currentProgram?.id === programId) {
+      setCurrentProgram(null);
+      setSessions({});
+    }
+    toast.success('Program berhasil dihapus!');
     return true;
   };
 
@@ -179,7 +205,7 @@ export function useTrainingPrograms() {
 
   useEffect(() => {
     fetchPrograms();
-  }, []);
+  }, [fetchPrograms]);
 
   return {
     programs,
@@ -189,6 +215,7 @@ export function useTrainingPrograms() {
     loadProgram,
     saveProgram,
     saveSession,
+    deleteProgram,
     createNewProgram,
     refetch: fetchPrograms,
   };

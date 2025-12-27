@@ -2,19 +2,28 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { useAuth } from './useAuth';
 
 export type TestResult = Tables<'test_results'>;
 export type TestResultInsert = TablesInsert<'test_results'>;
 
 export function useTestResults() {
+  const { user } = useAuth();
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchResults = async () => {
+    if (!user) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from('test_results')
       .select('*')
+      .eq('user_id', user.id)
       .order('test_date', { ascending: false });
     
     if (error) {
@@ -26,10 +35,15 @@ export function useTestResults() {
     setLoading(false);
   };
 
-  const addResult = async (result: TestResultInsert) => {
+  const addResult = async (result: Omit<TestResultInsert, 'user_id'>) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('test_results')
-      .insert(result)
+      .insert({ ...result, user_id: user.id })
       .select()
       .single();
     
@@ -63,7 +77,7 @@ export function useTestResults() {
 
   useEffect(() => {
     fetchResults();
-  }, []);
+  }, [user?.id]);
 
   return {
     results,

@@ -1,14 +1,49 @@
+import { useState, useEffect } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
+import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Mesocycle, PlanWeek } from '@/types/training';
 
 export function SetupSection() {
-  const { setup, setSetup, generatePlan, setActiveTab } = useTrainingStore();
+  const { setup, setSetup, generatePlan, setActiveTab, mesocycles, planData, setMesocycles, setPlanData, setTotalWeeks } = useTrainingStore();
+  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, createNewProgram } = useTrainingPrograms();
+  const [saving, setSaving] = useState(false);
 
-  const handleGenerate = () => {
+  // Load current program data into store when program changes
+  useEffect(() => {
+    if (currentProgram) {
+      setSetup({
+        planName: currentProgram.name,
+        startDate: currentProgram.start_date,
+        matchDate: currentProgram.match_date,
+        targets: {
+          strength: Number(currentProgram.target_strength) || 100,
+          speed: Number(currentProgram.target_speed) || 1000,
+          endurance: Number(currentProgram.target_endurance) || 10,
+          technique: Number(currentProgram.target_technique) || 500,
+          tactic: Number(currentProgram.target_tactic) || 200,
+        }
+      });
+      
+      const loadedMeso = currentProgram.mesocycles as unknown as Mesocycle[] || [];
+      const loadedPlan = currentProgram.plan_data as unknown as PlanWeek[] || [];
+      
+      setMesocycles(loadedMeso);
+      setPlanData(loadedPlan);
+      
+      if (loadedPlan.length > 0) {
+        setTotalWeeks(loadedPlan.length);
+      }
+    }
+  }, [currentProgram?.id]);
+
+  const handleGenerate = async () => {
     if (!setup.startDate || !setup.matchDate) {
       toast.error('Pilih tanggal mulai dan target tanding!');
       return;
@@ -27,11 +62,107 @@ export function SetupSection() {
     toast.success('Program berhasil di-generate!');
   };
 
+  const handleSave = async () => {
+    if (!setup.startDate || !setup.matchDate) {
+      toast.error('Lengkapi data program terlebih dahulu!');
+      return;
+    }
+
+    setSaving(true);
+    await saveProgram(setup, mesocycles, planData);
+    setSaving(false);
+  };
+
+  const handleLoadProgram = async (programId: string) => {
+    await loadProgram(programId);
+  };
+
+  const handleNewProgram = () => {
+    createNewProgram();
+    setSetup({
+      planName: 'New Program',
+      startDate: '',
+      matchDate: '',
+      targets: {
+        strength: 100,
+        speed: 1000,
+        endurance: 10,
+        technique: 500,
+        tactic: 200,
+      }
+    });
+    setMesocycles([]);
+    setPlanData([]);
+    setTotalWeeks(0);
+  };
+
+  const handleDeleteProgram = async (programId: string) => {
+    if (confirm('Yakin ingin menghapus program ini?')) {
+      await deleteProgram(programId);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-6">
+      {/* Program List */}
+      <Card className="border-border shadow-card">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Program Tersimpan</CardTitle>
+          <Button onClick={handleNewProgram} variant="outline" size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Program Baru
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {programs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Belum ada program tersimpan.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {programs.map(program => (
+                <div 
+                  key={program.id}
+                  className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                    currentProgram?.id === program.id 
+                      ? 'border-accent bg-accent/10' 
+                      : 'border-border hover:border-accent/50'
+                  }`}
+                  onClick={() => handleLoadProgram(program.id)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm truncate">{program.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(program.start_date).toLocaleDateString('id-ID')} - {new Date(program.match_date).toLocaleDateString('id-ID')}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id); }}
+                      className="p-1 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Setup Form */}
       <Card className="border-border shadow-card">
         <CardHeader>
-          <CardTitle className="text-xl font-extrabold">Parameter Master Program</CardTitle>
+          <CardTitle className="text-xl font-extrabold">
+            {currentProgram ? 'Edit Program' : 'Parameter Master Program'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -141,12 +272,22 @@ export function SetupSection() {
             </div>
           </div>
 
-          <Button
-            onClick={handleGenerate}
-            className="w-full mt-6 h-12 text-sm font-extrabold bg-primary hover:bg-primary/90"
-          >
-            GENERATE PROGRAM
-          </Button>
+          <div className="flex gap-3 mt-6">
+            <Button
+              onClick={handleGenerate}
+              className="flex-1 h-12 text-sm font-extrabold bg-primary hover:bg-primary/90"
+            >
+              GENERATE PROGRAM
+            </Button>
+            <Button
+              onClick={handleSave}
+              variant="outline"
+              className="h-12 text-sm font-extrabold px-8"
+              disabled={saving}
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SIMPAN'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

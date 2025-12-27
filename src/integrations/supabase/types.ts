@@ -26,6 +26,7 @@ export type Database = {
           position: string | null
           sport: string | null
           updated_at: string
+          user_id: string | null
           weight: number | null
         }
         Insert: {
@@ -39,6 +40,7 @@ export type Database = {
           position?: string | null
           sport?: string | null
           updated_at?: string
+          user_id?: string | null
           weight?: number | null
         }
         Update: {
@@ -52,6 +54,7 @@ export type Database = {
           position?: string | null
           sport?: string | null
           updated_at?: string
+          user_id?: string | null
           weight?: number | null
         }
         Relationships: []
@@ -115,6 +118,7 @@ export type Database = {
           score: number
           test_date: string
           unit: string
+          user_id: string | null
           value: number
           variant: string | null
         }
@@ -128,6 +132,7 @@ export type Database = {
           score: number
           test_date: string
           unit: string
+          user_id?: string | null
           value: number
           variant?: string | null
         }
@@ -141,6 +146,7 @@ export type Database = {
           score?: number
           test_date?: string
           unit?: string
+          user_id?: string | null
           value?: number
           variant?: string | null
         }
@@ -169,6 +175,7 @@ export type Database = {
           target_tactic: number | null
           target_technique: number | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -184,6 +191,7 @@ export type Database = {
           target_tactic?: number | null
           target_technique?: number | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -199,6 +207,7 @@ export type Database = {
           target_tactic?: number | null
           target_technique?: number | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

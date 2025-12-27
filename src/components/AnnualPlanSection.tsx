@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
+import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Settings, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   LineChart,
@@ -13,9 +15,16 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
   ReferenceArea,
 } from 'recharts';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
 
 const phaseColors: Record<string, string> = {
   'Umum': 'hsl(195, 53%, 79%)',
@@ -31,6 +40,13 @@ const phaseClasses: Record<string, string> = {
   'Kompetisi': 'phase-kompetisi',
 };
 
+interface PhaseSettings {
+  umum: number;
+  khusus: number;
+  prakomp: number;
+  kompetisi: number;
+}
+
 export function AnnualPlanSection() {
   const { 
     setup, 
@@ -41,8 +57,20 @@ export function AnnualPlanSection() {
     removeMesocycle, 
     updateMesocycle,
     updatePlanWeek,
-    generatePlan,
+    setPlanData,
+    setMesocycles,
+    setTotalWeeks,
   } = useTrainingStore();
+
+  const { currentProgram, saveProgram } = useTrainingPrograms();
+  const [saving, setSaving] = useState(false);
+  const [phaseSettingsOpen, setPhaseSettingsOpen] = useState(false);
+  const [phaseSettings, setPhaseSettings] = useState<PhaseSettings>({
+    umum: 40,
+    khusus: 30,
+    prakomp: 20,
+    kompetisi: 10,
+  });
 
   const usedWeeks = mesocycles.reduce((acc, m) => acc + m.weeks, 0);
   const diff = totalWeeks - usedWeeks;
@@ -71,6 +99,97 @@ export function AnnualPlanSection() {
     fase: d.fase,
   }));
 
+  const handleSave = async () => {
+    setSaving(true);
+    await saveProgram(setup, mesocycles, planData);
+    setSaving(false);
+  };
+
+  const applyPhaseSettings = () => {
+    const total = phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi;
+    if (total !== 100) {
+      return;
+    }
+
+    const newPlanData = planData.map((week, index) => {
+      const progress = (index + 1) / planData.length * 100;
+      
+      let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi';
+      let vol: number;
+      let int: number;
+      
+      if (progress <= phaseSettings.umum) {
+        fase = 'Umum';
+        vol = 90;
+        int = 30;
+      } else if (progress <= phaseSettings.umum + phaseSettings.khusus) {
+        fase = 'Khusus';
+        vol = 75;
+        int = 60;
+      } else if (progress <= phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp) {
+        fase = 'Pra-Komp';
+        vol = 55;
+        int = 85;
+      } else {
+        fase = 'Kompetisi';
+        vol = 35;
+        int = 100;
+      }
+
+      return { ...week, fase, vol, int };
+    });
+
+    setPlanData(newPlanData);
+    setPhaseSettingsOpen(false);
+  };
+
+  const regeneratePlan = () => {
+    if (!setup.startDate || !setup.matchDate) return;
+
+    const start = new Date(setup.startDate);
+    const match = new Date(setup.matchDate);
+    const totalWks = Math.ceil((match.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7));
+
+    if (totalWks <= 0) return;
+
+    // Apply current mesocycles structure
+    const plan: typeof planData = [];
+    let wkCount = 1;
+
+    mesocycles.forEach((m) => {
+      for (let i = 1; i <= m.weeks; i++) {
+        if (wkCount > totalWks) break;
+        const prog = wkCount / totalWks * 100;
+
+        let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi';
+        let vol: number;
+        let int: number;
+
+        if (prog <= phaseSettings.umum) {
+          fase = 'Umum'; vol = 90; int = 30;
+        } else if (prog <= phaseSettings.umum + phaseSettings.khusus) {
+          fase = 'Khusus'; vol = 75; int = 60;
+        } else if (prog <= phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp) {
+          fase = 'Pra-Komp'; vol = 55; int = 85;
+        } else {
+          fase = 'Kompetisi'; vol = 35; int = 100;
+        }
+
+        // Deload on last week of mesocycle
+        if (i === m.weeks) {
+          vol -= 15;
+          int -= 5;
+        }
+
+        plan.push({ wk: wkCount, meso: m.name, fase, vol, int });
+        wkCount++;
+      }
+    });
+
+    setTotalWeeks(totalWks);
+    setPlanData(plan);
+  };
+
   if (planData.length === 0) {
     return (
       <div className="animate-fade-in text-center py-20">
@@ -84,9 +203,99 @@ export function AnnualPlanSection() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <h2 className="text-2xl font-extrabold text-center uppercase tracking-wide">
-        {setup.planName}
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-extrabold uppercase tracking-wide">
+          {setup.planName}
+        </h2>
+        <div className="flex gap-2">
+          <Dialog open={phaseSettingsOpen} onOpenChange={setPhaseSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Pengaturan Fase
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Pengaturan Distribusi Fase</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label>Persiapan Umum</Label>
+                    <span className="text-sm font-bold">{phaseSettings.umum}%</span>
+                  </div>
+                  <Slider
+                    value={[phaseSettings.umum]}
+                    onValueChange={([v]) => setPhaseSettings(prev => ({ ...prev, umum: v }))}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label>Persiapan Khusus</Label>
+                    <span className="text-sm font-bold">{phaseSettings.khusus}%</span>
+                  </div>
+                  <Slider
+                    value={[phaseSettings.khusus]}
+                    onValueChange={([v]) => setPhaseSettings(prev => ({ ...prev, khusus: v }))}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label>Pra-Kompetisi</Label>
+                    <span className="text-sm font-bold">{phaseSettings.prakomp}%</span>
+                  </div>
+                  <Slider
+                    value={[phaseSettings.prakomp]}
+                    onValueChange={([v]) => setPhaseSettings(prev => ({ ...prev, prakomp: v }))}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label>Kompetisi</Label>
+                    <span className="text-sm font-bold">{phaseSettings.kompetisi}%</span>
+                  </div>
+                  <Slider
+                    value={[phaseSettings.kompetisi]}
+                    onValueChange={([v]) => setPhaseSettings(prev => ({ ...prev, kompetisi: v }))}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                </div>
+                <div className={cn(
+                  "p-3 rounded-lg text-center text-sm font-bold",
+                  phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi === 100
+                    ? "bg-success/20 text-success"
+                    : "bg-destructive/20 text-destructive"
+                )}>
+                  Total: {phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi}%
+                  {phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi !== 100 && ' (harus 100%)'}
+                </div>
+                <Button 
+                  onClick={applyPhaseSettings} 
+                  className="w-full"
+                  disabled={phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi !== 100}
+                >
+                  Terapkan
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={handleSave} disabled={saving} size="sm">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simpan'}
+          </Button>
+        </div>
+      </div>
 
       {/* Mesocycle Editor */}
       <Card className="border-border shadow-card">
@@ -103,7 +312,7 @@ export function AnnualPlanSection() {
                 className="relative bg-card p-3 rounded-xl border border-border shadow-sm w-32"
               >
                 <button
-                  onClick={() => removeMesocycle(i)}
+                  onClick={() => { removeMesocycle(i); setTimeout(regeneratePlan, 0); }}
                   className="absolute -right-1 -top-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs hover:scale-110 transition-transform"
                 >
                   <X className="w-3 h-3" />
@@ -119,7 +328,7 @@ export function AnnualPlanSection() {
                   min={1}
                   onChange={(e) => {
                     updateMesocycle(i, { weeks: parseInt(e.target.value) || 1 });
-                    setTimeout(generatePlan, 0);
+                    setTimeout(regeneratePlan, 0);
                   }}
                   className="text-xs h-8"
                 />
