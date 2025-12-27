@@ -1,7 +1,9 @@
 import { useTrainingStore } from '@/stores/trainingStore';
+import { useAuth } from '@/hooks/useAuth';
 import { TabId } from '@/types/training';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/hirocross-logo.png';
+import { toast } from 'sonner';
 
 const tabs: { id: TabId; label: string }[] = [
   { id: 'setup', label: 'SETUP' },
@@ -13,6 +15,14 @@ const tabs: { id: TabId; label: string }[] = [
 
 export function Header() {
   const { activeTab, setActiveTab } = useTrainingStore();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error('Gagal logout');
+    }
+  };
 
   return (
     <header className="bg-primary text-primary-foreground px-6 py-4 flex items-center justify-between sticky top-0 z-50">
@@ -41,8 +51,11 @@ export function Header() {
       </nav>
 
       <div className="flex items-center gap-3 text-sm">
-        <span className="text-muted text-xs font-semibold">Demo User</span>
-        <button className="bg-destructive text-destructive-foreground px-3 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">
+        <span className="text-muted text-xs font-semibold">{user?.email || '-'}</span>
+        <button 
+          onClick={handleLogout}
+          className="bg-destructive text-destructive-foreground px-3 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity"
+        >
           LOGOUT
         </button>
       </div>
