@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2 } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   LineChart,
@@ -16,6 +16,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceArea,
+  ReferenceLine,
 } from 'recharts';
 import {
   Dialog,
@@ -53,6 +54,7 @@ export function AnnualPlanSection() {
     mesocycles, 
     planData, 
     totalWeeks,
+    competitions,
     addMesocycle, 
     removeMesocycle, 
     updateMesocycle,
@@ -97,11 +99,20 @@ export function AnnualPlanSection() {
     volume: d.vol,
     intensitas: d.int,
     fase: d.fase,
+    competitionId: d.competitionId,
   }));
+
+  // Get competition weeks for reference lines
+  const competitionWeeks = planData
+    .filter(d => d.competitionId)
+    .map(d => ({
+      week: d.wk,
+      competition: competitions.find(c => c.id === d.competitionId),
+    }));
 
   const handleSave = async () => {
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData);
+    await saveProgram(setup, mesocycles, planData, competitions);
     setSaving(false);
   };
 
@@ -405,6 +416,22 @@ export function AnnualPlanSection() {
                         fillOpacity={0.3}
                       />
                     ))}
+                    {competitionWeeks.map((cw, i) => (
+                      <ReferenceLine
+                        key={`comp-${i}`}
+                        x={`W${cw.week}`}
+                        stroke="hsl(var(--destructive))"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        label={{
+                          value: `🏆 ${cw.competition?.name || 'Kompetisi'}`,
+                          position: 'top',
+                          fill: 'hsl(var(--destructive))',
+                          fontSize: 10,
+                          fontWeight: 700,
+                        }}
+                      />
+                    ))}
                     <Line 
                       type="monotone" 
                       dataKey="volume" 
@@ -453,6 +480,7 @@ export function AnnualPlanSection() {
                   <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-14">Wk</th>
                   <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-28">Meso</th>
                   <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-24">Phase</th>
+                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-32">Kompetisi</th>
                   <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-20">Vol%</th>
                   <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-20">Int%</th>
                   <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Kekuatan</th>
@@ -463,13 +491,26 @@ export function AnnualPlanSection() {
                 </tr>
               </thead>
               <tbody>
-                {planData.map((d, i) => (
-                  <tr key={i} className="border-t border-border/50 hover:bg-secondary/30 transition-colors">
-                    <td className="p-3 font-bold text-sm">W{d.wk}</td>
-                    <td className="p-3 text-sm">{d.meso}</td>
-                    <td className={cn("p-3 font-bold text-sm rounded", phaseClasses[d.fase])}>
-                      {d.fase}
-                    </td>
+                {planData.map((d, i) => {
+                  const competition = d.competitionId ? competitions.find(c => c.id === d.competitionId) : null;
+                  return (
+                    <tr key={i} className={cn(
+                      "border-t border-border/50 hover:bg-secondary/30 transition-colors",
+                      competition && "bg-destructive/10"
+                    )}>
+                      <td className="p-3 font-bold text-sm">W{d.wk}</td>
+                      <td className="p-3 text-sm">{d.meso}</td>
+                      <td className={cn("p-3 font-bold text-sm rounded", phaseClasses[d.fase])}>
+                        {d.fase}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {competition ? (
+                          <span className="flex items-center gap-1 text-destructive font-bold">
+                            <Trophy className="w-3 h-3" />
+                            {competition.name}
+                          </span>
+                        ) : '-'}
+                      </td>
                     <td className="p-3">
                       <Input
                         type="number"
@@ -502,7 +543,8 @@ export function AnnualPlanSection() {
                       {Math.round(setup.targets.tactic * d.vol / 100)}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

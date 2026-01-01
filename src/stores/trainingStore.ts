@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId } from '@/types/training';
+import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition } from '@/types/training';
 
 interface TrainingStore {
   activeTab: TabId;
@@ -8,6 +8,12 @@ interface TrainingStore {
   
   setup: ProgramSetup;
   setSetup: (setup: Partial<ProgramSetup>) => void;
+  
+  competitions: Competition[];
+  setCompetitions: (competitions: Competition[]) => void;
+  addCompetition: () => void;
+  removeCompetition: (id: string) => void;
+  updateCompetition: (id: string, data: Partial<Competition>) => void;
   
   mesocycles: Mesocycle[];
   setMesocycles: (mesocycles: Mesocycle[]) => void;
@@ -32,13 +38,6 @@ interface TrainingStore {
   generatePlan: () => void;
 }
 
-const phaseColors = {
-  'Umum': 'phase-umum',
-  'Khusus': 'phase-khusus',
-  'Pra-Komp': 'phase-prakomp',
-  'Kompetisi': 'phase-kompetisi',
-};
-
 export const useTrainingStore = create<TrainingStore>()(
   persist(
     (set, get) => ({
@@ -59,6 +58,23 @@ export const useTrainingStore = create<TrainingStore>()(
       },
       setSetup: (newSetup) => set((state) => ({
         setup: { ...state.setup, ...newSetup },
+      })),
+      
+      competitions: [],
+      setCompetitions: (competitions) => set({ competitions }),
+      addCompetition: () => set((state) => ({
+        competitions: [...state.competitions, { 
+          id: crypto.randomUUID(), 
+          name: `Kompetisi ${state.competitions.length + 1}`, 
+          date: state.setup.matchDate || '', 
+          isPrimary: state.competitions.length === 0 
+        }],
+      })),
+      removeCompetition: (id) => set((state) => ({
+        competitions: state.competitions.filter((c) => c.id !== id),
+      })),
+      updateCompetition: (id, data) => set((state) => ({
+        competitions: state.competitions.map((c) => c.id === id ? { ...c, ...data } : c),
       })),
       
       mesocycles: [],
@@ -95,13 +111,20 @@ export const useTrainingStore = create<TrainingStore>()(
       
       generatePlan: () => {
         const state = get();
-        const { startDate, matchDate } = state.setup;
+        const { startDate } = state.setup;
+        const competitions = state.competitions;
         
-        if (!startDate || !matchDate) return;
+        if (!startDate || competitions.length === 0) return;
+        
+        // Find the latest competition date
+        const sortedCompetitions = [...competitions].sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        const lastDate = sortedCompetitions[0].date;
         
         const start = new Date(startDate);
-        const match = new Date(matchDate);
-        const totalWks = Math.ceil((match.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7));
+        const end = new Date(lastDate);
+        const totalWks = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7));
         
         if (totalWks <= 0) return;
         
@@ -116,7 +139,7 @@ export const useTrainingStore = create<TrainingStore>()(
           c++;
         }
         
-        // Generate plan data
+        // Generate plan data with competition markers
         const plan: PlanWeek[] = [];
         let wkCount = 1;
         
@@ -124,10 +147,25 @@ export const useTrainingStore = create<TrainingStore>()(
           for (let i = 1; i <= m.weeks; i++) {
             if (wkCount > totalWks) break;
             const prog = wkCount / totalWks;
+            const weekDate = new Date(start);
+            weekDate.setDate(weekDate.getDate() + (wkCount - 1) * 7);
+            
+            // Check if any competition falls in this week
+            const competitionThisWeek = competitions.find(comp => {
+              const compDate = new Date(comp.date);
+              const weekEnd = new Date(weekDate);
+              weekEnd.setDate(weekEnd.getDate() + 6);
+              return compDate >= weekDate && compDate <= weekEnd;
+            });
             
             let fase: PlanWeek['fase'] = prog <= 0.4 ? 'Umum' : 
                                           prog <= 0.7 ? 'Khusus' : 
                                           prog <= 0.9 ? 'Pra-Komp' : 'Kompetisi';
+            
+            // Force Kompetisi phase for competition weeks
+            if (competitionThisWeek) {
+              fase = 'Kompetisi';
+            }
             
             let v = fase === 'Umum' ? 90 : 
                     fase === 'Khusus' ? 75 : 
@@ -143,7 +181,14 @@ export const useTrainingStore = create<TrainingStore>()(
               int -= 5;
             }
             
-            plan.push({ wk: wkCount, meso: m.name, fase, vol: v, int });
+            plan.push({ 
+              wk: wkCount, 
+              meso: m.name, 
+              fase, 
+              vol: v, 
+              int,
+              competitionId: competitionThisWeek?.id
+            });
             wkCount++;
           }
         });
