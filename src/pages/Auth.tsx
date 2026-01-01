@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import hirocrossLogo from '@/assets/hirocross-logo.png';
+import hirocrossLogo from '@/assets/hirocross-logo-new.png';
 
 export default function Auth() {
   const navigate = useNavigate();
