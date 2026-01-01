@@ -5,13 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
-import { Mesocycle, PlanWeek } from '@/types/training';
+import { Plus, Trash2, Loader2, Trophy, Star } from 'lucide-react';
+import { Mesocycle, PlanWeek, Competition } from '@/types/training';
+import { cn } from '@/lib/utils';
 
 export function SetupSection() {
-  const { setup, setSetup, generatePlan, setActiveTab, mesocycles, planData, setMesocycles, setPlanData, setTotalWeeks } = useTrainingStore();
+  const { 
+    setup, 
+    setSetup, 
+    generatePlan, 
+    setActiveTab, 
+    mesocycles, 
+    planData, 
+    setMesocycles, 
+    setPlanData, 
+    setTotalWeeks,
+    competitions,
+    setCompetitions,
+    addCompetition,
+    removeCompetition,
+    updateCompetition,
+  } = useTrainingStore();
+  
   const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, createNewProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
 
@@ -33,9 +49,13 @@ export function SetupSection() {
       
       const loadedMeso = currentProgram.mesocycles as unknown as Mesocycle[] || [];
       const loadedPlan = currentProgram.plan_data as unknown as PlanWeek[] || [];
+      const loadedCompetitions = (currentProgram as any).competitions as unknown as Competition[] || [];
       
       setMesocycles(loadedMeso);
       setPlanData(loadedPlan);
+      setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : [
+        { id: crypto.randomUUID(), name: 'Kompetisi Utama', date: currentProgram.match_date, isPrimary: true }
+      ]);
       
       if (loadedPlan.length > 0) {
         setTotalWeeks(loadedPlan.length);
@@ -44,16 +64,19 @@ export function SetupSection() {
   }, [currentProgram?.id]);
 
   const handleGenerate = async () => {
-    if (!setup.startDate || !setup.matchDate) {
-      toast.error('Pilih tanggal mulai dan target tanding!');
+    if (!setup.startDate || competitions.length === 0) {
+      toast.error('Pilih tanggal mulai dan minimal satu kompetisi!');
       return;
     }
 
     const start = new Date(setup.startDate);
-    const match = new Date(setup.matchDate);
+    const hasValidCompetition = competitions.some(c => {
+      const compDate = new Date(c.date);
+      return compDate > start;
+    });
     
-    if (match <= start) {
-      toast.error('Tanggal target harus setelah tanggal mulai!');
+    if (!hasValidCompetition) {
+      toast.error('Minimal satu kompetisi harus setelah tanggal mulai!');
       return;
     }
 
@@ -63,13 +86,13 @@ export function SetupSection() {
   };
 
   const handleSave = async () => {
-    if (!setup.startDate || !setup.matchDate) {
+    if (!setup.startDate || competitions.length === 0) {
       toast.error('Lengkapi data program terlebih dahulu!');
       return;
     }
 
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData);
+    await saveProgram(setup, mesocycles, planData, competitions);
     setSaving(false);
   };
 
@@ -94,12 +117,23 @@ export function SetupSection() {
     setMesocycles([]);
     setPlanData([]);
     setTotalWeeks(0);
+    setCompetitions([]);
   };
 
   const handleDeleteProgram = async (programId: string) => {
     if (confirm('Yakin ingin menghapus program ini?')) {
       await deleteProgram(programId);
     }
+  };
+
+  const setPrimaryCompetition = (id: string) => {
+    competitions.forEach(c => {
+      if (c.id === id) {
+        updateCompetition(c.id, { isPrimary: true });
+      } else if (c.isPrimary) {
+        updateCompetition(c.id, { isPrimary: false });
+      }
+    });
   };
 
   if (loading) {
@@ -164,8 +198,8 @@ export function SetupSection() {
             {currentProgram ? 'Edit Program' : 'Parameter Master Program'}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="col-span-2">
               <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
                 Nama Program
@@ -177,7 +211,7 @@ export function SetupSection() {
               />
             </div>
             
-            <div>
+            <div className="col-span-2">
               <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
                 Mulai Tanggal
               </Label>
@@ -188,94 +222,149 @@ export function SetupSection() {
                 className="mt-1.5"
               />
             </div>
+          </div>
+
+          {/* Competitions Section */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                <Trophy className="w-4 h-4" />
+                Daftar Kompetisi
+              </Label>
+              <Button onClick={addCompetition} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah Kompetisi
+              </Button>
+            </div>
             
-            <div>
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                Target Tanding
-              </Label>
-              <Input
-                type="date"
-                value={setup.matchDate}
-                onChange={(e) => setSetup({ matchDate: e.target.value })}
-                className="mt-1.5"
-              />
-            </div>
+            {competitions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg">
+                Belum ada kompetisi. Tambahkan minimal satu kompetisi.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {competitions.map((comp, index) => (
+                  <div 
+                    key={comp.id} 
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border transition-all",
+                      comp.isPrimary ? "border-accent bg-accent/5" : "border-border"
+                    )}
+                  >
+                    <button
+                      onClick={() => setPrimaryCompetition(comp.id)}
+                      className={cn(
+                        "p-1.5 rounded-full transition-colors",
+                        comp.isPrimary 
+                          ? "text-accent bg-accent/20" 
+                          : "text-muted-foreground hover:text-accent"
+                      )}
+                      title={comp.isPrimary ? "Kompetisi Utama" : "Jadikan Kompetisi Utama"}
+                    >
+                      <Star className={cn("w-4 h-4", comp.isPrimary && "fill-current")} />
+                    </button>
+                    
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <Input
+                        value={comp.name}
+                        onChange={(e) => updateCompetition(comp.id, { name: e.target.value })}
+                        placeholder="Nama Kompetisi"
+                        className="h-9"
+                      />
+                      <Input
+                        type="date"
+                        value={comp.date}
+                        onChange={(e) => updateCompetition(comp.id, { date: e.target.value })}
+                        className="h-9"
+                      />
+                    </div>
+                    
+                    <button 
+                      onClick={() => removeCompetition(comp.id)}
+                      className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                      disabled={competitions.length === 1}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-            <div>
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                Kekuatan (kg)
-              </Label>
-              <Input
-                type="number"
-                value={setup.targets.strength}
-                onChange={(e) => setSetup({ 
-                  targets: { ...setup.targets, strength: Number(e.target.value) }
-                })}
-                className="mt-1.5"
-              />
-            </div>
+          {/* Target Section */}
+          <div>
+            <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide mb-3 block">
+              Target Biomotor
+            </Label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Kekuatan (kg)</Label>
+                <Input
+                  type="number"
+                  value={setup.targets.strength}
+                  onChange={(e) => setSetup({ 
+                    targets: { ...setup.targets, strength: Number(e.target.value) }
+                  })}
+                  className="mt-1"
+                />
+              </div>
 
-            <div>
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                Kecepatan (m)
-              </Label>
-              <Input
-                type="number"
-                value={setup.targets.speed}
-                onChange={(e) => setSetup({ 
-                  targets: { ...setup.targets, speed: Number(e.target.value) }
-                })}
-                className="mt-1.5"
-              />
-            </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Kecepatan (m)</Label>
+                <Input
+                  type="number"
+                  value={setup.targets.speed}
+                  onChange={(e) => setSetup({ 
+                    targets: { ...setup.targets, speed: Number(e.target.value) }
+                  })}
+                  className="mt-1"
+                />
+              </div>
 
-            <div>
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                Daya Tahan (km)
-              </Label>
-              <Input
-                type="number"
-                value={setup.targets.endurance}
-                onChange={(e) => setSetup({ 
-                  targets: { ...setup.targets, endurance: Number(e.target.value) }
-                })}
-                className="mt-1.5"
-              />
-            </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Daya Tahan (km)</Label>
+                <Input
+                  type="number"
+                  value={setup.targets.endurance}
+                  onChange={(e) => setSetup({ 
+                    targets: { ...setup.targets, endurance: Number(e.target.value) }
+                  })}
+                  className="mt-1"
+                />
+              </div>
 
-            <div>
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                Teknik (rep)
-              </Label>
-              <Input
-                type="number"
-                value={setup.targets.technique}
-                onChange={(e) => setSetup({ 
-                  targets: { ...setup.targets, technique: Number(e.target.value) }
-                })}
-                className="mt-1.5"
-              />
-            </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Teknik (rep)</Label>
+                <Input
+                  type="number"
+                  value={setup.targets.technique}
+                  onChange={(e) => setSetup({ 
+                    targets: { ...setup.targets, technique: Number(e.target.value) }
+                  })}
+                  className="mt-1"
+                />
+              </div>
 
-            <div>
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                Taktik (rep)
-              </Label>
-              <Input
-                type="number"
-                value={setup.targets.tactic}
-                onChange={(e) => setSetup({ 
-                  targets: { ...setup.targets, tactic: Number(e.target.value) }
-                })}
-                className="mt-1.5"
-              />
+              <div>
+                <Label className="text-xs text-muted-foreground">Taktik (rep)</Label>
+                <Input
+                  type="number"
+                  value={setup.targets.tactic}
+                  onChange={(e) => setSetup({ 
+                    targets: { ...setup.targets, tactic: Number(e.target.value) }
+                  })}
+                  className="mt-1"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-3 mt-6">
+          <div className="flex gap-3">
             <Button
               onClick={handleGenerate}
               className="flex-1 h-12 text-sm font-extrabold bg-primary hover:bg-primary/90"
+              disabled={competitions.length === 0}
             >
               GENERATE PROGRAM
             </Button>

@@ -3,12 +3,20 @@ export interface Mesocycle {
   weeks: number;
 }
 
+export interface Competition {
+  id: string;
+  name: string;
+  date: string;
+  isPrimary: boolean;
+}
+
 export interface PlanWeek {
   wk: number;
   meso: string;
   fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi';
   vol: number;
   int: number;
+  competitionId?: string;
 }
 
 export interface Exercise {

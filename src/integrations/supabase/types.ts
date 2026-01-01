@@ -162,6 +162,7 @@ export type Database = {
       }
       training_programs: {
         Row: {
+          competitions: Json | null
           created_at: string
           id: string
           match_date: string
@@ -178,6 +179,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          competitions?: Json | null
           created_at?: string
           id?: string
           match_date: string
@@ -194,6 +196,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          competitions?: Json | null
           created_at?: string
           id?: string
           match_date?: string

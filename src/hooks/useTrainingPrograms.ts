@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup } from '@/types/training';
+import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition } from '@/types/training';
 import { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 
@@ -86,18 +86,23 @@ export function useTrainingPrograms() {
   const saveProgram = async (
     setup: ProgramSetup,
     mesocycles: Mesocycle[],
-    planData: PlanWeek[]
+    planData: PlanWeek[],
+    competitions: Competition[] = []
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
       return false;
     }
 
+    // Use the first competition date or matchDate for backwards compatibility
+    const primaryCompetition = competitions.find(c => c.isPrimary) || competitions[0];
+    const matchDate = primaryCompetition?.date || setup.matchDate;
+
     const programData: TrainingProgramInsert = {
       user_id: user.id,
       name: setup.planName,
       start_date: setup.startDate,
-      match_date: setup.matchDate,
+      match_date: matchDate,
       target_strength: setup.targets.strength,
       target_speed: setup.targets.speed,
       target_endurance: setup.targets.endurance,
@@ -105,6 +110,7 @@ export function useTrainingPrograms() {
       target_tactic: setup.targets.tactic,
       mesocycles: mesocycles as unknown as Json,
       plan_data: planData as unknown as Json,
+      competitions: competitions as unknown as Json,
     };
 
     if (currentProgram) {
