@@ -187,23 +187,26 @@ export function TestsSection() {
   // Get norm info for display
   const currentNorm = getNormForItem(form.category, form.item, currentGender);
 
-  // Build radar data
-  const radarData = categories.map(cat => {
-    const categoryResults = results.filter(
-      r => r.category === cat && (selectedAthlete === '__all__' || r.athlete_id === selectedAthlete)
-    );
-    
-    // Get latest score for each category
-    const latestResult = categoryResults.sort(
-      (a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime()
-    )[0];
+  // Build radar data - only include categories with completed tests
+  const radarData = categories
+    .map(cat => {
+      const categoryResults = results.filter(
+        r => r.category === cat && (selectedAthlete === '__all__' || r.athlete_id === selectedAthlete)
+      );
+      
+      // Get latest score for each category
+      const latestResult = categoryResults.sort(
+        (a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime()
+      )[0];
 
-    return {
-      category: cat,
-      score: latestResult?.score || 0,
-      fullMark: 5,
-    };
-  });
+      return {
+        category: cat,
+        score: latestResult?.score || 0,
+        fullMark: 5,
+        hasData: categoryResults.length > 0,
+      };
+    })
+    .filter(item => item.hasData);
 
   const scoreLabels: Record<number, string> = {
     1: 'Sangat Kurang',
