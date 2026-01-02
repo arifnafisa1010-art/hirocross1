@@ -2,7 +2,7 @@ import { useTrainingStore } from '@/stores/trainingStore';
 import { useAuth } from '@/hooks/useAuth';
 import { TabId } from '@/types/training';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/hirocross-logo.png';
+import logo from '@/assets/hirocross-logo-new.png';
 import { toast } from 'sonner';
 
 const tabs: { id: TabId; label: string }[] = [
