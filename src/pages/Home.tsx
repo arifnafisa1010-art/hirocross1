@@ -3,43 +3,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Target, Activity, ClipboardList, TrendingUp, Users } from 'lucide-react';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
-
-const features = [
-  {
-    icon: Calendar,
-    title: 'Annual Plan',
-    description: 'Rancang periodisasi latihan tahunan dengan visualisasi grafis yang jelas',
-  },
-  {
-    icon: Target,
-    title: 'Multi-Competition',
-    description: 'Kelola beberapa kompetisi dalam satu rencana dengan target tanggal terpisah',
-  },
-  {
-    icon: Activity,
-    title: 'Monthly Planning',
-    description: 'Detail perencanaan latihan bulanan dengan sesi latihan harian',
-  },
-  {
-    icon: ClipboardList,
-    title: 'Monitoring',
-    description: 'Pantau pelaksanaan program latihan dengan checklist dan catatan',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Tes & Pengukuran',
-    description: 'Rekam dan analisis hasil tes fisik atlet dengan radar chart',
-  },
-  {
-    icon: Users,
-    title: 'Manajemen Atlet',
-    description: 'Kelola data atlet dan pantau perkembangan performa mereka',
-  },
-];
-
+const features = [{
+  icon: Calendar,
+  title: 'Annual Plan',
+  description: 'Rancang periodisasi latihan tahunan dengan visualisasi grafis yang jelas'
+}, {
+  icon: Target,
+  title: 'Multi-Competition',
+  description: 'Kelola beberapa kompetisi dalam satu rencana dengan target tanggal terpisah'
+}, {
+  icon: Activity,
+  title: 'Monthly Planning',
+  description: 'Detail perencanaan latihan bulanan dengan sesi latihan harian'
+}, {
+  icon: ClipboardList,
+  title: 'Monitoring',
+  description: 'Pantau pelaksanaan program latihan dengan checklist dan catatan'
+}, {
+  icon: TrendingUp,
+  title: 'Tes & Pengukuran',
+  description: 'Rekam dan analisis hasil tes fisik atlet dengan radar chart'
+}, {
+  icon: Users,
+  title: 'Manajemen Atlet',
+  description: 'Kelola data atlet dan pantau perkembangan performa mereka'
+}];
 export default function Home() {
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -60,14 +50,8 @@ export default function Home() {
       {/* Hero Section */}
       <section className="container mx-auto px-6 py-20 text-center">
         <div className="max-w-3xl mx-auto">
-          <img 
-            src={hirocrossLogo} 
-            alt="HiroCross Logo" 
-            className="w-24 h-24 mx-auto mb-8 rounded-2xl shadow-lg"
-          />
-          <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-6 tracking-tight">
-            HiroCross Plan
-          </h1>
+          <img src={hirocrossLogo} alt="HiroCross Logo" className="w-24 h-24 mx-auto mb-8 rounded-2xl shadow-lg" />
+          <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-6 tracking-tight">HIROCROSS Plan</h1>
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
             Aplikasi periodisasi latihan untuk pelatih olahraga. 
             Rancang, kelola, dan pantau program latihan atlet Anda dengan mudah dan efisien.
@@ -87,8 +71,7 @@ export default function Home() {
             Fitur Utama
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
-              <Card key={feature.title} className="bg-card hover:shadow-lg transition-shadow">
+            {features.map(feature => <Card key={feature.title} className="bg-card hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                     <feature.icon className="w-6 h-6 text-primary" />
@@ -100,8 +83,7 @@ export default function Home() {
                     {feature.description}
                   </p>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -129,6 +111,5 @@ export default function Home() {
           <p>© 2025 HiroCross. Aplikasi periodisasi latihan untuk pelatih.</p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }
