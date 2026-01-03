@@ -1,18 +1,23 @@
 import { useState, useMemo } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
+import { useAthletes } from '@/hooks/useAthletes';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
+import { Users } from 'lucide-react';
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions } = useTrainingStore();
+  const { planData, setup, sessions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
+  const { athletes } = useAthletes();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ week: number; day: string } | null>(null);
+  const [showAthleteSelector, setShowAthleteSelector] = useState(false);
 
   // Group weeks into months (4 weeks per month)
   const months = useMemo(() => {
@@ -36,6 +41,22 @@ export function MonthlySection() {
     setModalOpen(true);
   };
 
+  const toggleAthleteSelection = (athleteId: string) => {
+    if (selectedAthleteIds.includes(athleteId)) {
+      setSelectedAthleteIds(selectedAthleteIds.filter(id => id !== athleteId));
+    } else {
+      setSelectedAthleteIds([...selectedAthleteIds, athleteId]);
+    }
+  };
+
+  const selectAllAthletes = () => {
+    setSelectedAthleteIds(athletes.map(a => a.id));
+  };
+
+  const clearAthleteSelection = () => {
+    setSelectedAthleteIds([]);
+  };
+
   if (planData.length === 0) {
     return (
       <div className="animate-fade-in text-center py-20">
@@ -49,24 +70,108 @@ export function MonthlySection() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-extrabold">Kalender Kerja Bulanan</h2>
-        <Select
-          value={selectedMonth.toString()}
-          onValueChange={(v) => setSelectedMonth(parseInt(v))}
-        >
-          <SelectTrigger className="w-64">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((m, i) => (
-              <SelectItem key={i} value={i.toString()}>
-                {m.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          {/* Athlete Selection */}
+          <div className="relative">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAthleteSelector(!showAthleteSelector)}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              {selectedAthleteIds.length === 0 
+                ? 'Pilih Atlet' 
+                : selectedAthleteIds.length === 1 
+                  ? athletes.find(a => a.id === selectedAthleteIds[0])?.name 
+                  : `${selectedAthleteIds.length} Atlet`}
+            </Button>
+            
+            {showAthleteSelector && (
+              <Card className="absolute right-0 top-full mt-2 z-50 w-72 shadow-lg">
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-bold text-muted-foreground uppercase">Pilih Atlet</span>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={selectAllAthletes} className="text-xs h-7">
+                        Semua
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={clearAthleteSelection} className="text-xs h-7">
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {athletes.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">
+                        Belum ada atlet. Tambahkan di Tes & Pengukuran.
+                      </p>
+                    ) : (
+                      athletes.map(athlete => (
+                        <label 
+                          key={athlete.id} 
+                          className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50 cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={selectedAthleteIds.includes(athlete.id)}
+                            onCheckedChange={() => toggleAthleteSelection(athlete.id)}
+                          />
+                          <span className="text-sm font-medium">{athlete.name}</span>
+                          {athlete.sport && (
+                            <span className="text-[10px] text-muted-foreground">({athlete.sport})</span>
+                          )}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="w-full mt-3" 
+                    onClick={() => setShowAthleteSelector(false)}
+                  >
+                    Selesai
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+          
+          <Select
+            value={selectedMonth.toString()}
+            onValueChange={(v) => setSelectedMonth(parseInt(v))}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m, i) => (
+                <SelectItem key={i} value={i.toString()}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Selected Athletes Display */}
+      {selectedAthleteIds.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold text-muted-foreground">Program untuk:</span>
+          {selectedAthleteIds.map(id => {
+            const athlete = athletes.find(a => a.id === id);
+            return athlete ? (
+              <span 
+                key={id} 
+                className="px-2 py-1 bg-accent/20 text-accent text-xs font-semibold rounded-full"
+              >
+                {athlete.name}
+              </span>
+            ) : null;
+          })}
+        </div>
+      )}
 
       <div className="space-y-5">
         {currentMonthWeeks.map((wk) => {

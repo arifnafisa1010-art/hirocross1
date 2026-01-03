@@ -61,7 +61,36 @@ export function MonitoringSection() {
     };
   }, [planData, sessions]);
 
-  // Monthly data for comparison chart
+  // RPE progress data per week
+  const rpeProgressData = useMemo(() => {
+    const data: { week: string; avgRpe: number; totalDuration: number }[] = [];
+    
+    planData.forEach((pw) => {
+      const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+      let totalRpe = 0;
+      let rpeCount = 0;
+      let totalDur = 0;
+      
+      days.forEach((d) => {
+        const session = sessions[`W${pw.wk}-${d}`];
+        if (session?.rpe) {
+          totalRpe += session.rpe;
+          rpeCount++;
+        }
+        if (session?.duration) {
+          totalDur += session.duration;
+        }
+      });
+      
+      data.push({
+        week: `W${pw.wk}`,
+        avgRpe: rpeCount > 0 ? Math.round((totalRpe / rpeCount) * 10) / 10 : 0,
+        totalDuration: totalDur,
+      });
+    });
+    
+    return data;
+  }, [planData, sessions]);
   const monthlyData = useMemo(() => {
     const data: { name: string; plan: number; real: number }[] = [];
     
@@ -294,6 +323,81 @@ export function MonitoringSection() {
           </div>
           <div className="mt-4 p-3 bg-secondary/50 rounded-lg text-xs font-bold text-center">
             Index 100% berarti semua sesi latihan dilaksanakan sesuai rencana.
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* RPE Progress Chart */}
+      <Card className="border-border shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base">📊 Progres RPE Per Minggu</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Rata-rata RPE dan total durasi latihan per minggu
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={rpeProgressData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="week" 
+                  tick={{ fontSize: 10, fontWeight: 600 }}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <YAxis 
+                  yAxisId="left"
+                  domain={[0, 10]}
+                  tick={{ fontSize: 10, fontWeight: 600 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  label={{ value: 'RPE', angle: -90, position: 'insideLeft', fontSize: 10 }}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 10, fontWeight: 600 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  label={{ value: 'Durasi (menit)', angle: 90, position: 'insideRight', fontSize: 10 }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value, name) => [
+                    name === 'avgRpe' ? `${value}` : `${value} menit`,
+                    name === 'avgRpe' ? 'Rata-rata RPE' : 'Total Durasi'
+                  ]}
+                />
+                <Line 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="avgRpe" 
+                  stroke="hsl(var(--destructive))"
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--destructive))', strokeWidth: 2 }}
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="totalDuration" 
+                  stroke="hsl(var(--accent))"
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-destructive"></div>
+              <span className="text-xs font-semibold">Rata-rata RPE</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-accent"></div>
+              <span className="text-xs font-semibold">Total Durasi (menit)</span>
+            </div>
           </div>
         </CardContent>
       </Card>

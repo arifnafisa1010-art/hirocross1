@@ -90,6 +90,7 @@ export function TestsSection() {
     birthDate: '',
     weight: '',
     sport: '',
+    restingHr: '',
   });
 
   // Get current athlete gender for norm lookup
@@ -168,12 +169,13 @@ export function TestsSection() {
       birth_date: newAthlete.birthDate || null,
       weight: newAthlete.weight ? parseFloat(newAthlete.weight) : null,
       sport: newAthlete.sport || null,
+      resting_hr: newAthlete.restingHr ? parseInt(newAthlete.restingHr) : 60,
     });
 
     if (result) {
       setForm(prev => ({ ...prev, athleteId: result.id }));
       setNewAthleteDialog(false);
-      setNewAthlete({ name: '', gender: 'M', birthDate: '', weight: '', sport: '' });
+      setNewAthlete({ name: '', gender: 'M', birthDate: '', weight: '', sport: '', restingHr: '' });
     }
   };
 
@@ -322,6 +324,19 @@ export function TestsSection() {
                             className="mt-1.5"
                           />
                         </div>
+                      </div>
+                      <div>
+                        <Label>Resting Heart Rate (bpm)</Label>
+                        <Input
+                          type="number"
+                          value={newAthlete.restingHr}
+                          onChange={(e) => setNewAthlete({ ...newAthlete, restingHr: e.target.value })}
+                          placeholder="60"
+                          className="mt-1.5"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Ukur saat bangun tidur. Default: 60 bpm
+                        </p>
                       </div>
                       <Button onClick={handleAddAthlete} className="w-full">
                         Tambah Atlet
@@ -548,8 +563,8 @@ export function TestsSection() {
             
             // Max HR using Tanaka formula (208 - 0.7 x age)
             const maxHR = Math.round(208 - (0.7 * age));
-            // Resting HR estimate (default 60 bpm)
-            const restingHR = 60;
+            // Resting HR from athlete data or default 60 bpm
+            const restingHR = athlete.resting_hr || 60;
             // Heart Rate Reserve
             const hrr = maxHR - restingHR;
 
@@ -579,7 +594,7 @@ export function TestsSection() {
                     <p className="text-lg font-bold text-destructive">{maxHR} bpm</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Resting HR (Est.)</p>
+                    <p className="text-xs text-muted-foreground">Resting HR</p>
                     <p className="text-lg font-bold">{restingHR} bpm</p>
                   </div>
                   <div className="text-center">
