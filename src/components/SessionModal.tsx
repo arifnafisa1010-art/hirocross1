@@ -30,6 +30,8 @@ const defaultSession: DaySession = {
   recovery: '',
   int: 'Rest',
   isDone: false,
+  rpe: undefined,
+  duration: undefined,
 };
 
 const defaultExercise: Exercise = {
@@ -237,6 +239,42 @@ export function SessionModal({ open, onOpenChange, week, day }: SessionModalProp
               className="mt-1.5 bg-card"
               rows={2}
             />
+          </div>
+
+          {/* RPE & Duration */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-2">
+                💪 RPE (1-10)
+              </Label>
+              <Select
+                value={session.rpe?.toString() || ''}
+                onValueChange={(v) => setSession(prev => ({ ...prev, rpe: v ? Number(v) : undefined }))}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Pilih RPE..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                    <SelectItem key={n} value={n.toString()}>
+                      {n} - {n <= 2 ? 'Sangat Ringan' : n <= 4 ? 'Ringan' : n <= 6 ? 'Sedang' : n <= 8 ? 'Berat' : 'Maksimal'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-2">
+                ⏱️ Durasi (menit)
+              </Label>
+              <Input
+                type="number"
+                value={session.duration || ''}
+                onChange={(e) => setSession(prev => ({ ...prev, duration: e.target.value ? Number(e.target.value) : undefined }))}
+                placeholder="Contoh: 60"
+                className="mt-1.5"
+              />
+            </div>
           </div>
         </div>
 

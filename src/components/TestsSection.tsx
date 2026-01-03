@@ -505,7 +505,118 @@ export function TestsSection() {
         </CardContent>
       </Card>
 
-      {/* Test History Table */}
+      {/* Heart Rate Training Zones */}
+      <Card className="border-border shadow-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Zona Latihan Berdasarkan Heart Rate</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Berdasarkan RPE 1-10 dan dihitung dari tanggal lahir atlet menggunakan rumus Karvonen
+              </p>
+            </div>
+            <Select
+              value={selectedAthlete === '__all__' ? '' : selectedAthlete}
+              onValueChange={(v) => setSelectedAthlete(v || '__all__')}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Pilih Atlet" />
+              </SelectTrigger>
+              <SelectContent>
+                {athletes.filter(a => a.birth_date).map(a => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const athlete = athletes.find(a => a.id === selectedAthlete);
+            if (!athlete?.birth_date) {
+              return (
+                <p className="text-center text-muted-foreground py-8">
+                  Pilih atlet yang memiliki tanggal lahir untuk melihat zona HR
+                </p>
+              );
+            }
+
+            // Calculate age
+            const birthDate = new Date(athlete.birth_date);
+            const today = new Date();
+            const age = today.getFullYear() - birthDate.getFullYear();
+            
+            // Max HR using Tanaka formula (208 - 0.7 x age)
+            const maxHR = Math.round(208 - (0.7 * age));
+            // Resting HR estimate (default 60 bpm)
+            const restingHR = 60;
+            // Heart Rate Reserve
+            const hrr = maxHR - restingHR;
+
+            // RPE to HR Zone mapping (Karvonen method)
+            const zones = [
+              { rpe: '1-2', zone: 'Zona 1 (Pemulihan)', intensity: '50-60%', hrMin: Math.round(restingHR + (hrr * 0.5)), hrMax: Math.round(restingHR + (hrr * 0.6)), color: 'bg-blue-100 text-blue-700 border-blue-300' },
+              { rpe: '3-4', zone: 'Zona 2 (Aerobik Dasar)', intensity: '60-70%', hrMin: Math.round(restingHR + (hrr * 0.6)), hrMax: Math.round(restingHR + (hrr * 0.7)), color: 'bg-green-100 text-green-700 border-green-300' },
+              { rpe: '5-6', zone: 'Zona 3 (Aerobik)', intensity: '70-80%', hrMin: Math.round(restingHR + (hrr * 0.7)), hrMax: Math.round(restingHR + (hrr * 0.8)), color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+              { rpe: '7-8', zone: 'Zona 4 (Ambang Laktat)', intensity: '80-90%', hrMin: Math.round(restingHR + (hrr * 0.8)), hrMax: Math.round(restingHR + (hrr * 0.9)), color: 'bg-orange-100 text-orange-700 border-orange-300' },
+              { rpe: '9-10', zone: 'Zona 5 (VO2Max)', intensity: '90-100%', hrMin: Math.round(restingHR + (hrr * 0.9)), hrMax: maxHR, color: 'bg-red-100 text-red-700 border-red-300' },
+            ];
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-3 bg-secondary/50 rounded-lg">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Usia</p>
+                    <p className="text-lg font-bold">{age} tahun</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">HR Max</p>
+                    <p className="text-lg font-bold text-destructive">{maxHR} bpm</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Resting HR (Est.)</p>
+                    <p className="text-lg font-bold">{restingHR} bpm</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">HRR</p>
+                    <p className="text-lg font-bold text-accent">{hrr} bpm</p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-secondary/50">
+                        <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">RPE</th>
+                        <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Zona Latihan</th>
+                        <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Intensitas</th>
+                        <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">HR Range</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {zones.map((z, i) => (
+                        <tr key={i} className="border-t border-border/50">
+                          <td className="p-3 text-center">
+                            <span className={`px-3 py-1 rounded-full text-sm font-bold border ${z.color}`}>
+                              {z.rpe}
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm font-semibold">{z.zone}</td>
+                          <td className="p-3 text-sm text-center">{z.intensity}</td>
+                          <td className="p-3 text-center">
+                            <span className="font-bold text-accent">{z.hrMin} - {z.hrMax}</span>
+                            <span className="text-muted-foreground text-xs ml-1">bpm</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+        </CardContent>
+      </Card>
       <Card className="border-border shadow-card">
         <CardHeader>
           <CardTitle className="text-base">Riwayat Tes</CardTitle>
