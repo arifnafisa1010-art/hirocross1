@@ -133,6 +133,20 @@ export function MonthlySection() {
                       </div>
                     )}
 
+                    {/* RPE & Duration display */}
+                    <div className="absolute bottom-2 left-2 flex gap-1.5">
+                      {session?.rpe && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">
+                          RPE {session.rpe}
+                        </span>
+                      )}
+                      {session?.duration && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                          {session.duration}m
+                        </span>
+                      )}
+                    </div>
+
                     {isDone && (
                       <div className="absolute bottom-2 right-2 bg-success text-success-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">
                         ✓

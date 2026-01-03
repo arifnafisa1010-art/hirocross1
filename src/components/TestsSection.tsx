@@ -553,13 +553,18 @@ export function TestsSection() {
             // Heart Rate Reserve
             const hrr = maxHR - restingHR;
 
-            // RPE to HR Zone mapping (Karvonen method)
+            // RPE to HR Zone mapping (Karvonen method) - individual RPE 1-10
             const zones = [
-              { rpe: '1-2', zone: 'Zona 1 (Pemulihan)', intensity: '50-60%', hrMin: Math.round(restingHR + (hrr * 0.5)), hrMax: Math.round(restingHR + (hrr * 0.6)), color: 'bg-blue-100 text-blue-700 border-blue-300' },
-              { rpe: '3-4', zone: 'Zona 2 (Aerobik Dasar)', intensity: '60-70%', hrMin: Math.round(restingHR + (hrr * 0.6)), hrMax: Math.round(restingHR + (hrr * 0.7)), color: 'bg-green-100 text-green-700 border-green-300' },
-              { rpe: '5-6', zone: 'Zona 3 (Aerobik)', intensity: '70-80%', hrMin: Math.round(restingHR + (hrr * 0.7)), hrMax: Math.round(restingHR + (hrr * 0.8)), color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-              { rpe: '7-8', zone: 'Zona 4 (Ambang Laktat)', intensity: '80-90%', hrMin: Math.round(restingHR + (hrr * 0.8)), hrMax: Math.round(restingHR + (hrr * 0.9)), color: 'bg-orange-100 text-orange-700 border-orange-300' },
-              { rpe: '9-10', zone: 'Zona 5 (VO2Max)', intensity: '90-100%', hrMin: Math.round(restingHR + (hrr * 0.9)), hrMax: maxHR, color: 'bg-red-100 text-red-700 border-red-300' },
+              { rpe: 1, zone: 'Istirahat Aktif', intensity: '50-55%', hrMin: Math.round(restingHR + (hrr * 0.50)), hrMax: Math.round(restingHR + (hrr * 0.55)), color: 'bg-slate-100 text-slate-700 border-slate-300' },
+              { rpe: 2, zone: 'Pemulihan Ringan', intensity: '55-60%', hrMin: Math.round(restingHR + (hrr * 0.55)), hrMax: Math.round(restingHR + (hrr * 0.60)), color: 'bg-blue-100 text-blue-700 border-blue-300' },
+              { rpe: 3, zone: 'Aerobik Ringan', intensity: '60-65%', hrMin: Math.round(restingHR + (hrr * 0.60)), hrMax: Math.round(restingHR + (hrr * 0.65)), color: 'bg-cyan-100 text-cyan-700 border-cyan-300' },
+              { rpe: 4, zone: 'Aerobik Dasar', intensity: '65-70%', hrMin: Math.round(restingHR + (hrr * 0.65)), hrMax: Math.round(restingHR + (hrr * 0.70)), color: 'bg-green-100 text-green-700 border-green-300' },
+              { rpe: 5, zone: 'Aerobik Sedang', intensity: '70-75%', hrMin: Math.round(restingHR + (hrr * 0.70)), hrMax: Math.round(restingHR + (hrr * 0.75)), color: 'bg-lime-100 text-lime-700 border-lime-300' },
+              { rpe: 6, zone: 'Tempo', intensity: '75-80%', hrMin: Math.round(restingHR + (hrr * 0.75)), hrMax: Math.round(restingHR + (hrr * 0.80)), color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+              { rpe: 7, zone: 'Ambang Laktat', intensity: '80-85%', hrMin: Math.round(restingHR + (hrr * 0.80)), hrMax: Math.round(restingHR + (hrr * 0.85)), color: 'bg-amber-100 text-amber-700 border-amber-300' },
+              { rpe: 8, zone: 'VO2Max Submaksimal', intensity: '85-90%', hrMin: Math.round(restingHR + (hrr * 0.85)), hrMax: Math.round(restingHR + (hrr * 0.90)), color: 'bg-orange-100 text-orange-700 border-orange-300' },
+              { rpe: 9, zone: 'VO2Max', intensity: '90-95%', hrMin: Math.round(restingHR + (hrr * 0.90)), hrMax: Math.round(restingHR + (hrr * 0.95)), color: 'bg-red-100 text-red-600 border-red-300' },
+              { rpe: 10, zone: 'Maksimal', intensity: '95-100%', hrMin: Math.round(restingHR + (hrr * 0.95)), hrMax: maxHR, color: 'bg-red-200 text-red-800 border-red-400' },
             ];
 
             return (
