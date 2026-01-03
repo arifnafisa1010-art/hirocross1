@@ -7,6 +7,8 @@ import { AnnualPlanSection } from '@/components/AnnualPlanSection';
 import { MonthlySection } from '@/components/MonthlySection';
 import { MonitoringSection } from '@/components/MonitoringSection';
 import { TestsSection } from '@/components/TestsSection';
+import { AppSidebar } from '@/components/AppSidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 const Index = () => {
   const { activeTab } = useTrainingStore();
@@ -21,19 +23,25 @@ const Index = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <Header />
-        
-        <main className="container py-8">
-          {activeTab === 'setup' && <SetupSection />}
-          {activeTab === 'annual' && <AnnualPlanSection />}
-          {activeTab === 'monthly' && <MonthlySection />}
-          {activeTab === 'monitoring' && <MonitoringSection />}
-          {activeTab === 'tests' && <TestsSection />}
-        </main>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <AppSidebar />
+          
+          <div className="flex-1 flex flex-col">
+            <Header />
+            
+            <main className="flex-1 p-6 overflow-auto">
+              {activeTab === 'setup' && <SetupSection />}
+              {activeTab === 'annual' && <AnnualPlanSection />}
+              {activeTab === 'monthly' && <MonthlySection />}
+              {activeTab === 'monitoring' && <MonitoringSection />}
+              {activeTab === 'tests' && <TestsSection />}
+            </main>
 
-        <FloatingDock />
-      </div>
+            <FloatingDock />
+          </div>
+        </div>
+      </SidebarProvider>
     </>
   );
 };
