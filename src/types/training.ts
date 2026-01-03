@@ -34,6 +34,8 @@ export interface DaySession {
   recovery: string;
   int: 'Rest' | 'Low' | 'Med' | 'High';
   isDone: boolean;
+  rpe?: number;
+  duration?: number;
 }
 
 export interface ProgramSetup {
