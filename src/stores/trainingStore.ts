@@ -6,6 +6,9 @@ interface TrainingStore {
   activeTab: TabId;
   setActiveTab: (tab: TabId) => void;
   
+  selectedAthleteIds: string[];
+  setSelectedAthleteIds: (ids: string[]) => void;
+  
   setup: ProgramSetup;
   setSetup: (setup: Partial<ProgramSetup>) => void;
   
@@ -43,6 +46,9 @@ export const useTrainingStore = create<TrainingStore>()(
     (set, get) => ({
       activeTab: 'setup',
       setActiveTab: (tab) => set({ activeTab: tab }),
+      
+      selectedAthleteIds: [],
+      setSelectedAthleteIds: (ids) => set({ selectedAthleteIds: ids }),
       
       setup: {
         planName: 'Annual Plan 2025',

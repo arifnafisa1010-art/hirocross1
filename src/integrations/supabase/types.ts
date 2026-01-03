@@ -24,6 +24,7 @@ export type Database = {
           name: string
           notes: string | null
           position: string | null
+          resting_hr: number | null
           sport: string | null
           updated_at: string
           user_id: string | null
@@ -38,6 +39,7 @@ export type Database = {
           name: string
           notes?: string | null
           position?: string | null
+          resting_hr?: number | null
           sport?: string | null
           updated_at?: string
           user_id?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           name?: string
           notes?: string | null
           position?: string | null
+          resting_hr?: number | null
           sport?: string | null
           updated_at?: string
           user_id?: string | null
@@ -162,6 +165,7 @@ export type Database = {
       }
       training_programs: {
         Row: {
+          athlete_ids: string[] | null
           competitions: Json | null
           created_at: string
           id: string
@@ -179,6 +183,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          athlete_ids?: string[] | null
           competitions?: Json | null
           created_at?: string
           id?: string
@@ -196,6 +201,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          athlete_ids?: string[] | null
           competitions?: Json | null
           created_at?: string
           id?: string
