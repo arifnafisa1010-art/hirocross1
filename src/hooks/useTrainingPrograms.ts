@@ -87,7 +87,8 @@ export function useTrainingPrograms() {
     setup: ProgramSetup,
     mesocycles: Mesocycle[],
     planData: PlanWeek[],
-    competitions: Competition[] = []
+    competitions: Competition[] = [],
+    athleteIds: string[] = []
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
@@ -111,6 +112,7 @@ export function useTrainingPrograms() {
       mesocycles: mesocycles as unknown as Json,
       plan_data: planData as unknown as Json,
       competitions: competitions as unknown as Json,
+      athlete_ids: athleteIds,
     };
 
     if (currentProgram) {

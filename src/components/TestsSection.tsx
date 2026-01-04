@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Loader2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTestNorms } from '@/hooks/useTestNorms';
@@ -67,7 +67,7 @@ const defaultUnits: Record<string, string> = {
 };
 
 export function TestsSection() {
-  const { athletes, loading: athletesLoading, addAthlete } = useAthletes();
+  const { athletes, loading: athletesLoading, addAthlete, updateAthlete } = useAthletes();
   const { calculateScore, getNormForItem, loading: normsLoading } = useTestNorms();
   const { results, loading: resultsLoading, addResult, deleteResult } = useTestResults();
   
@@ -92,6 +92,8 @@ export function TestsSection() {
     sport: '',
     restingHr: '',
   });
+  const [editingHrAthleteId, setEditingHrAthleteId] = useState<string | null>(null);
+  const [editingHrValue, setEditingHrValue] = useState('');
 
   // Get current athlete gender for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
@@ -584,7 +586,7 @@ export function TestsSection() {
 
             return (
               <div className="space-y-4">
-                <div className="flex items-center gap-4 p-3 bg-secondary/50 rounded-lg">
+                <div className="flex items-center gap-4 p-3 bg-secondary/50 rounded-lg flex-wrap">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Usia</p>
                     <p className="text-lg font-bold">{age} tahun</p>
@@ -595,7 +597,55 @@ export function TestsSection() {
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Resting HR</p>
-                    <p className="text-lg font-bold">{restingHR} bpm</p>
+                    {editingHrAthleteId === athlete.id ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Input
+                          type="number"
+                          value={editingHrValue}
+                          onChange={(e) => setEditingHrValue(e.target.value)}
+                          className="w-16 h-8 text-center text-sm"
+                          placeholder="60"
+                        />
+                        <Button 
+                          size="sm" 
+                          className="h-8 px-2"
+                          onClick={async () => {
+                            const newHr = parseInt(editingHrValue) || 60;
+                            await updateAthlete(athlete.id, { resting_hr: newHr });
+                            setEditingHrAthleteId(null);
+                            setEditingHrValue('');
+                          }}
+                        >
+                          ✓
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-8 px-2"
+                          onClick={() => {
+                            setEditingHrAthleteId(null);
+                            setEditingHrValue('');
+                          }}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <p className="text-lg font-bold">{restingHR} bpm</p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() => {
+                            setEditingHrAthleteId(athlete.id);
+                            setEditingHrValue(restingHR.toString());
+                          }}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">HRR</p>
