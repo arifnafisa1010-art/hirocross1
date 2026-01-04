@@ -17,6 +17,11 @@ export interface PlanWeek {
   vol: number;
   int: number;
   competitionId?: string;
+  tujuanKekuatan?: string;
+  tujuanKecepatan?: string;
+  tujuanDayaTahan?: string;
+  tujuanFleksibilitas?: string;
+  tujuanMental?: string;
 }
 
 export interface Exercise {
