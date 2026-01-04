@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   LineChart,
@@ -48,6 +48,30 @@ interface PhaseSettings {
   kompetisi: number;
 }
 
+interface TrainingBlock {
+  startWeek: number;
+  endWeek: number;
+  text: string;
+}
+
+interface TrainingBlocks {
+  kekuatan: TrainingBlock[];
+  kecepatan: TrainingBlock[];
+  dayaTahan: TrainingBlock[];
+  fleksibilitas: TrainingBlock[];
+  mental: TrainingBlock[];
+}
+
+type BlockCategory = keyof TrainingBlocks;
+
+const blockColors: Record<BlockCategory, { bg: string; text: string; border: string }> = {
+  kekuatan: { bg: 'bg-orange-500/30', text: 'text-orange-800', border: 'border-orange-500' },
+  kecepatan: { bg: 'bg-blue-500/30', text: 'text-blue-800', border: 'border-blue-500' },
+  dayaTahan: { bg: 'bg-green-500/30', text: 'text-green-800', border: 'border-green-500' },
+  fleksibilitas: { bg: 'bg-purple-500/30', text: 'text-purple-800', border: 'border-purple-500' },
+  mental: { bg: 'bg-rose-500/30', text: 'text-rose-800', border: 'border-rose-500' },
+};
+
 export function AnnualPlanSection() {
   const { 
     setup, 
@@ -73,6 +97,19 @@ export function AnnualPlanSection() {
     prakomp: 20,
     kompetisi: 10,
   });
+
+  // Training blocks state
+  const [trainingBlocks, setTrainingBlocks] = useState<TrainingBlocks>({
+    kekuatan: [],
+    kecepatan: [],
+    dayaTahan: [],
+    fleksibilitas: [],
+    mental: [],
+  });
+
+  const [selectedCells, setSelectedCells] = useState<{ category: BlockCategory; weeks: number[] }>({ category: 'kekuatan', weeks: [] });
+  const [editingBlock, setEditingBlock] = useState<{ category: BlockCategory; index: number } | null>(null);
+  const [blockText, setBlockText] = useState('');
 
   const usedWeeks = mesocycles.reduce((acc, m) => acc + m.weeks, 0);
   const diff = totalWeeks - usedWeeks;
@@ -199,6 +236,98 @@ export function AnnualPlanSection() {
 
     setTotalWeeks(totalWks);
     setPlanData(plan);
+  };
+
+  // Block management functions
+  const handleCellClick = (category: BlockCategory, week: number) => {
+    // Check if this week is part of an existing block
+    const existingBlockIndex = trainingBlocks[category].findIndex(
+      block => week >= block.startWeek && week <= block.endWeek
+    );
+
+    if (existingBlockIndex !== -1) {
+      // Edit existing block
+      setEditingBlock({ category, index: existingBlockIndex });
+      setBlockText(trainingBlocks[category][existingBlockIndex].text);
+      return;
+    }
+
+    // Add/remove from selection
+    if (selectedCells.category !== category) {
+      setSelectedCells({ category, weeks: [week] });
+    } else {
+      if (selectedCells.weeks.includes(week)) {
+        setSelectedCells({ ...selectedCells, weeks: selectedCells.weeks.filter(w => w !== week) });
+      } else {
+        setSelectedCells({ ...selectedCells, weeks: [...selectedCells.weeks, week].sort((a, b) => a - b) });
+      }
+    }
+  };
+
+  const createBlock = () => {
+    if (selectedCells.weeks.length === 0 || !blockText.trim()) return;
+
+    const startWeek = Math.min(...selectedCells.weeks);
+    const endWeek = Math.max(...selectedCells.weeks);
+
+    // Check for overlapping blocks
+    const hasOverlap = trainingBlocks[selectedCells.category].some(
+      block => !(endWeek < block.startWeek || startWeek > block.endWeek)
+    );
+
+    if (hasOverlap) {
+      return; // Don't create if overlapping
+    }
+
+    const newBlock: TrainingBlock = { startWeek, endWeek, text: blockText };
+    setTrainingBlocks(prev => ({
+      ...prev,
+      [selectedCells.category]: [...prev[selectedCells.category], newBlock].sort((a, b) => a.startWeek - b.startWeek),
+    }));
+
+    setSelectedCells({ category: selectedCells.category, weeks: [] });
+    setBlockText('');
+  };
+
+  const updateBlock = () => {
+    if (!editingBlock || !blockText.trim()) return;
+
+    setTrainingBlocks(prev => ({
+      ...prev,
+      [editingBlock.category]: prev[editingBlock.category].map((block, i) =>
+        i === editingBlock.index ? { ...block, text: blockText } : block
+      ),
+    }));
+
+    setEditingBlock(null);
+    setBlockText('');
+  };
+
+  const deleteBlock = () => {
+    if (!editingBlock) return;
+
+    setTrainingBlocks(prev => ({
+      ...prev,
+      [editingBlock.category]: prev[editingBlock.category].filter((_, i) => i !== editingBlock.index),
+    }));
+
+    setEditingBlock(null);
+    setBlockText('');
+  };
+
+  const getBlockForWeek = (category: BlockCategory, week: number) => {
+    return trainingBlocks[category].find(block => week >= block.startWeek && week <= block.endWeek);
+  };
+
+  const isBlockStart = (category: BlockCategory, week: number) => {
+    const block = getBlockForWeek(category, week);
+    return block?.startWeek === week;
+  };
+
+  const getBlockSpan = (category: BlockCategory, week: number) => {
+    const block = getBlockForWeek(category, week);
+    if (!block || block.startWeek !== week) return 0;
+    return block.endWeek - block.startWeek + 1;
   };
 
   if (planData.length === 0) {
@@ -470,114 +599,150 @@ export function AnnualPlanSection() {
         </CardContent>
       </Card>
 
-      {/* Tujuan Latihan Table */}
+      {/* Tujuan Latihan Table with Blocks */}
       <Card className="border-border shadow-card">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-extrabold text-muted-foreground uppercase">
-            Tujuan Latihan Per Minggu
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-extrabold text-muted-foreground uppercase">
+              Tujuan Latihan Per Minggu (Blok)
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {selectedCells.weeks.length > 0 && (
+                <>
+                  <Input
+                    type="text"
+                    placeholder="Nama blok (contoh: Adaptasi Anatomi)"
+                    value={blockText}
+                    onChange={(e) => setBlockText(e.target.value)}
+                    className="w-64 h-8 text-xs"
+                  />
+                  <Button size="sm" onClick={createBlock} disabled={!blockText.trim()}>
+                    <Merge className="w-3 h-3 mr-1" />
+                    Buat Blok ({selectedCells.weeks.length} minggu)
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedCells({ ...selectedCells, weeks: [] })}>
+                    Batal
+                  </Button>
+                </>
+              )}
+              {editingBlock && (
+                <>
+                  <Input
+                    type="text"
+                    placeholder="Edit nama blok"
+                    value={blockText}
+                    onChange={(e) => setBlockText(e.target.value)}
+                    className="w-64 h-8 text-xs"
+                  />
+                  <Button size="sm" onClick={updateBlock}>
+                    Simpan
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={deleteBlock}>
+                    <Split className="w-3 h-3 mr-1" />
+                    Hapus Blok
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { setEditingBlock(null); setBlockText(''); }}>
+                    Batal
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Klik beberapa minggu untuk memilih, lalu buat blok dengan warna. Klik blok yang sudah ada untuk mengedit.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full">
+            <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-secondary/50">
                   <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-32 border-r border-border">
                     Tujuan Latihan
                   </th>
                   {planData.map((d) => (
-                    <th key={d.wk} className="p-2 text-center text-[10px] font-extrabold text-muted-foreground uppercase min-w-[60px]">
+                    <th key={d.wk} className="p-2 text-center text-[10px] font-extrabold text-muted-foreground uppercase min-w-[60px] border-r border-border last:border-r-0">
                       W{d.wk}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {/* Kekuatan Row */}
-                <tr className="border-t border-border/50 hover:bg-secondary/30">
-                  <td className="p-3 font-bold text-sm bg-orange-500/20 text-orange-700 border-r border-border">
-                    Kekuatan
-                  </td>
-                  {planData.map((d, i) => (
-                    <td key={i} className="p-1">
-                      <Input
-                        type="text"
-                        value={d.tujuanKekuatan || ''}
-                        onChange={(e) => updatePlanWeek(i, { tujuanKekuatan: e.target.value })}
-                        className="text-center text-xs h-8 w-full"
-                        placeholder="-"
-                      />
-                    </td>
-                  ))}
-                </tr>
-                {/* Kecepatan Row */}
-                <tr className="border-t border-border/50 hover:bg-secondary/30">
-                  <td className="p-3 font-bold text-sm bg-blue-500/20 text-blue-700 border-r border-border">
-                    Kecepatan
-                  </td>
-                  {planData.map((d, i) => (
-                    <td key={i} className="p-1">
-                      <Input
-                        type="text"
-                        value={d.tujuanKecepatan || ''}
-                        onChange={(e) => updatePlanWeek(i, { tujuanKecepatan: e.target.value })}
-                        className="text-center text-xs h-8 w-full"
-                        placeholder="-"
-                      />
-                    </td>
-                  ))}
-                </tr>
-                {/* Daya Tahan Row */}
-                <tr className="border-t border-border/50 hover:bg-secondary/30">
-                  <td className="p-3 font-bold text-sm bg-green-500/20 text-green-700 border-r border-border">
-                    Daya Tahan
-                  </td>
-                  {planData.map((d, i) => (
-                    <td key={i} className="p-1">
-                      <Input
-                        type="text"
-                        value={d.tujuanDayaTahan || ''}
-                        onChange={(e) => updatePlanWeek(i, { tujuanDayaTahan: e.target.value })}
-                        className="text-center text-xs h-8 w-full"
-                        placeholder="-"
-                      />
-                    </td>
-                  ))}
-                </tr>
-                {/* Fleksibilitas Row */}
-                <tr className="border-t border-border/50 hover:bg-secondary/30">
-                  <td className="p-3 font-bold text-sm bg-purple-500/20 text-purple-700 border-r border-border">
-                    Fleksibilitas
-                  </td>
-                  {planData.map((d, i) => (
-                    <td key={i} className="p-1">
-                      <Input
-                        type="text"
-                        value={d.tujuanFleksibilitas || ''}
-                        onChange={(e) => updatePlanWeek(i, { tujuanFleksibilitas: e.target.value })}
-                        className="text-center text-xs h-8 w-full"
-                        placeholder="-"
-                      />
-                    </td>
-                  ))}
-                </tr>
-                {/* Mental Row */}
-                <tr className="border-t border-border/50 hover:bg-secondary/30">
-                  <td className="p-3 font-bold text-sm bg-rose-500/20 text-rose-700 border-r border-border">
-                    Mental
-                  </td>
-                  {planData.map((d, i) => (
-                    <td key={i} className="p-1">
-                      <Input
-                        type="text"
-                        value={d.tujuanMental || ''}
-                        onChange={(e) => updatePlanWeek(i, { tujuanMental: e.target.value })}
-                        className="text-center text-xs h-8 w-full"
-                        placeholder="-"
-                      />
-                    </td>
-                  ))}
-                </tr>
+                {(['kekuatan', 'kecepatan', 'dayaTahan', 'fleksibilitas', 'mental'] as BlockCategory[]).map((category) => {
+                  const labels: Record<BlockCategory, string> = {
+                    kekuatan: 'Kekuatan',
+                    kecepatan: 'Kecepatan',
+                    dayaTahan: 'Daya Tahan',
+                    fleksibilitas: 'Fleksibilitas',
+                    mental: 'Mental',
+                  };
+
+                  const renderedWeeks = new Set<number>();
+
+                  return (
+                    <tr key={category} className="border-t border-border/50">
+                      <td className={cn(
+                        "p-3 font-bold text-sm border-r border-border",
+                        blockColors[category].bg,
+                        blockColors[category].text
+                      )}>
+                        {labels[category]}
+                      </td>
+                      {planData.map((d) => {
+                        const week = d.wk;
+                        
+                        // Skip if already rendered as part of a block
+                        if (renderedWeeks.has(week)) return null;
+
+                        const block = getBlockForWeek(category, week);
+                        const span = getBlockSpan(category, week);
+
+                        if (block && isBlockStart(category, week)) {
+                          // Mark all weeks in this block as rendered
+                          for (let w = block.startWeek; w <= block.endWeek; w++) {
+                            renderedWeeks.add(w);
+                          }
+
+                          return (
+                            <td
+                              key={week}
+                              colSpan={span}
+                              className={cn(
+                                "p-2 text-center cursor-pointer transition-all border-2",
+                                blockColors[category].bg,
+                                blockColors[category].text,
+                                blockColors[category].border,
+                                "hover:opacity-80 font-bold text-xs rounded-lg"
+                              )}
+                              onClick={() => handleCellClick(category, week)}
+                            >
+                              {block.text}
+                            </td>
+                          );
+                        }
+
+                        // Check if this week is already part of a block but not the start
+                        if (block) return null;
+
+                        const isSelected = selectedCells.category === category && selectedCells.weeks.includes(week);
+
+                        return (
+                          <td
+                            key={week}
+                            className={cn(
+                              "p-1 text-center cursor-pointer transition-all border border-border/30",
+                              isSelected && "bg-accent/30 ring-2 ring-accent",
+                              !isSelected && "hover:bg-secondary/50"
+                            )}
+                            onClick={() => handleCellClick(category, week)}
+                          >
+                            <span className="text-xs text-muted-foreground">-</span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
