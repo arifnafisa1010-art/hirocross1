@@ -470,6 +470,120 @@ export function AnnualPlanSection() {
         </CardContent>
       </Card>
 
+      {/* Tujuan Latihan Table */}
+      <Card className="border-border shadow-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-extrabold text-muted-foreground uppercase">
+            Tujuan Latihan Per Minggu
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-secondary/50">
+                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-32 border-r border-border">
+                    Tujuan Latihan
+                  </th>
+                  {planData.map((d) => (
+                    <th key={d.wk} className="p-2 text-center text-[10px] font-extrabold text-muted-foreground uppercase min-w-[60px]">
+                      W{d.wk}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {/* Kekuatan Row */}
+                <tr className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-3 font-bold text-sm bg-orange-500/20 text-orange-700 border-r border-border">
+                    Kekuatan
+                  </td>
+                  {planData.map((d, i) => (
+                    <td key={i} className="p-1">
+                      <Input
+                        type="text"
+                        value={d.tujuanKekuatan || ''}
+                        onChange={(e) => updatePlanWeek(i, { tujuanKekuatan: e.target.value })}
+                        className="text-center text-xs h-8 w-full"
+                        placeholder="-"
+                      />
+                    </td>
+                  ))}
+                </tr>
+                {/* Kecepatan Row */}
+                <tr className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-3 font-bold text-sm bg-blue-500/20 text-blue-700 border-r border-border">
+                    Kecepatan
+                  </td>
+                  {planData.map((d, i) => (
+                    <td key={i} className="p-1">
+                      <Input
+                        type="text"
+                        value={d.tujuanKecepatan || ''}
+                        onChange={(e) => updatePlanWeek(i, { tujuanKecepatan: e.target.value })}
+                        className="text-center text-xs h-8 w-full"
+                        placeholder="-"
+                      />
+                    </td>
+                  ))}
+                </tr>
+                {/* Daya Tahan Row */}
+                <tr className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-3 font-bold text-sm bg-green-500/20 text-green-700 border-r border-border">
+                    Daya Tahan
+                  </td>
+                  {planData.map((d, i) => (
+                    <td key={i} className="p-1">
+                      <Input
+                        type="text"
+                        value={d.tujuanDayaTahan || ''}
+                        onChange={(e) => updatePlanWeek(i, { tujuanDayaTahan: e.target.value })}
+                        className="text-center text-xs h-8 w-full"
+                        placeholder="-"
+                      />
+                    </td>
+                  ))}
+                </tr>
+                {/* Fleksibilitas Row */}
+                <tr className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-3 font-bold text-sm bg-purple-500/20 text-purple-700 border-r border-border">
+                    Fleksibilitas
+                  </td>
+                  {planData.map((d, i) => (
+                    <td key={i} className="p-1">
+                      <Input
+                        type="text"
+                        value={d.tujuanFleksibilitas || ''}
+                        onChange={(e) => updatePlanWeek(i, { tujuanFleksibilitas: e.target.value })}
+                        className="text-center text-xs h-8 w-full"
+                        placeholder="-"
+                      />
+                    </td>
+                  ))}
+                </tr>
+                {/* Mental Row */}
+                <tr className="border-t border-border/50 hover:bg-secondary/30">
+                  <td className="p-3 font-bold text-sm bg-rose-500/20 text-rose-700 border-r border-border">
+                    Mental
+                  </td>
+                  {planData.map((d, i) => (
+                    <td key={i} className="p-1">
+                      <Input
+                        type="text"
+                        value={d.tujuanMental || ''}
+                        onChange={(e) => updatePlanWeek(i, { tujuanMental: e.target.value })}
+                        className="text-center text-xs h-8 w-full"
+                        placeholder="-"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Table */}
       <Card className="border-border shadow-card">
         <CardContent className="pt-6">
