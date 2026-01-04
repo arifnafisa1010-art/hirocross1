@@ -1,23 +1,27 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useAthletes } from '@/hooks/useAthletes';
+import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
-import { Users } from 'lucide-react';
+import { Users, Save, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
   const { athletes } = useAthletes();
+  const { saveProgram, currentProgram, loading: programLoading } = useTrainingPrograms();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ week: number; day: string } | null>(null);
   const [showAthleteSelector, setShowAthleteSelector] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Group weeks into months (4 weeks per month)
   const months = useMemo(() => {
@@ -57,6 +61,25 @@ export function MonthlySection() {
     setSelectedAthleteIds([]);
   };
 
+  const handleSaveProgram = async () => {
+    if (!setup.planName || !setup.startDate) {
+      toast.error('Nama program dan tanggal mulai wajib diisi!');
+      return;
+    }
+    if (competitions.length === 0) {
+      toast.error('Tambahkan minimal satu kompetisi!');
+      return;
+    }
+
+    setSaving(true);
+    const success = await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds);
+    setSaving(false);
+
+    if (success) {
+      toast.success('Program berhasil disimpan ke database!');
+    }
+  };
+
   if (planData.length === 0) {
     return (
       <div className="animate-fade-in text-center py-20">
@@ -73,6 +96,16 @@ export function MonthlySection() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-extrabold">Kalender Kerja Bulanan</h2>
         <div className="flex items-center gap-3">
+          {/* Save Program Button */}
+          <Button 
+            onClick={handleSaveProgram}
+            disabled={saving || programLoading}
+            className="flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Simpan ke Database
+          </Button>
+          
           {/* Athlete Selection */}
           <div className="relative">
             <Button 
