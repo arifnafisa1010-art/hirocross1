@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, trainingBlocks, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
   const { athletes } = useAthletes();
   const { saveProgram, currentProgram, loading: programLoading } = useTrainingPrograms();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
@@ -72,7 +72,7 @@ export function MonthlySection() {
     }
 
     setSaving(true);
-    const success = await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds);
+    const success = await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks);
     setSaving(false);
 
     if (success) {

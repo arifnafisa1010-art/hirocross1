@@ -179,6 +179,7 @@ export type Database = {
           target_strength: number | null
           target_tactic: number | null
           target_technique: number | null
+          training_blocks: Json | null
           updated_at: string
           user_id: string | null
         }
@@ -197,6 +198,7 @@ export type Database = {
           target_strength?: number | null
           target_tactic?: number | null
           target_technique?: number | null
+          training_blocks?: Json | null
           updated_at?: string
           user_id?: string | null
         }
@@ -215,6 +217,7 @@ export type Database = {
           target_strength?: number | null
           target_tactic?: number | null
           target_technique?: number | null
+          training_blocks?: Json | null
           updated_at?: string
           user_id?: string | null
         }

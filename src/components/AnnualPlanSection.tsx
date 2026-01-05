@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { X, Plus, Settings, Loader2, Trophy, Merge, Split } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TrainingBlock, TrainingBlocks } from '@/types/training';
 import {
   LineChart,
   Line,
@@ -48,20 +49,6 @@ interface PhaseSettings {
   kompetisi: number;
 }
 
-interface TrainingBlock {
-  startWeek: number;
-  endWeek: number;
-  text: string;
-}
-
-interface TrainingBlocks {
-  kekuatan: TrainingBlock[];
-  kecepatan: TrainingBlock[];
-  dayaTahan: TrainingBlock[];
-  fleksibilitas: TrainingBlock[];
-  mental: TrainingBlock[];
-}
-
 type BlockCategory = keyof TrainingBlocks;
 
 const blockColors: Record<BlockCategory, { bg: string; text: string; border: string }> = {
@@ -79,6 +66,9 @@ export function AnnualPlanSection() {
     planData, 
     totalWeeks,
     competitions,
+    trainingBlocks,
+    setTrainingBlocks,
+    selectedAthleteIds,
     addMesocycle, 
     removeMesocycle, 
     updateMesocycle,
@@ -96,15 +86,6 @@ export function AnnualPlanSection() {
     khusus: 30,
     prakomp: 20,
     kompetisi: 10,
-  });
-
-  // Training blocks state
-  const [trainingBlocks, setTrainingBlocks] = useState<TrainingBlocks>({
-    kekuatan: [],
-    kecepatan: [],
-    dayaTahan: [],
-    fleksibilitas: [],
-    mental: [],
   });
 
   const [selectedCells, setSelectedCells] = useState<{ category: BlockCategory; weeks: number[] }>({ category: 'kekuatan', weeks: [] });
@@ -149,7 +130,7 @@ export function AnnualPlanSection() {
 
   const handleSave = async () => {
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions);
+    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks);
     setSaving(false);
   };
 
@@ -280,10 +261,11 @@ export function AnnualPlanSection() {
     }
 
     const newBlock: TrainingBlock = { startWeek, endWeek, text: blockText };
-    setTrainingBlocks(prev => ({
-      ...prev,
-      [selectedCells.category]: [...prev[selectedCells.category], newBlock].sort((a, b) => a.startWeek - b.startWeek),
-    }));
+    const newBlocks = {
+      ...trainingBlocks,
+      [selectedCells.category]: [...trainingBlocks[selectedCells.category], newBlock].sort((a, b) => a.startWeek - b.startWeek),
+    };
+    setTrainingBlocks(newBlocks);
 
     setSelectedCells({ category: selectedCells.category, weeks: [] });
     setBlockText('');
@@ -292,12 +274,13 @@ export function AnnualPlanSection() {
   const updateBlock = () => {
     if (!editingBlock || !blockText.trim()) return;
 
-    setTrainingBlocks(prev => ({
-      ...prev,
-      [editingBlock.category]: prev[editingBlock.category].map((block, i) =>
+    const newBlocks = {
+      ...trainingBlocks,
+      [editingBlock.category]: trainingBlocks[editingBlock.category].map((block, i) =>
         i === editingBlock.index ? { ...block, text: blockText } : block
       ),
-    }));
+    };
+    setTrainingBlocks(newBlocks);
 
     setEditingBlock(null);
     setBlockText('');
@@ -306,10 +289,11 @@ export function AnnualPlanSection() {
   const deleteBlock = () => {
     if (!editingBlock) return;
 
-    setTrainingBlocks(prev => ({
-      ...prev,
-      [editingBlock.category]: prev[editingBlock.category].filter((_, i) => i !== editingBlock.index),
-    }));
+    const newBlocks = {
+      ...trainingBlocks,
+      [editingBlock.category]: trainingBlocks[editingBlock.category].filter((_, i) => i !== editingBlock.index),
+    };
+    setTrainingBlocks(newBlocks);
 
     setEditingBlock(null);
     setBlockText('');
@@ -329,6 +313,7 @@ export function AnnualPlanSection() {
     if (!block || block.startWeek !== week) return 0;
     return block.endWeek - block.startWeek + 1;
   };
+
 
   if (planData.length === 0) {
     return (
