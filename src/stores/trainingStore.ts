@@ -1,20 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition, TrainingBlocks } from '@/types/training';
-
-const emptyTrainingBlocks: TrainingBlocks = {
-  kekuatan: [],
-  kecepatan: [],
-  dayaTahan: [],
-  fleksibilitas: [],
-  mental: [],
-};
-
-// Shallow compare for arrays
-const arraysEqual = <T>(a: T[], b: T[]): boolean => {
-  if (a.length !== b.length) return false;
-  return a.every((item, index) => item === b[index]);
-};
+import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition } from '@/types/training';
 
 interface TrainingStore {
   activeTab: TabId;
@@ -42,9 +28,6 @@ interface TrainingStore {
   setPlanData: (data: PlanWeek[]) => void;
   updatePlanWeek: (index: number, data: Partial<PlanWeek>) => void;
   
-  trainingBlocks: TrainingBlocks;
-  setTrainingBlocks: (blocks: TrainingBlocks) => void;
-  
   sessions: Record<string, DaySession>;
   updateSession: (key: string, session: DaySession) => void;
   
@@ -62,16 +45,10 @@ export const useTrainingStore = create<TrainingStore>()(
   persist(
     (set, get) => ({
       activeTab: 'setup',
-      setActiveTab: (tab) => set((state) => {
-        if (state.activeTab === tab) return state;
-        return { activeTab: tab };
-      }),
+      setActiveTab: (tab) => set({ activeTab: tab }),
       
       selectedAthleteIds: [],
-      setSelectedAthleteIds: (ids) => set((state) => {
-        if (arraysEqual(state.selectedAthleteIds, ids)) return state;
-        return { selectedAthleteIds: ids };
-      }),
+      setSelectedAthleteIds: (ids) => set({ selectedAthleteIds: ids }),
       
       setup: {
         planName: 'Annual Plan 2025',
@@ -107,10 +84,7 @@ export const useTrainingStore = create<TrainingStore>()(
       })),
       
       mesocycles: [],
-      setMesocycles: (mesocycles) => set((state) => {
-        if (JSON.stringify(state.mesocycles) === JSON.stringify(mesocycles)) return state;
-        return { mesocycles };
-      }),
+      setMesocycles: (mesocycles) => set({ mesocycles }),
       addMesocycle: () => set((state) => ({
         mesocycles: [...state.mesocycles, { name: `MESO ${state.mesocycles.length + 1}`, weeks: 4 }],
       })),
@@ -122,19 +96,10 @@ export const useTrainingStore = create<TrainingStore>()(
       })),
       
       planData: [],
-      setPlanData: (data) => set((state) => {
-        if (JSON.stringify(state.planData) === JSON.stringify(data)) return state;
-        return { planData: data };
-      }),
+      setPlanData: (data) => set({ planData: data }),
       updatePlanWeek: (index, data) => set((state) => ({
         planData: state.planData.map((p, i) => i === index ? { ...p, ...data } : p),
       })),
-      
-      trainingBlocks: emptyTrainingBlocks,
-      setTrainingBlocks: (blocks) => set((state) => {
-        if (JSON.stringify(state.trainingBlocks) === JSON.stringify(blocks)) return state;
-        return { trainingBlocks: blocks };
-      }),
       
       sessions: {},
       updateSession: (key, session) => set((state) => ({

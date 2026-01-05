@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,16 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, Trophy, Star } from 'lucide-react';
-import { Mesocycle, PlanWeek, Competition, TrainingBlocks } from '@/types/training';
+import { Mesocycle, PlanWeek, Competition } from '@/types/training';
 import { cn } from '@/lib/utils';
-
-const emptyTrainingBlocks: TrainingBlocks = {
-  kekuatan: [],
-  kecepatan: [],
-  dayaTahan: [],
-  fleksibilitas: [],
-  mental: [],
-};
 
 export function SetupSection() {
   const { 
@@ -34,20 +26,14 @@ export function SetupSection() {
     addCompetition,
     removeCompetition,
     updateCompetition,
-    setTrainingBlocks,
-    selectedAthleteIds,
   } = useTrainingStore();
   
   const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, createNewProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
-  const [loadingProgramId, setLoadingProgramId] = useState<string | null>(null);
-  const lastLoadedProgramIdRef = useRef<string | null>(null);
 
-  // Load current program data into store when program changes - with deduplication
+  // Load current program data into store when program changes
   useEffect(() => {
-    if (currentProgram && currentProgram.id !== lastLoadedProgramIdRef.current) {
-      lastLoadedProgramIdRef.current = currentProgram.id;
-      
+    if (currentProgram) {
       setSetup({
         planName: currentProgram.name,
         startDate: currentProgram.start_date,
@@ -64,20 +50,18 @@ export function SetupSection() {
       const loadedMeso = currentProgram.mesocycles as unknown as Mesocycle[] || [];
       const loadedPlan = currentProgram.plan_data as unknown as PlanWeek[] || [];
       const loadedCompetitions = (currentProgram as any).competitions as unknown as Competition[] || [];
-      const loadedBlocks = (currentProgram as any).training_blocks as unknown as TrainingBlocks || emptyTrainingBlocks;
       
       setMesocycles(loadedMeso);
       setPlanData(loadedPlan);
       setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : [
         { id: crypto.randomUUID(), name: 'Kompetisi Utama', date: currentProgram.match_date, isPrimary: true }
       ]);
-      setTrainingBlocks(loadedBlocks);
       
       if (loadedPlan.length > 0) {
         setTotalWeeks(loadedPlan.length);
       }
     }
-  }, [currentProgram?.id, setSetup, setMesocycles, setPlanData, setCompetitions, setTrainingBlocks, setTotalWeeks]);
+  }, [currentProgram?.id]);
 
   const handleGenerate = async () => {
     if (!setup.startDate || competitions.length === 0) {
@@ -107,25 +91,16 @@ export function SetupSection() {
       return;
     }
 
-    const { trainingBlocks } = useTrainingStore.getState();
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks);
+    await saveProgram(setup, mesocycles, planData, competitions);
     setSaving(false);
   };
 
-  const handleLoadProgram = useCallback(async (programId: string) => {
-    if (loadingProgramId || programId === currentProgram?.id) return;
-    
-    setLoadingProgramId(programId);
-    try {
-      await loadProgram(programId);
-    } finally {
-      setLoadingProgramId(null);
-    }
-  }, [loadingProgramId, currentProgram?.id, loadProgram]);
+  const handleLoadProgram = async (programId: string) => {
+    await loadProgram(programId);
+  };
 
-  const handleNewProgram = useCallback(() => {
-    lastLoadedProgramIdRef.current = null;
+  const handleNewProgram = () => {
     createNewProgram();
     setSetup({
       planName: 'New Program',
@@ -143,8 +118,7 @@ export function SetupSection() {
     setPlanData([]);
     setTotalWeeks(0);
     setCompetitions([]);
-    setTrainingBlocks(emptyTrainingBlocks);
-  }, [createNewProgram, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, setTrainingBlocks]);
+  };
 
   const handleDeleteProgram = async (programId: string) => {
     if (confirm('Yakin ingin menghapus program ini?')) {
@@ -189,21 +163,14 @@ export function SetupSection() {
               {programs.map(program => (
                 <div 
                   key={program.id}
-                  className={cn(
-                    "p-4 rounded-lg border cursor-pointer transition-all",
+                  className={`p-4 rounded-lg border cursor-pointer transition-all ${
                     currentProgram?.id === program.id 
                       ? 'border-accent bg-accent/10' 
-                      : 'border-border hover:border-accent/50',
-                    loadingProgramId === program.id && 'opacity-50 pointer-events-none'
-                  )}
+                      : 'border-border hover:border-accent/50'
+                  }`}
                   onClick={() => handleLoadProgram(program.id)}
                 >
-                  <div className="flex items-start justify-between relative">
-                    {loadingProgramId === program.id && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      </div>
-                    )}
+                  <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-sm truncate">{program.name}</h4>
                       <p className="text-xs text-muted-foreground mt-1">

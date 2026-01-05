@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition, TrainingBlocks } from '@/types/training';
+import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition } from '@/types/training';
 import { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 
@@ -16,8 +16,6 @@ export function useTrainingPrograms() {
   const [currentProgram, setCurrentProgram] = useState<TrainingProgram | null>(null);
   const [sessions, setSessions] = useState<Record<string, DaySession>>({});
   const [loading, setLoading] = useState(true);
-  const isFetchingRef = useRef(false);
-  const isSavingRef = useRef(false);
 
   const fetchPrograms = useCallback(async () => {
     if (!user) {
@@ -28,28 +26,20 @@ export function useTrainingPrograms() {
       return;
     }
 
-    // Prevent concurrent fetches
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('training_programs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        toast.error('Gagal memuat program latihan');
-        console.error(error);
-      } else {
-        setPrograms(data || []);
-      }
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
+    const { data, error } = await supabase
+      .from('training_programs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      toast.error('Gagal memuat program latihan');
+      console.error(error);
+    } else {
+      setPrograms(data || []);
     }
+    setLoading(false);
   }, [user?.id]);
 
   const loadProgram = async (programId: string) => {
@@ -98,81 +88,68 @@ export function useTrainingPrograms() {
     mesocycles: Mesocycle[],
     planData: PlanWeek[],
     competitions: Competition[] = [],
-    athleteIds: string[] = [],
-    trainingBlocks: TrainingBlocks = { kekuatan: [], kecepatan: [], dayaTahan: [], fleksibilitas: [], mental: [] }
+    athleteIds: string[] = []
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
       return false;
     }
 
-    // Prevent concurrent saves
-    if (isSavingRef.current) {
-      toast.info('Menyimpan, mohon tunggu...');
-      return false;
-    }
-    isSavingRef.current = true;
+    // Use the first competition date or matchDate for backwards compatibility
+    const primaryCompetition = competitions.find(c => c.isPrimary) || competitions[0];
+    const matchDate = primaryCompetition?.date || setup.matchDate;
 
-    try {
-      // Use the first competition date or matchDate for backwards compatibility
-      const primaryCompetition = competitions.find(c => c.isPrimary) || competitions[0];
-      const matchDate = primaryCompetition?.date || setup.matchDate;
+    const programData: TrainingProgramInsert = {
+      user_id: user.id,
+      name: setup.planName,
+      start_date: setup.startDate,
+      match_date: matchDate,
+      target_strength: setup.targets.strength,
+      target_speed: setup.targets.speed,
+      target_endurance: setup.targets.endurance,
+      target_technique: setup.targets.technique,
+      target_tactic: setup.targets.tactic,
+      mesocycles: mesocycles as unknown as Json,
+      plan_data: planData as unknown as Json,
+      competitions: competitions as unknown as Json,
+      athlete_ids: athleteIds,
+    };
 
-      const programData: TrainingProgramInsert = {
-        user_id: user.id,
-        name: setup.planName,
-        start_date: setup.startDate,
-        match_date: matchDate,
-        target_strength: setup.targets.strength,
-        target_speed: setup.targets.speed,
-        target_endurance: setup.targets.endurance,
-        target_technique: setup.targets.technique,
-        target_tactic: setup.targets.tactic,
-        mesocycles: mesocycles as unknown as Json,
-        plan_data: planData as unknown as Json,
-        competitions: competitions as unknown as Json,
-        athlete_ids: athleteIds,
-        training_blocks: trainingBlocks as unknown as Json,
-      };
-
-      if (currentProgram) {
-        // Update existing
-        const { error } = await supabase
-          .from('training_programs')
-          .update(programData)
-          .eq('id', currentProgram.id);
-        
-        if (error) {
-          toast.error('Gagal menyimpan program');
-          console.error(error);
-          return false;
-        }
-        
-        setCurrentProgram({ ...currentProgram, ...programData } as TrainingProgram);
-        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? { ...p, ...programData } as TrainingProgram : p));
-      } else {
-        // Create new
-        const { data, error } = await supabase
-          .from('training_programs')
-          .insert(programData)
-          .select()
-          .single();
-        
-        if (error) {
-          toast.error('Gagal menyimpan program');
-          console.error(error);
-          return false;
-        }
-        
-        setCurrentProgram(data);
-        setPrograms(prev => [data, ...prev]);
+    if (currentProgram) {
+      // Update existing
+      const { error } = await supabase
+        .from('training_programs')
+        .update(programData)
+        .eq('id', currentProgram.id);
+      
+      if (error) {
+        toast.error('Gagal menyimpan program');
+        console.error(error);
+        return false;
       }
       
-      toast.success('Program berhasil disimpan!');
-      return true;
-    } finally {
-      isSavingRef.current = false;
+      setCurrentProgram({ ...currentProgram, ...programData } as TrainingProgram);
+      setPrograms(prev => prev.map(p => p.id === currentProgram.id ? { ...p, ...programData } as TrainingProgram : p));
+    } else {
+      // Create new
+      const { data, error } = await supabase
+        .from('training_programs')
+        .insert(programData)
+        .select()
+        .single();
+      
+      if (error) {
+        toast.error('Gagal menyimpan program');
+        console.error(error);
+        return false;
+      }
+      
+      setCurrentProgram(data);
+      setPrograms(prev => [data, ...prev]);
     }
+    
+    toast.success('Program berhasil disimpan!');
+    return true;
   };
 
   const deleteProgram = async (programId: string) => {

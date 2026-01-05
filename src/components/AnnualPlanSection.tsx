@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { X, Plus, Settings, Loader2, Trophy, Merge, Split } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TrainingBlock, TrainingBlocks } from '@/types/training';
 import {
   LineChart,
   Line,
@@ -49,6 +48,20 @@ interface PhaseSettings {
   kompetisi: number;
 }
 
+interface TrainingBlock {
+  startWeek: number;
+  endWeek: number;
+  text: string;
+}
+
+interface TrainingBlocks {
+  kekuatan: TrainingBlock[];
+  kecepatan: TrainingBlock[];
+  dayaTahan: TrainingBlock[];
+  fleksibilitas: TrainingBlock[];
+  mental: TrainingBlock[];
+}
+
 type BlockCategory = keyof TrainingBlocks;
 
 const blockColors: Record<BlockCategory, { bg: string; text: string; border: string }> = {
@@ -66,9 +79,6 @@ export function AnnualPlanSection() {
     planData, 
     totalWeeks,
     competitions,
-    trainingBlocks,
-    setTrainingBlocks,
-    selectedAthleteIds,
     addMesocycle, 
     removeMesocycle, 
     updateMesocycle,
@@ -88,11 +98,20 @@ export function AnnualPlanSection() {
     kompetisi: 10,
   });
 
+  // Training blocks state
+  const [trainingBlocks, setTrainingBlocks] = useState<TrainingBlocks>({
+    kekuatan: [],
+    kecepatan: [],
+    dayaTahan: [],
+    fleksibilitas: [],
+    mental: [],
+  });
+
   const [selectedCells, setSelectedCells] = useState<{ category: BlockCategory; weeks: number[] }>({ category: 'kekuatan', weeks: [] });
   const [editingBlock, setEditingBlock] = useState<{ category: BlockCategory; index: number } | null>(null);
   const [blockText, setBlockText] = useState('');
 
-  const usedWeeks = useMemo(() => mesocycles.reduce((acc, m) => acc + m.weeks, 0), [mesocycles]);
+  const usedWeeks = mesocycles.reduce((acc, m) => acc + m.weeks, 0);
   const diff = totalWeeks - usedWeeks;
 
   // Build reference areas for phases
@@ -112,31 +131,27 @@ export function AnnualPlanSection() {
     }
   });
 
-  const chartData = useMemo(() => planData.map((d) => ({
+  const chartData = planData.map((d) => ({
     name: `W${d.wk}`,
     volume: d.vol,
     intensitas: d.int,
     fase: d.fase,
     competitionId: d.competitionId,
-  })), [planData]);
+  }));
 
   // Get competition weeks for reference lines
-  const competitionWeeks = useMemo(() => planData
+  const competitionWeeks = planData
     .filter(d => d.competitionId)
     .map(d => ({
       week: d.wk,
       competition: competitions.find(c => c.id === d.competitionId),
-    })), [planData, competitions]);
+    }));
 
-  const handleSave = useCallback(async () => {
-    if (saving) return;
+  const handleSave = async () => {
     setSaving(true);
-    try {
-      await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks);
-    } finally {
-      setSaving(false);
-    }
-  }, [saving, saveProgram, setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks]);
+    await saveProgram(setup, mesocycles, planData, competitions);
+    setSaving(false);
+  };
 
   const applyPhaseSettings = () => {
     const total = phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi;
@@ -223,8 +238,8 @@ export function AnnualPlanSection() {
     setPlanData(plan);
   };
 
-  // Block management functions - memoized for stability
-  const handleCellClick = useCallback((category: BlockCategory, week: number) => {
+  // Block management functions
+  const handleCellClick = (category: BlockCategory, week: number) => {
     // Check if this week is part of an existing block
     const existingBlockIndex = trainingBlocks[category].findIndex(
       block => week >= block.startWeek && week <= block.endWeek
@@ -238,18 +253,18 @@ export function AnnualPlanSection() {
     }
 
     // Add/remove from selection
-    setSelectedCells(prev => {
-      if (prev.category !== category) {
-        return { category, weeks: [week] };
+    if (selectedCells.category !== category) {
+      setSelectedCells({ category, weeks: [week] });
+    } else {
+      if (selectedCells.weeks.includes(week)) {
+        setSelectedCells({ ...selectedCells, weeks: selectedCells.weeks.filter(w => w !== week) });
+      } else {
+        setSelectedCells({ ...selectedCells, weeks: [...selectedCells.weeks, week].sort((a, b) => a - b) });
       }
-      if (prev.weeks.includes(week)) {
-        return { ...prev, weeks: prev.weeks.filter(w => w !== week) };
-      }
-      return { ...prev, weeks: [...prev.weeks, week].sort((a, b) => a - b) };
-    });
-  }, [trainingBlocks]);
+    }
+  };
 
-  const createBlock = useCallback(() => {
+  const createBlock = () => {
     if (selectedCells.weeks.length === 0 || !blockText.trim()) return;
 
     const startWeek = Math.min(...selectedCells.weeks);
@@ -265,59 +280,55 @@ export function AnnualPlanSection() {
     }
 
     const newBlock: TrainingBlock = { startWeek, endWeek, text: blockText };
-    const newBlocks = {
-      ...trainingBlocks,
-      [selectedCells.category]: [...trainingBlocks[selectedCells.category], newBlock].sort((a, b) => a.startWeek - b.startWeek),
-    };
-    setTrainingBlocks(newBlocks);
+    setTrainingBlocks(prev => ({
+      ...prev,
+      [selectedCells.category]: [...prev[selectedCells.category], newBlock].sort((a, b) => a.startWeek - b.startWeek),
+    }));
 
     setSelectedCells({ category: selectedCells.category, weeks: [] });
     setBlockText('');
-  }, [selectedCells, blockText, trainingBlocks, setTrainingBlocks]);
+  };
 
-  const updateBlock = useCallback(() => {
+  const updateBlock = () => {
     if (!editingBlock || !blockText.trim()) return;
 
-    const newBlocks = {
-      ...trainingBlocks,
-      [editingBlock.category]: trainingBlocks[editingBlock.category].map((block, i) =>
+    setTrainingBlocks(prev => ({
+      ...prev,
+      [editingBlock.category]: prev[editingBlock.category].map((block, i) =>
         i === editingBlock.index ? { ...block, text: blockText } : block
       ),
-    };
-    setTrainingBlocks(newBlocks);
+    }));
 
     setEditingBlock(null);
     setBlockText('');
-  }, [editingBlock, blockText, trainingBlocks, setTrainingBlocks]);
+  };
 
-  const deleteBlock = useCallback(() => {
+  const deleteBlock = () => {
     if (!editingBlock) return;
 
-    const newBlocks = {
-      ...trainingBlocks,
-      [editingBlock.category]: trainingBlocks[editingBlock.category].filter((_, i) => i !== editingBlock.index),
-    };
-    setTrainingBlocks(newBlocks);
+    setTrainingBlocks(prev => ({
+      ...prev,
+      [editingBlock.category]: prev[editingBlock.category].filter((_, i) => i !== editingBlock.index),
+    }));
 
     setEditingBlock(null);
     setBlockText('');
-  }, [editingBlock, trainingBlocks, setTrainingBlocks]);
+  };
 
-  const getBlockForWeek = useCallback((category: BlockCategory, week: number) => {
+  const getBlockForWeek = (category: BlockCategory, week: number) => {
     return trainingBlocks[category].find(block => week >= block.startWeek && week <= block.endWeek);
-  }, [trainingBlocks]);
+  };
 
-  const isBlockStart = useCallback((category: BlockCategory, week: number) => {
+  const isBlockStart = (category: BlockCategory, week: number) => {
     const block = getBlockForWeek(category, week);
     return block?.startWeek === week;
-  }, [getBlockForWeek]);
+  };
 
-  const getBlockSpan = useCallback((category: BlockCategory, week: number) => {
+  const getBlockSpan = (category: BlockCategory, week: number) => {
     const block = getBlockForWeek(category, week);
     if (!block || block.startWeek !== week) return 0;
     return block.endWeek - block.startWeek + 1;
-  }, [getBlockForWeek]);
-
+  };
 
   if (planData.length === 0) {
     return (

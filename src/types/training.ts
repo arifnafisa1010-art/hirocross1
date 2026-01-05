@@ -10,20 +10,6 @@ export interface Competition {
   isPrimary: boolean;
 }
 
-export interface TrainingBlock {
-  startWeek: number;
-  endWeek: number;
-  text: string;
-}
-
-export interface TrainingBlocks {
-  kekuatan: TrainingBlock[];
-  kecepatan: TrainingBlock[];
-  dayaTahan: TrainingBlock[];
-  fleksibilitas: TrainingBlock[];
-  mental: TrainingBlock[];
-}
-
 export interface PlanWeek {
   wk: number;
   meso: string;
