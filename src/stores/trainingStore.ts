@@ -10,6 +10,12 @@ const emptyTrainingBlocks: TrainingBlocks = {
   mental: [],
 };
 
+// Shallow compare for arrays
+const arraysEqual = <T>(a: T[], b: T[]): boolean => {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => item === b[index]);
+};
+
 interface TrainingStore {
   activeTab: TabId;
   setActiveTab: (tab: TabId) => void;
@@ -56,10 +62,16 @@ export const useTrainingStore = create<TrainingStore>()(
   persist(
     (set, get) => ({
       activeTab: 'setup',
-      setActiveTab: (tab) => set({ activeTab: tab }),
+      setActiveTab: (tab) => set((state) => {
+        if (state.activeTab === tab) return state;
+        return { activeTab: tab };
+      }),
       
       selectedAthleteIds: [],
-      setSelectedAthleteIds: (ids) => set({ selectedAthleteIds: ids }),
+      setSelectedAthleteIds: (ids) => set((state) => {
+        if (arraysEqual(state.selectedAthleteIds, ids)) return state;
+        return { selectedAthleteIds: ids };
+      }),
       
       setup: {
         planName: 'Annual Plan 2025',
@@ -95,7 +107,10 @@ export const useTrainingStore = create<TrainingStore>()(
       })),
       
       mesocycles: [],
-      setMesocycles: (mesocycles) => set({ mesocycles }),
+      setMesocycles: (mesocycles) => set((state) => {
+        if (JSON.stringify(state.mesocycles) === JSON.stringify(mesocycles)) return state;
+        return { mesocycles };
+      }),
       addMesocycle: () => set((state) => ({
         mesocycles: [...state.mesocycles, { name: `MESO ${state.mesocycles.length + 1}`, weeks: 4 }],
       })),
@@ -107,13 +122,19 @@ export const useTrainingStore = create<TrainingStore>()(
       })),
       
       planData: [],
-      setPlanData: (data) => set({ planData: data }),
+      setPlanData: (data) => set((state) => {
+        if (JSON.stringify(state.planData) === JSON.stringify(data)) return state;
+        return { planData: data };
+      }),
       updatePlanWeek: (index, data) => set((state) => ({
         planData: state.planData.map((p, i) => i === index ? { ...p, ...data } : p),
       })),
       
       trainingBlocks: emptyTrainingBlocks,
-      setTrainingBlocks: (blocks) => set({ trainingBlocks: blocks }),
+      setTrainingBlocks: (blocks) => set((state) => {
+        if (JSON.stringify(state.trainingBlocks) === JSON.stringify(blocks)) return state;
+        return { trainingBlocks: blocks };
+      }),
       
       sessions: {},
       updateSession: (key, session) => set((state) => ({

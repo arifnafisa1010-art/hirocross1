@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,10 +40,14 @@ export function SetupSection() {
   
   const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, createNewProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
+  const [loadingProgramId, setLoadingProgramId] = useState<string | null>(null);
+  const lastLoadedProgramIdRef = useRef<string | null>(null);
 
-  // Load current program data into store when program changes
+  // Load current program data into store when program changes - with deduplication
   useEffect(() => {
-    if (currentProgram) {
+    if (currentProgram && currentProgram.id !== lastLoadedProgramIdRef.current) {
+      lastLoadedProgramIdRef.current = currentProgram.id;
+      
       setSetup({
         planName: currentProgram.name,
         startDate: currentProgram.start_date,
@@ -73,7 +77,7 @@ export function SetupSection() {
         setTotalWeeks(loadedPlan.length);
       }
     }
-  }, [currentProgram?.id]);
+  }, [currentProgram?.id, setSetup, setMesocycles, setPlanData, setCompetitions, setTrainingBlocks, setTotalWeeks]);
 
   const handleGenerate = async () => {
     if (!setup.startDate || competitions.length === 0) {
@@ -109,11 +113,19 @@ export function SetupSection() {
     setSaving(false);
   };
 
-  const handleLoadProgram = async (programId: string) => {
-    await loadProgram(programId);
-  };
+  const handleLoadProgram = useCallback(async (programId: string) => {
+    if (loadingProgramId || programId === currentProgram?.id) return;
+    
+    setLoadingProgramId(programId);
+    try {
+      await loadProgram(programId);
+    } finally {
+      setLoadingProgramId(null);
+    }
+  }, [loadingProgramId, currentProgram?.id, loadProgram]);
 
-  const handleNewProgram = () => {
+  const handleNewProgram = useCallback(() => {
+    lastLoadedProgramIdRef.current = null;
     createNewProgram();
     setSetup({
       planName: 'New Program',
@@ -132,7 +144,7 @@ export function SetupSection() {
     setTotalWeeks(0);
     setCompetitions([]);
     setTrainingBlocks(emptyTrainingBlocks);
-  };
+  }, [createNewProgram, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, setTrainingBlocks]);
 
   const handleDeleteProgram = async (programId: string) => {
     if (confirm('Yakin ingin menghapus program ini?')) {
@@ -177,14 +189,21 @@ export function SetupSection() {
               {programs.map(program => (
                 <div 
                   key={program.id}
-                  className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                  className={cn(
+                    "p-4 rounded-lg border cursor-pointer transition-all",
                     currentProgram?.id === program.id 
                       ? 'border-accent bg-accent/10' 
-                      : 'border-border hover:border-accent/50'
-                  }`}
+                      : 'border-border hover:border-accent/50',
+                    loadingProgramId === program.id && 'opacity-50 pointer-events-none'
+                  )}
                   onClick={() => handleLoadProgram(program.id)}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between relative">
+                    {loadingProgramId === program.id && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-sm truncate">{program.name}</h4>
                       <p className="text-xs text-muted-foreground mt-1">
