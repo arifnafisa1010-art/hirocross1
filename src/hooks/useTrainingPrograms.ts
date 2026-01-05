@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition } from '@/types/training';
+import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition, TrainingBlocks } from '@/types/training';
 import { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 
@@ -88,7 +88,8 @@ export function useTrainingPrograms() {
     mesocycles: Mesocycle[],
     planData: PlanWeek[],
     competitions: Competition[] = [],
-    athleteIds: string[] = []
+    athleteIds: string[] = [],
+    trainingBlocks: TrainingBlocks = { kekuatan: [], kecepatan: [], dayaTahan: [], fleksibilitas: [], mental: [] }
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
@@ -113,6 +114,7 @@ export function useTrainingPrograms() {
       plan_data: planData as unknown as Json,
       competitions: competitions as unknown as Json,
       athlete_ids: athleteIds,
+      training_blocks: trainingBlocks as unknown as Json,
     };
 
     if (currentProgram) {

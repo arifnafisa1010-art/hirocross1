@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition } from '@/types/training';
+import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition, TrainingBlocks } from '@/types/training';
+
+const emptyTrainingBlocks: TrainingBlocks = {
+  kekuatan: [],
+  kecepatan: [],
+  dayaTahan: [],
+  fleksibilitas: [],
+  mental: [],
+};
 
 interface TrainingStore {
   activeTab: TabId;
@@ -27,6 +35,9 @@ interface TrainingStore {
   planData: PlanWeek[];
   setPlanData: (data: PlanWeek[]) => void;
   updatePlanWeek: (index: number, data: Partial<PlanWeek>) => void;
+  
+  trainingBlocks: TrainingBlocks;
+  setTrainingBlocks: (blocks: TrainingBlocks) => void;
   
   sessions: Record<string, DaySession>;
   updateSession: (key: string, session: DaySession) => void;
@@ -100,6 +111,9 @@ export const useTrainingStore = create<TrainingStore>()(
       updatePlanWeek: (index, data) => set((state) => ({
         planData: state.planData.map((p, i) => i === index ? { ...p, ...data } : p),
       })),
+      
+      trainingBlocks: emptyTrainingBlocks,
+      setTrainingBlocks: (blocks) => set({ trainingBlocks: blocks }),
       
       sessions: {},
       updateSession: (key, session) => set((state) => ({

@@ -7,8 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, Trophy, Star } from 'lucide-react';
-import { Mesocycle, PlanWeek, Competition } from '@/types/training';
+import { Mesocycle, PlanWeek, Competition, TrainingBlocks } from '@/types/training';
 import { cn } from '@/lib/utils';
+
+const emptyTrainingBlocks: TrainingBlocks = {
+  kekuatan: [],
+  kecepatan: [],
+  dayaTahan: [],
+  fleksibilitas: [],
+  mental: [],
+};
 
 export function SetupSection() {
   const { 
@@ -26,6 +34,8 @@ export function SetupSection() {
     addCompetition,
     removeCompetition,
     updateCompetition,
+    setTrainingBlocks,
+    selectedAthleteIds,
   } = useTrainingStore();
   
   const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, createNewProgram } = useTrainingPrograms();
@@ -50,12 +60,14 @@ export function SetupSection() {
       const loadedMeso = currentProgram.mesocycles as unknown as Mesocycle[] || [];
       const loadedPlan = currentProgram.plan_data as unknown as PlanWeek[] || [];
       const loadedCompetitions = (currentProgram as any).competitions as unknown as Competition[] || [];
+      const loadedBlocks = (currentProgram as any).training_blocks as unknown as TrainingBlocks || emptyTrainingBlocks;
       
       setMesocycles(loadedMeso);
       setPlanData(loadedPlan);
       setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : [
         { id: crypto.randomUUID(), name: 'Kompetisi Utama', date: currentProgram.match_date, isPrimary: true }
       ]);
+      setTrainingBlocks(loadedBlocks);
       
       if (loadedPlan.length > 0) {
         setTotalWeeks(loadedPlan.length);
@@ -91,8 +103,9 @@ export function SetupSection() {
       return;
     }
 
+    const { trainingBlocks } = useTrainingStore.getState();
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions);
+    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks);
     setSaving(false);
   };
 
@@ -118,6 +131,7 @@ export function SetupSection() {
     setPlanData([]);
     setTotalWeeks(0);
     setCompetitions([]);
+    setTrainingBlocks(emptyTrainingBlocks);
   };
 
   const handleDeleteProgram = async (programId: string) => {
