@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy, Merge, Split } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   LineChart,
@@ -26,6 +26,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, addDays, addWeeks, getDay } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
 
 const phaseColors: Record<string, string> = {
   'Umum': 'hsl(195, 53%, 79%)',
@@ -33,6 +36,13 @@ const phaseColors: Record<string, string> = {
   'Pra-Komp': 'hsl(39, 100%, 65%)',
   'Kompetisi': 'hsl(0, 86%, 60%)',
 };
+
+interface ScheduledEvent {
+  week: number;
+  type: 'test' | 'competition';
+  name: string;
+  date: string;
+}
 
 const phaseClasses: Record<string, string> = {
   'Umum': 'phase-umum',
@@ -88,6 +98,74 @@ export function AnnualPlanSection() {
   const [selectedCells, setSelectedCells] = useState<{ category: BlockCategory; weeks: number[] }>({ category: 'kekuatan', weeks: [] });
   const [editingBlock, setEditingBlock] = useState<{ category: BlockCategory; index: number } | null>(null);
   const [blockText, setBlockText] = useState('');
+  const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
+  const [addingEvent, setAddingEvent] = useState<{ week: number } | null>(null);
+  const [newEventType, setNewEventType] = useState<'test' | 'competition'>('test');
+  const [newEventName, setNewEventName] = useState('');
+
+  // Calculate week dates based on start date
+  const getWeekDateRange = (weekNumber: number) => {
+    if (!setup.startDate) return { start: '', end: '', month: '' };
+    
+    const startDate = new Date(setup.startDate);
+    const weekStart = addWeeks(startDate, weekNumber - 1);
+    const weekEnd = addDays(weekStart, 6);
+    
+    const startDay = format(weekStart, 'd', { locale: localeID });
+    const endDay = format(weekEnd, 'd', { locale: localeID });
+    const month = format(weekStart, 'MMMM', { locale: localeID }).toUpperCase();
+    
+    return { 
+      start: startDay, 
+      end: endDay, 
+      month,
+      dateRange: `${startDay}-${endDay}`,
+      fullDate: format(weekStart, 'yyyy-MM-dd')
+    };
+  };
+
+  // Group weeks by month for header
+  const getMonthGroups = () => {
+    if (!setup.startDate || planData.length === 0) return [];
+    
+    const groups: { month: string; weeks: number[] }[] = [];
+    let currentMonth = '';
+    let currentGroup: { month: string; weeks: number[] } | null = null;
+
+    planData.forEach((d) => {
+      const { month } = getWeekDateRange(d.wk);
+      if (month !== currentMonth) {
+        if (currentGroup) groups.push(currentGroup);
+        currentMonth = month;
+        currentGroup = { month, weeks: [d.wk] };
+      } else {
+        currentGroup?.weeks.push(d.wk);
+      }
+    });
+    if (currentGroup) groups.push(currentGroup);
+    return groups;
+  };
+
+  const addScheduledEvent = () => {
+    if (!addingEvent || !newEventName.trim()) return;
+    
+    const { fullDate } = getWeekDateRange(addingEvent.week);
+    setScheduledEvents([
+      ...scheduledEvents,
+      { week: addingEvent.week, type: newEventType, name: newEventName, date: fullDate }
+    ]);
+    setAddingEvent(null);
+    setNewEventName('');
+    setNewEventType('test');
+  };
+
+  const removeScheduledEvent = (week: number) => {
+    setScheduledEvents(scheduledEvents.filter(e => e.week !== week));
+  };
+
+  const getEventForWeek = (week: number) => {
+    return scheduledEvents.find(e => e.week === week);
+  };
 
   const usedWeeks = mesocycles.reduce((acc, m) => acc + m.weeks, 0);
   const diff = totalWeeks - usedWeeks;
@@ -323,8 +401,10 @@ export function AnnualPlanSection() {
     );
   }
 
+  const monthGroups = getMonthGroups();
+
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-extrabold uppercase tracking-wide">
           {setup.planName}
@@ -475,6 +555,161 @@ export function AnnualPlanSection() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Calendar Table: Bulan, Minggu, Tanggal, Tes & Komp */}
+      <Card className="border-border shadow-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-extrabold text-muted-foreground uppercase">
+            Kalender Periodisasi
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full border-collapse">
+              {/* Bulan Row */}
+              <thead>
+                <tr className="bg-orange-500 text-white">
+                  <th className="p-2 text-left text-[10px] font-extrabold uppercase w-24 border-r border-orange-600">
+                    Bulan
+                  </th>
+                  {monthGroups.map((group, i) => (
+                    <th 
+                      key={i} 
+                      colSpan={group.weeks.length}
+                      className="p-2 text-center text-[10px] font-extrabold uppercase border-r border-orange-600 last:border-r-0"
+                    >
+                      {group.month}
+                    </th>
+                  ))}
+                </tr>
+                {/* Minggu Row */}
+                <tr className="bg-orange-400 text-white">
+                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-500">
+                    Minggu
+                  </th>
+                  {planData.map((d) => (
+                    <th 
+                      key={d.wk} 
+                      className="p-1 text-center text-[10px] font-bold border-r border-orange-500/50 last:border-r-0 min-w-[45px]"
+                    >
+                      {d.wk}
+                    </th>
+                  ))}
+                </tr>
+                {/* Tanggal Row */}
+                <tr className="bg-orange-300 text-orange-900">
+                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-400">
+                    Tanggal
+                  </th>
+                  {planData.map((d) => {
+                    const { dateRange } = getWeekDateRange(d.wk);
+                    return (
+                      <th 
+                        key={d.wk} 
+                        className="p-1 text-center text-[9px] font-semibold border-r border-orange-400/50 last:border-r-0"
+                      >
+                        {dateRange}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              {/* Tes & Kompetisi Row */}
+              <tbody>
+                <tr className="bg-card border-t-2 border-orange-500">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-secondary/50">
+                    Tes & Komp
+                  </td>
+                  {planData.map((d) => {
+                    const event = getEventForWeek(d.wk);
+                    return (
+                      <td 
+                        key={d.wk} 
+                        className={cn(
+                          "p-1 text-center border-r border-border/50 last:border-r-0 cursor-pointer transition-all",
+                          event?.type === 'test' && "bg-blue-500/30",
+                          event?.type === 'competition' && "bg-red-500/30",
+                          !event && "hover:bg-secondary/50"
+                        )}
+                        onClick={() => {
+                          if (event) {
+                            removeScheduledEvent(d.wk);
+                          } else {
+                            setAddingEvent({ week: d.wk });
+                          }
+                        }}
+                      >
+                        {event ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            {event.type === 'test' ? (
+                              <FlaskConical className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <Flag className="w-3 h-3 text-red-600" />
+                            )}
+                            <span className={cn(
+                              "text-[8px] font-bold truncate max-w-[40px]",
+                              event.type === 'test' ? 'text-blue-700' : 'text-red-700'
+                            )}>
+                              {event.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">-</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Event Dialog */}
+      <Dialog open={!!addingEvent} onOpenChange={(open) => !open && setAddingEvent(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Tambah Tes atau Kompetisi - Minggu {addingEvent?.week}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Tipe</Label>
+              <Select value={newEventType} onValueChange={(v) => setNewEventType(v as 'test' | 'competition')}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="test">
+                    <span className="flex items-center gap-2">
+                      <FlaskConical className="w-4 h-4 text-blue-500" />
+                      Tes
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="competition">
+                    <span className="flex items-center gap-2">
+                      <Flag className="w-4 h-4 text-red-500" />
+                      Kompetisi
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Nama</Label>
+              <Input 
+                value={newEventName} 
+                onChange={(e) => setNewEventName(e.target.value)}
+                placeholder={newEventType === 'test' ? 'Contoh: Tes Fisik' : 'Contoh: Kejuaraan Nasional'}
+                className="mt-1"
+              />
+            </div>
+            <Button onClick={addScheduledEvent} className="w-full" disabled={!newEventName.trim()}>
+              Tambah
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Chart */}
       <Card className="border-border shadow-card">
