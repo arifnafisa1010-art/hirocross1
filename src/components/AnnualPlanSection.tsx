@@ -297,7 +297,8 @@ export function AnnualPlanSection() {
   };
 
   const getBlockForWeek = (category: BlockCategory, week: number) => {
-    return trainingBlocks[category].find(block => week >= block.startWeek && week <= block.endWeek);
+    const categoryBlocks = trainingBlocks?.[category] || [];
+    return categoryBlocks.find(block => week >= block.startWeek && week <= block.endWeek);
   };
 
   const isBlockStart = (category: BlockCategory, week: number) => {
