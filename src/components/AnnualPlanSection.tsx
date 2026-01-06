@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTrainingStore } from '@/stores/trainingStore';
+import { useTrainingStore, TrainingBlocks, TrainingBlock, BlockCategory } from '@/stores/trainingStore';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,22 +48,6 @@ interface PhaseSettings {
   kompetisi: number;
 }
 
-interface TrainingBlock {
-  startWeek: number;
-  endWeek: number;
-  text: string;
-}
-
-interface TrainingBlocks {
-  kekuatan: TrainingBlock[];
-  kecepatan: TrainingBlock[];
-  dayaTahan: TrainingBlock[];
-  fleksibilitas: TrainingBlock[];
-  mental: TrainingBlock[];
-}
-
-type BlockCategory = keyof TrainingBlocks;
-
 const blockColors: Record<BlockCategory, { bg: string; text: string; border: string }> = {
   kekuatan: { bg: 'bg-orange-500/30', text: 'text-orange-800', border: 'border-orange-500' },
   kecepatan: { bg: 'bg-blue-500/30', text: 'text-blue-800', border: 'border-blue-500' },
@@ -79,6 +63,9 @@ export function AnnualPlanSection() {
     planData, 
     totalWeeks,
     competitions,
+    trainingBlocks,
+    setTrainingBlocks,
+    selectedAthleteIds,
     addMesocycle, 
     removeMesocycle, 
     updateMesocycle,
@@ -96,15 +83,6 @@ export function AnnualPlanSection() {
     khusus: 30,
     prakomp: 20,
     kompetisi: 10,
-  });
-
-  // Training blocks state
-  const [trainingBlocks, setTrainingBlocks] = useState<TrainingBlocks>({
-    kekuatan: [],
-    kecepatan: [],
-    dayaTahan: [],
-    fleksibilitas: [],
-    mental: [],
   });
 
   const [selectedCells, setSelectedCells] = useState<{ category: BlockCategory; weeks: number[] }>({ category: 'kekuatan', weeks: [] });
@@ -149,7 +127,7 @@ export function AnnualPlanSection() {
 
   const handleSave = async () => {
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions);
+    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks);
     setSaving(false);
   };
 
@@ -280,10 +258,11 @@ export function AnnualPlanSection() {
     }
 
     const newBlock: TrainingBlock = { startWeek, endWeek, text: blockText };
-    setTrainingBlocks(prev => ({
-      ...prev,
-      [selectedCells.category]: [...prev[selectedCells.category], newBlock].sort((a, b) => a.startWeek - b.startWeek),
-    }));
+    const updatedBlocks: TrainingBlocks = {
+      ...trainingBlocks,
+      [selectedCells.category]: [...trainingBlocks[selectedCells.category], newBlock].sort((a, b) => a.startWeek - b.startWeek),
+    };
+    setTrainingBlocks(updatedBlocks);
 
     setSelectedCells({ category: selectedCells.category, weeks: [] });
     setBlockText('');
@@ -292,12 +271,13 @@ export function AnnualPlanSection() {
   const updateBlock = () => {
     if (!editingBlock || !blockText.trim()) return;
 
-    setTrainingBlocks(prev => ({
-      ...prev,
-      [editingBlock.category]: prev[editingBlock.category].map((block, i) =>
+    const updatedBlocks: TrainingBlocks = {
+      ...trainingBlocks,
+      [editingBlock.category]: trainingBlocks[editingBlock.category].map((block, i) =>
         i === editingBlock.index ? { ...block, text: blockText } : block
       ),
-    }));
+    };
+    setTrainingBlocks(updatedBlocks);
 
     setEditingBlock(null);
     setBlockText('');
@@ -306,10 +286,11 @@ export function AnnualPlanSection() {
   const deleteBlock = () => {
     if (!editingBlock) return;
 
-    setTrainingBlocks(prev => ({
-      ...prev,
-      [editingBlock.category]: prev[editingBlock.category].filter((_, i) => i !== editingBlock.index),
-    }));
+    const updatedBlocks: TrainingBlocks = {
+      ...trainingBlocks,
+      [editingBlock.category]: trainingBlocks[editingBlock.category].filter((_, i) => i !== editingBlock.index),
+    };
+    setTrainingBlocks(updatedBlocks);
 
     setEditingBlock(null);
     setBlockText('');
