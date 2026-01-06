@@ -2,6 +2,22 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition } from '@/types/training';
 
+export interface TrainingBlock {
+  startWeek: number;
+  endWeek: number;
+  text: string;
+}
+
+export interface TrainingBlocks {
+  kekuatan: TrainingBlock[];
+  kecepatan: TrainingBlock[];
+  dayaTahan: TrainingBlock[];
+  fleksibilitas: TrainingBlock[];
+  mental: TrainingBlock[];
+}
+
+export type BlockCategory = keyof TrainingBlocks;
+
 interface TrainingStore {
   activeTab: TabId;
   setActiveTab: (tab: TabId) => void;
@@ -37,6 +53,9 @@ interface TrainingStore {
   
   totalWeeks: number;
   setTotalWeeks: (weeks: number) => void;
+  
+  trainingBlocks: TrainingBlocks;
+  setTrainingBlocks: (blocks: TrainingBlocks) => void;
   
   generatePlan: () => void;
 }
@@ -114,6 +133,15 @@ export const useTrainingStore = create<TrainingStore>()(
       
       totalWeeks: 0,
       setTotalWeeks: (weeks) => set({ totalWeeks: weeks }),
+      
+      trainingBlocks: {
+        kekuatan: [],
+        kecepatan: [],
+        dayaTahan: [],
+        fleksibilitas: [],
+        mental: [],
+      },
+      setTrainingBlocks: (blocks) => set({ trainingBlocks: blocks }),
       
       generatePlan: () => {
         const state = get();
