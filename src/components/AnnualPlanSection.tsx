@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useTrainingStore, TrainingBlocks, TrainingBlock, BlockCategory } from '@/stores/trainingStore';
+import { useState, useEffect } from 'react';
+import { useTrainingStore, TrainingBlocks, TrainingBlock, BlockCategory, ScheduledEvent } from '@/stores/trainingStore';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,12 +37,11 @@ const phaseColors: Record<string, string> = {
   'Kompetisi': 'hsl(0, 86%, 60%)',
 };
 
-interface ScheduledEvent {
-  week: number;
-  type: 'test' | 'competition';
-  name: string;
-  date: string;
-}
+// Helper function to determine period based on phase
+const getPeriodForPhase = (fase: string): string => {
+  if (fase === 'Umum' || fase === 'Khusus') return 'PERSIAPAN';
+  return 'PERTANDINGAN';
+};
 
 const phaseClasses: Record<string, string> = {
   'Umum': 'phase-umum',
@@ -75,6 +74,8 @@ export function AnnualPlanSection() {
     competitions,
     trainingBlocks,
     setTrainingBlocks,
+    scheduledEvents,
+    setScheduledEvents,
     selectedAthleteIds,
     addMesocycle, 
     removeMesocycle, 
@@ -98,7 +99,6 @@ export function AnnualPlanSection() {
   const [selectedCells, setSelectedCells] = useState<{ category: BlockCategory; weeks: number[] }>({ category: 'kekuatan', weeks: [] });
   const [editingBlock, setEditingBlock] = useState<{ category: BlockCategory; index: number } | null>(null);
   const [blockText, setBlockText] = useState('');
-  const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
   const [addingEvent, setAddingEvent] = useState<{ week: number } | null>(null);
   const [newEventType, setNewEventType] = useState<'test' | 'competition'>('test');
   const [newEventName, setNewEventName] = useState('');
@@ -150,10 +150,8 @@ export function AnnualPlanSection() {
     if (!addingEvent || !newEventName.trim()) return;
     
     const { fullDate } = getWeekDateRange(addingEvent.week);
-    setScheduledEvents([
-      ...scheduledEvents,
-      { week: addingEvent.week, type: newEventType, name: newEventName, date: fullDate }
-    ]);
+    const newEvent: ScheduledEvent = { week: addingEvent.week, type: newEventType, name: newEventName, date: fullDate };
+    setScheduledEvents([...scheduledEvents, newEvent]);
     setAddingEvent(null);
     setNewEventName('');
     setNewEventType('test');
@@ -205,7 +203,7 @@ export function AnnualPlanSection() {
 
   const handleSave = async () => {
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks);
+    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents);
     setSaving(false);
   };
 
@@ -614,9 +612,81 @@ export function AnnualPlanSection() {
                   })}
                 </tr>
               </thead>
-              {/* Tes & Kompetisi Row */}
+              {/* Periode & Fase Rows + Tes & Kompetisi Row */}
               <tbody>
-                <tr className="bg-card border-t-2 border-orange-500">
+                {/* Periode Row */}
+                <tr className="bg-gray-700 text-white">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-gray-600">
+                    Periode
+                  </td>
+                  {(() => {
+                    const groups: { period: string; weeks: number[] }[] = [];
+                    let currentPeriod = '';
+                    let currentGroup: { period: string; weeks: number[] } | null = null;
+
+                    planData.forEach((d) => {
+                      const period = getPeriodForPhase(d.fase);
+                      if (period !== currentPeriod) {
+                        if (currentGroup) groups.push(currentGroup);
+                        currentPeriod = period;
+                        currentGroup = { period, weeks: [d.wk] };
+                      } else {
+                        currentGroup?.weeks.push(d.wk);
+                      }
+                    });
+                    if (currentGroup) groups.push(currentGroup);
+
+                    return groups.map((group, i) => (
+                      <td 
+                        key={i} 
+                        colSpan={group.weeks.length}
+                        className={cn(
+                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-gray-600 last:border-r-0",
+                          group.period === 'PERSIAPAN' ? 'bg-gray-600' : 'bg-gray-800'
+                        )}
+                      >
+                        {group.period}
+                      </td>
+                    ));
+                  })()}
+                </tr>
+                {/* Fase Row */}
+                <tr className="bg-secondary/70">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border">
+                    Fase
+                  </td>
+                  {(() => {
+                    const groups: { fase: string; weeks: number[] }[] = [];
+                    let currentFase = '';
+                    let currentGroup: { fase: string; weeks: number[] } | null = null;
+
+                    planData.forEach((d) => {
+                      if (d.fase !== currentFase) {
+                        if (currentGroup) groups.push(currentGroup);
+                        currentFase = d.fase;
+                        currentGroup = { fase: d.fase, weeks: [d.wk] };
+                      } else {
+                        currentGroup?.weeks.push(d.wk);
+                      }
+                    });
+                    if (currentGroup) groups.push(currentGroup);
+
+                    return groups.map((group, i) => (
+                      <td 
+                        key={i} 
+                        colSpan={group.weeks.length}
+                        className={cn(
+                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-border last:border-r-0",
+                          phaseClasses[group.fase]
+                        )}
+                      >
+                        {group.fase}
+                      </td>
+                    ));
+                  })()}
+                </tr>
+                {/* Tes & Kompetisi Row */}
+                <tr className="bg-card border-t-2 border-border">
                   <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-secondary/50">
                     Tes & Komp
                   </td>
@@ -774,6 +844,23 @@ export function AnnualPlanSection() {
                           position: 'top',
                           fill: 'hsl(var(--destructive))',
                           fontSize: 10,
+                          fontWeight: 700,
+                        }}
+                      />
+                    ))}
+                    {/* Scheduled Events Reference Lines */}
+                    {scheduledEvents.map((event, i) => (
+                      <ReferenceLine
+                        key={`event-${i}`}
+                        x={`W${event.week}`}
+                        stroke={event.type === 'test' ? 'hsl(217, 91%, 60%)' : 'hsl(var(--destructive))'}
+                        strokeWidth={2}
+                        strokeDasharray={event.type === 'test' ? '3 3' : '5 5'}
+                        label={{
+                          value: event.type === 'test' ? `🧪 ${event.name}` : `🏁 ${event.name}`,
+                          position: 'top',
+                          fill: event.type === 'test' ? 'hsl(217, 91%, 60%)' : 'hsl(var(--destructive))',
+                          fontSize: 9,
                           fontWeight: 700,
                         }}
                       />

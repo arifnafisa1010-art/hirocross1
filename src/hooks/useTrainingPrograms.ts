@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition } from '@/types/training';
-import { TrainingBlocks } from '@/stores/trainingStore';
+import { TrainingBlocks, ScheduledEvent } from '@/stores/trainingStore';
 import { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 
@@ -90,7 +90,8 @@ export function useTrainingPrograms() {
     planData: PlanWeek[],
     competitions: Competition[] = [],
     athleteIds: string[] = [],
-    trainingBlocks?: TrainingBlocks
+    trainingBlocks?: TrainingBlocks,
+    scheduledEvents?: ScheduledEvent[]
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
@@ -116,6 +117,7 @@ export function useTrainingPrograms() {
       competitions: competitions as unknown as Json,
       athlete_ids: athleteIds,
       training_blocks: trainingBlocks as unknown as Json,
+      scheduled_events: scheduledEvents as unknown as Json,
     };
 
     if (currentProgram) {
