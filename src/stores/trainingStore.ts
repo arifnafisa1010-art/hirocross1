@@ -8,6 +8,13 @@ export interface TrainingBlock {
   text: string;
 }
 
+export interface ScheduledEvent {
+  week: number;
+  type: 'test' | 'competition';
+  name: string;
+  date: string;
+}
+
 export interface TrainingBlocks {
   kekuatan: TrainingBlock[];
   kecepatan: TrainingBlock[];
@@ -56,6 +63,9 @@ interface TrainingStore {
   
   trainingBlocks: TrainingBlocks;
   setTrainingBlocks: (blocks: TrainingBlocks) => void;
+  
+  scheduledEvents: ScheduledEvent[];
+  setScheduledEvents: (events: ScheduledEvent[]) => void;
   
   generatePlan: () => void;
 }
@@ -142,6 +152,9 @@ export const useTrainingStore = create<TrainingStore>()(
         mental: [],
       },
       setTrainingBlocks: (blocks) => set({ trainingBlocks: blocks }),
+      
+      scheduledEvents: [],
+      setScheduledEvents: (events) => set({ scheduledEvents: events }),
       
       generatePlan: () => {
         const state = get();

@@ -173,6 +173,7 @@ export type Database = {
           mesocycles: Json | null
           name: string
           plan_data: Json | null
+          scheduled_events: Json | null
           start_date: string
           target_endurance: number | null
           target_speed: number | null
@@ -192,6 +193,7 @@ export type Database = {
           mesocycles?: Json | null
           name: string
           plan_data?: Json | null
+          scheduled_events?: Json | null
           start_date: string
           target_endurance?: number | null
           target_speed?: number | null
@@ -211,6 +213,7 @@ export type Database = {
           mesocycles?: Json | null
           name?: string
           plan_data?: Json | null
+          scheduled_events?: Json | null
           start_date?: string
           target_endurance?: number | null
           target_speed?: number | null
