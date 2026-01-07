@@ -428,7 +428,7 @@ export function AnnualPlanSection() {
   const monthGroups = getMonthGroups();
 
   return (
-    <div className="animate-fade-in space-y-6 max-w-7xl mx-auto">
+    <div className="animate-fade-in space-y-4 w-full">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-extrabold uppercase tracking-wide">
           {setup.planName}
@@ -610,33 +610,33 @@ export function AnnualPlanSection() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full border-collapse">
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full border-collapse table-fixed">
               {/* Bulan Row */}
               <thead>
                 <tr className="bg-orange-500 text-white">
-                  <th className="p-2 text-left text-[10px] font-extrabold uppercase w-24 border-r border-orange-600 sticky left-0 bg-orange-500 z-10">
+                  <th className="p-1 text-left text-[8px] font-extrabold uppercase w-16 border-r border-orange-600 bg-orange-500">
                     Bulan
                   </th>
                   {monthGroups.map((group, i) => (
                     <th 
                       key={i} 
                       colSpan={group.weeks.length}
-                      className="p-2 text-center text-[10px] font-extrabold uppercase border-r border-orange-600 last:border-r-0"
+                      className="p-1 text-center text-[7px] font-extrabold uppercase border-r border-orange-600 last:border-r-0"
                     >
-                      {group.month}
+                      {group.month.substring(0, 3)}
                     </th>
                   ))}
                 </tr>
                 {/* Minggu Row */}
                 <tr className="bg-orange-400 text-white">
-                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-500 sticky left-0 bg-orange-400 z-10">
+                  <th className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-orange-500 bg-orange-400">
                     Minggu
                   </th>
                   {planData.map((d) => (
                     <th 
                       key={d.wk} 
-                      className="p-1 text-center text-[10px] font-bold border-r border-orange-500/50 last:border-r-0 min-w-[45px]"
+                      className="p-0.5 text-center text-[7px] font-bold border-r border-orange-500/50 last:border-r-0"
                     >
                       {d.wk}
                     </th>
@@ -644,7 +644,7 @@ export function AnnualPlanSection() {
                 </tr>
                 {/* Tanggal Row */}
                 <tr className="bg-orange-300 text-orange-900">
-                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-400 sticky left-0 bg-orange-300 z-10">
+                  <th className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-orange-400 bg-orange-300">
                     Tanggal
                   </th>
                   {planData.map((d) => {
@@ -652,7 +652,7 @@ export function AnnualPlanSection() {
                     return (
                       <th 
                         key={d.wk} 
-                        className="p-1 text-center text-[9px] font-semibold border-r border-orange-400/50 last:border-r-0"
+                        className="p-0.5 text-center text-[6px] font-semibold border-r border-orange-400/50 last:border-r-0"
                       >
                         {dateRange}
                       </th>
@@ -663,7 +663,7 @@ export function AnnualPlanSection() {
               <tbody>
                 {/* Periode Row */}
                 <tr className="bg-gray-700 text-white">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-gray-600 sticky left-0 bg-gray-700 z-10">
+                  <td className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-gray-600 bg-gray-700">
                     Periode
                   </td>
                   {(() => {
@@ -688,18 +688,18 @@ export function AnnualPlanSection() {
                         key={i} 
                         colSpan={group.weeks.length}
                         className={cn(
-                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-gray-600 last:border-r-0",
+                          "p-0.5 text-center text-[7px] font-extrabold uppercase border-r border-gray-600 last:border-r-0",
                           group.period === 'PERSIAPAN' ? 'bg-gray-600' : 'bg-gray-800'
                         )}
                       >
-                        {group.period}
+                        {group.period.substring(0, 4)}
                       </td>
                     ));
                   })()}
                 </tr>
                 {/* Fase Row */}
                 <tr className="bg-secondary/70">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border sticky left-0 bg-secondary/70 z-10">
+                  <td className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-border bg-secondary/70">
                     Fase
                   </td>
                   {(() => {
@@ -723,7 +723,7 @@ export function AnnualPlanSection() {
                         key={i} 
                         colSpan={group.weeks.length}
                         className={cn(
-                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-border last:border-r-0",
+                          "p-0.5 text-center text-[7px] font-extrabold uppercase border-r border-border last:border-r-0",
                           phaseClasses[group.fase]
                         )}
                       >
@@ -733,9 +733,9 @@ export function AnnualPlanSection() {
                   })()}
                 </tr>
                 {/* Tes & Kompetisi Row */}
-                <tr className="bg-card border-t-2 border-border">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-secondary/50 sticky left-0 z-10">
-                    Tes & Komp
+                <tr className="bg-card border-t border-border">
+                  <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-secondary/50">
+                    Tes/Komp
                   </td>
                   {planData.map((d) => {
                     const event = getEventForWeek(d.wk);
@@ -743,7 +743,7 @@ export function AnnualPlanSection() {
                       <td 
                         key={d.wk} 
                         className={cn(
-                          "p-1 text-center border-r border-border/50 last:border-r-0 cursor-pointer transition-all",
+                          "p-0.5 text-center border-r border-border/50 last:border-r-0 cursor-pointer transition-all",
                           event?.type === 'test' && "bg-blue-500/30",
                           event?.type === 'competition' && "bg-red-500/30",
                           !event && "hover:bg-secondary/50"
@@ -757,21 +757,15 @@ export function AnnualPlanSection() {
                         }}
                       >
                         {event ? (
-                          <div className="flex flex-col items-center gap-0.5">
+                          <div className="flex flex-col items-center">
                             {event.type === 'test' ? (
-                              <FlaskConical className="w-3 h-3 text-blue-600" />
+                              <FlaskConical className="w-2 h-2 text-blue-600" />
                             ) : (
-                              <Flag className="w-3 h-3 text-red-600" />
+                              <Flag className="w-2 h-2 text-red-600" />
                             )}
-                            <span className={cn(
-                              "text-[8px] font-bold truncate max-w-[40px]",
-                              event.type === 'test' ? 'text-blue-700' : 'text-red-700'
-                            )}>
-                              {event.name}
-                            </span>
                           </div>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground">-</span>
+                          <span className="text-[6px] text-muted-foreground">-</span>
                         )}
                       </td>
                     );
@@ -779,8 +773,8 @@ export function AnnualPlanSection() {
                 </tr>
                 {/* Mesocycle Row */}
                 <tr className="bg-secondary/30 border-t border-border">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-secondary/50 sticky left-0 z-10">
-                    Mesocycle
+                  <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-secondary/50">
+                    Meso
                   </td>
                   {(() => {
                     const groups: { meso: string; weeks: number[] }[] = [];
@@ -802,13 +796,13 @@ export function AnnualPlanSection() {
                       <td 
                         key={i} 
                         colSpan={group.weeks.length}
-                        className="p-2 text-center text-[9px] font-bold uppercase border-r border-border last:border-r-0"
+                        className="p-0.5 text-center text-[6px] font-bold uppercase border-r border-border last:border-r-0"
                         style={{
                           backgroundColor: i % 2 === 0 ? 'hsl(222, 47%, 11%)' : 'hsl(215, 14%, 34%)',
                           color: 'white'
                         }}
                       >
-                        {group.meso}
+                        {group.meso.replace('MESO ', 'M')}
                       </td>
                     ));
                   })()}
@@ -818,8 +812,8 @@ export function AnnualPlanSection() {
                   const labels: Record<BlockCategory, string> = {
                     kekuatan: 'Kekuatan',
                     kecepatan: 'Kecepatan',
-                    dayaTahan: 'Daya Tahan',
-                    fleksibilitas: 'Fleksibilitas',
+                    dayaTahan: 'D.Tahan',
+                    fleksibilitas: 'Fleks',
                     mental: 'Mental',
                   };
 
@@ -828,7 +822,7 @@ export function AnnualPlanSection() {
                   return (
                     <tr key={category} className="border-t border-border/50">
                       <td className={cn(
-                        "p-2 font-bold text-[10px] border-r border-border sticky left-0 z-10",
+                        "p-1 font-bold text-[7px] border-r border-border",
                         blockColors[category].bg,
                         blockColors[category].text
                       )}>
@@ -855,11 +849,11 @@ export function AnnualPlanSection() {
                               key={week}
                               colSpan={span}
                               className={cn(
-                                "p-1 text-center cursor-pointer transition-all border-2",
+                                "p-0.5 text-center cursor-pointer transition-all border",
                                 blockColors[category].bg,
                                 blockColors[category].text,
                                 blockColors[category].border,
-                                "hover:opacity-80 font-bold text-[9px] rounded"
+                                "hover:opacity-80 font-bold text-[6px]"
                               )}
                               onClick={() => !isInlineEditing && handleCellClick(category, week)}
                             >
@@ -878,7 +872,7 @@ export function AnnualPlanSection() {
                                   }}
                                   onClick={(e) => e.stopPropagation()}
                                   autoFocus
-                                  className="w-full h-6 text-[9px] text-center p-0 font-bold"
+                                  className="w-full h-4 text-[6px] text-center p-0 font-bold"
                                 />
                               ) : (
                                 block.text
@@ -895,13 +889,13 @@ export function AnnualPlanSection() {
                           <td
                             key={week}
                             className={cn(
-                              "p-1 text-center cursor-pointer transition-all border border-border/30",
-                              isSelected && "bg-accent/30 ring-2 ring-accent",
+                              "p-0.5 text-center cursor-pointer transition-all border border-border/30",
+                              isSelected && "bg-accent/30 ring-1 ring-accent",
                               !isSelected && "hover:bg-secondary/50"
                             )}
                             onClick={() => handleCellClick(category, week)}
                           >
-                            <span className="text-[10px] text-muted-foreground">-</span>
+                            <span className="text-[6px] text-muted-foreground">-</span>
                           </td>
                         );
                       })}
@@ -910,17 +904,17 @@ export function AnnualPlanSection() {
                 })}
                 {/* Separator */}
                 <tr>
-                  <td colSpan={planData.length + 1} className="h-2 bg-border"></td>
+                  <td colSpan={planData.length + 1} className="h-1 bg-border"></td>
                 </tr>
                 {/* Volume Row - Moved to bottom */}
-                <tr className="bg-accent/10 border-t-2 border-accent/30">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-accent/20 text-accent sticky left-0 z-10">
-                    Volume %
+                <tr className="bg-accent/10 border-t border-accent/30">
+                  <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-accent/20 text-accent">
+                    Vol %
                   </td>
                   {planData.map((d, idx) => (
                     <td 
                       key={d.wk} 
-                      className="p-1 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-accent/20 transition-colors"
+                      className="p-0.5 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-accent/20 transition-colors"
                       onClick={() => {
                         setEditingVolInt({ week: d.wk, type: 'vol' });
                         setEditVolIntValue(d.vol);
@@ -944,16 +938,16 @@ export function AnnualPlanSection() {
                           }}
                           onClick={(e) => e.stopPropagation()}
                           autoFocus
-                          className="w-10 h-6 text-[10px] text-center p-0"
+                          className="w-6 h-4 text-[6px] text-center p-0"
                           min={0}
                           max={100}
                         />
                       ) : (
                         <div 
-                          className="mx-auto w-full h-6 bg-accent/40 rounded-sm flex items-end justify-center relative"
-                          style={{ height: `${Math.max(d.vol * 0.4, 8)}px` }}
+                          className="mx-auto w-full bg-accent/40 rounded-sm flex items-end justify-center relative"
+                          style={{ height: `${Math.max(d.vol * 0.2, 4)}px` }}
                         >
-                          <span className="text-[8px] font-bold text-accent-foreground absolute -top-3">{d.vol}</span>
+                          <span className="text-[5px] font-bold text-accent-foreground absolute -top-2">{d.vol}</span>
                         </div>
                       )}
                     </td>
@@ -961,13 +955,13 @@ export function AnnualPlanSection() {
                 </tr>
                 {/* Intensitas Row - Moved to bottom */}
                 <tr className="bg-destructive/10">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-destructive/20 text-destructive sticky left-0 z-10">
-                    Intensitas %
+                  <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-destructive/20 text-destructive">
+                    Int %
                   </td>
                   {planData.map((d, idx) => (
                     <td 
                       key={d.wk} 
-                      className="p-1 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-destructive/20 transition-colors"
+                      className="p-0.5 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-destructive/20 transition-colors"
                       onClick={() => {
                         setEditingVolInt({ week: d.wk, type: 'int' });
                         setEditVolIntValue(d.int);
@@ -991,16 +985,16 @@ export function AnnualPlanSection() {
                           }}
                           onClick={(e) => e.stopPropagation()}
                           autoFocus
-                          className="w-10 h-6 text-[10px] text-center p-0"
+                          className="w-6 h-4 text-[6px] text-center p-0"
                           min={0}
                           max={100}
                         />
                       ) : (
                         <div 
-                          className="mx-auto w-full h-6 bg-destructive/40 rounded-sm flex items-end justify-center relative"
-                          style={{ height: `${Math.max(d.int * 0.4, 8)}px` }}
+                          className="mx-auto w-full bg-destructive/40 rounded-sm flex items-end justify-center relative"
+                          style={{ height: `${Math.max(d.int * 0.2, 4)}px` }}
                         >
-                          <span className="text-[8px] font-bold text-destructive absolute -top-3">{d.int}</span>
+                          <span className="text-[5px] font-bold text-destructive absolute -top-2">{d.int}</span>
                         </div>
                       )}
                     </td>
