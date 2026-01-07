@@ -91,6 +91,8 @@ export function AnnualPlanSection() {
   const [addingEvent, setAddingEvent] = useState<{ week: number } | null>(null);
   const [newEventType, setNewEventType] = useState<'test' | 'competition'>('test');
   const [newEventName, setNewEventName] = useState('');
+  const [editingVolInt, setEditingVolInt] = useState<{ week: number; type: 'vol' | 'int' } | null>(null);
+  const [editVolIntValue, setEditVolIntValue] = useState<number>(0);
 
   // Calculate week dates based on start date
   const getWeekDateRange = (weekNumber: number) => {
@@ -766,17 +768,45 @@ export function AnnualPlanSection() {
                   <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-accent/20 text-accent sticky left-0 z-10">
                     Volume %
                   </td>
-                  {planData.map((d) => (
+                  {planData.map((d, idx) => (
                     <td 
                       key={d.wk} 
-                      className="p-1 text-center border-r border-border/30 last:border-r-0"
+                      className="p-1 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-accent/20 transition-colors"
+                      onClick={() => {
+                        setEditingVolInt({ week: d.wk, type: 'vol' });
+                        setEditVolIntValue(d.vol);
+                      }}
                     >
-                      <div 
-                        className="mx-auto w-full h-6 bg-accent/40 rounded-sm flex items-end justify-center relative"
-                        style={{ height: `${Math.max(d.vol * 0.4, 8)}px` }}
-                      >
-                        <span className="text-[8px] font-bold text-accent-foreground absolute -top-3">{d.vol}</span>
-                      </div>
+                      {editingVolInt?.week === d.wk && editingVolInt?.type === 'vol' ? (
+                        <Input
+                          type="number"
+                          value={editVolIntValue}
+                          onChange={(e) => setEditVolIntValue(Number(e.target.value))}
+                          onBlur={() => {
+                            updatePlanWeek(idx, { vol: Math.max(0, Math.min(100, editVolIntValue)) });
+                            setEditingVolInt(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updatePlanWeek(idx, { vol: Math.max(0, Math.min(100, editVolIntValue)) });
+                              setEditingVolInt(null);
+                            }
+                            if (e.key === 'Escape') setEditingVolInt(null);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="w-10 h-6 text-[10px] text-center p-0"
+                          min={0}
+                          max={100}
+                        />
+                      ) : (
+                        <div 
+                          className="mx-auto w-full h-6 bg-accent/40 rounded-sm flex items-end justify-center relative"
+                          style={{ height: `${Math.max(d.vol * 0.4, 8)}px` }}
+                        >
+                          <span className="text-[8px] font-bold text-accent-foreground absolute -top-3">{d.vol}</span>
+                        </div>
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -785,17 +815,45 @@ export function AnnualPlanSection() {
                   <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-destructive/20 text-destructive sticky left-0 z-10">
                     Intensitas %
                   </td>
-                  {planData.map((d) => (
+                  {planData.map((d, idx) => (
                     <td 
                       key={d.wk} 
-                      className="p-1 text-center border-r border-border/30 last:border-r-0"
+                      className="p-1 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-destructive/20 transition-colors"
+                      onClick={() => {
+                        setEditingVolInt({ week: d.wk, type: 'int' });
+                        setEditVolIntValue(d.int);
+                      }}
                     >
-                      <div 
-                        className="mx-auto w-full h-6 bg-destructive/40 rounded-sm flex items-end justify-center relative"
-                        style={{ height: `${Math.max(d.int * 0.4, 8)}px` }}
-                      >
-                        <span className="text-[8px] font-bold text-destructive absolute -top-3">{d.int}</span>
-                      </div>
+                      {editingVolInt?.week === d.wk && editingVolInt?.type === 'int' ? (
+                        <Input
+                          type="number"
+                          value={editVolIntValue}
+                          onChange={(e) => setEditVolIntValue(Number(e.target.value))}
+                          onBlur={() => {
+                            updatePlanWeek(idx, { int: Math.max(0, Math.min(100, editVolIntValue)) });
+                            setEditingVolInt(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updatePlanWeek(idx, { int: Math.max(0, Math.min(100, editVolIntValue)) });
+                              setEditingVolInt(null);
+                            }
+                            if (e.key === 'Escape') setEditingVolInt(null);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="w-10 h-6 text-[10px] text-center p-0"
+                          min={0}
+                          max={100}
+                        />
+                      ) : (
+                        <div 
+                          className="mx-auto w-full h-6 bg-destructive/40 rounded-sm flex items-end justify-center relative"
+                          style={{ height: `${Math.max(d.int * 0.4, 8)}px` }}
+                        >
+                          <span className="text-[8px] font-bold text-destructive absolute -top-3">{d.int}</span>
+                        </div>
+                      )}
                     </td>
                   ))}
                 </tr>
