@@ -94,6 +94,8 @@ export function AnnualPlanSection() {
   const [newEventName, setNewEventName] = useState('');
   const [editingVolInt, setEditingVolInt] = useState<{ week: number; type: 'vol' | 'int' } | null>(null);
   const [editVolIntValue, setEditVolIntValue] = useState<number>(0);
+  const [inlineEditingBlock, setInlineEditingBlock] = useState<{ category: BlockCategory; startWeek: number } | null>(null);
+  const [inlineBlockText, setInlineBlockText] = useState('');
 
   // Calculate week dates based on start date
   const getWeekDateRange = (weekNumber: number) => {
@@ -292,9 +294,10 @@ export function AnnualPlanSection() {
     );
 
     if (existingBlockIndex !== -1) {
-      // Edit existing block
-      setEditingBlock({ category, index: existingBlockIndex });
-      setBlockText(trainingBlocks[category][existingBlockIndex].text);
+      // Start inline editing for existing block
+      const block = trainingBlocks[category][existingBlockIndex];
+      setInlineEditingBlock({ category, startWeek: block.startWeek });
+      setInlineBlockText(block.text);
       return;
     }
 
@@ -308,6 +311,37 @@ export function AnnualPlanSection() {
         setSelectedCells({ ...selectedCells, weeks: [...selectedCells.weeks, week].sort((a, b) => a - b) });
       }
     }
+  };
+
+  const saveInlineBlockEdit = () => {
+    if (!inlineEditingBlock) return;
+    
+    const blockIndex = trainingBlocks[inlineEditingBlock.category].findIndex(
+      block => block.startWeek === inlineEditingBlock.startWeek
+    );
+    
+    if (blockIndex === -1) return;
+
+    if (!inlineBlockText.trim()) {
+      // Delete block if text is empty
+      const updatedBlocks: TrainingBlocks = {
+        ...trainingBlocks,
+        [inlineEditingBlock.category]: trainingBlocks[inlineEditingBlock.category].filter((_, i) => i !== blockIndex),
+      };
+      setTrainingBlocks(updatedBlocks);
+    } else {
+      // Update block text
+      const updatedBlocks: TrainingBlocks = {
+        ...trainingBlocks,
+        [inlineEditingBlock.category]: trainingBlocks[inlineEditingBlock.category].map((block, i) =>
+          i === blockIndex ? { ...block, text: inlineBlockText } : block
+        ),
+      };
+      setTrainingBlocks(updatedBlocks);
+    }
+    
+    setInlineEditingBlock(null);
+    setInlineBlockText('');
   };
 
   const createBlock = () => {
@@ -572,27 +606,6 @@ export function AnnualPlanSection() {
                   </Button>
                 </>
               )}
-              {editingBlock && (
-                <>
-                  <Input
-                    type="text"
-                    placeholder="Edit nama blok"
-                    value={blockText}
-                    onChange={(e) => setBlockText(e.target.value)}
-                    className="w-64 h-8 text-xs"
-                  />
-                  <Button size="sm" onClick={updateBlock}>
-                    Simpan
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={deleteBlock}>
-                    <Split className="w-3 h-3 mr-1" />
-                    Hapus Blok
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => { setEditingBlock(null); setBlockText(''); }}>
-                    Batal
-                  </Button>
-                </>
-              )}
             </div>
           </div>
         </CardHeader>
@@ -834,6 +847,9 @@ export function AnnualPlanSection() {
                             renderedWeeks.add(w);
                           }
 
+                          const isInlineEditing = inlineEditingBlock?.category === category && 
+                            inlineEditingBlock?.startWeek === block.startWeek;
+
                           return (
                             <td
                               key={week}
@@ -845,9 +861,28 @@ export function AnnualPlanSection() {
                                 blockColors[category].border,
                                 "hover:opacity-80 font-bold text-[9px] rounded"
                               )}
-                              onClick={() => handleCellClick(category, week)}
+                              onClick={() => !isInlineEditing && handleCellClick(category, week)}
                             >
-                              {block.text}
+                              {isInlineEditing ? (
+                                <Input
+                                  type="text"
+                                  value={inlineBlockText}
+                                  onChange={(e) => setInlineBlockText(e.target.value)}
+                                  onBlur={saveInlineBlockEdit}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') saveInlineBlockEdit();
+                                    if (e.key === 'Escape') {
+                                      setInlineEditingBlock(null);
+                                      setInlineBlockText('');
+                                    }
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  autoFocus
+                                  className="w-full h-6 text-[9px] text-center p-0 font-bold"
+                                />
+                              ) : (
+                                block.text
+                              )}
                             </td>
                           );
                         }
