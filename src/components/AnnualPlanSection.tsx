@@ -8,17 +8,6 @@ import { Button } from '@/components/ui/button';
 import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceArea,
-  ReferenceLine,
-} from 'recharts';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -554,361 +543,12 @@ export function AnnualPlanSection() {
         </CardContent>
       </Card>
 
-      {/* Calendar Table: Bulan, Minggu, Tanggal, Tes & Komp */}
-      <Card className="border-border shadow-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-extrabold text-muted-foreground uppercase">
-            Kalender Periodisasi
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full border-collapse">
-              {/* Bulan Row */}
-              <thead>
-                <tr className="bg-orange-500 text-white">
-                  <th className="p-2 text-left text-[10px] font-extrabold uppercase w-24 border-r border-orange-600">
-                    Bulan
-                  </th>
-                  {monthGroups.map((group, i) => (
-                    <th 
-                      key={i} 
-                      colSpan={group.weeks.length}
-                      className="p-2 text-center text-[10px] font-extrabold uppercase border-r border-orange-600 last:border-r-0"
-                    >
-                      {group.month}
-                    </th>
-                  ))}
-                </tr>
-                {/* Minggu Row */}
-                <tr className="bg-orange-400 text-white">
-                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-500">
-                    Minggu
-                  </th>
-                  {planData.map((d) => (
-                    <th 
-                      key={d.wk} 
-                      className="p-1 text-center text-[10px] font-bold border-r border-orange-500/50 last:border-r-0 min-w-[45px]"
-                    >
-                      {d.wk}
-                    </th>
-                  ))}
-                </tr>
-                {/* Tanggal Row */}
-                <tr className="bg-orange-300 text-orange-900">
-                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-400">
-                    Tanggal
-                  </th>
-                  {planData.map((d) => {
-                    const { dateRange } = getWeekDateRange(d.wk);
-                    return (
-                      <th 
-                        key={d.wk} 
-                        className="p-1 text-center text-[9px] font-semibold border-r border-orange-400/50 last:border-r-0"
-                      >
-                        {dateRange}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              {/* Periode & Fase Rows + Tes & Kompetisi Row */}
-              <tbody>
-                {/* Periode Row */}
-                <tr className="bg-gray-700 text-white">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-gray-600">
-                    Periode
-                  </td>
-                  {(() => {
-                    const groups: { period: string; weeks: number[] }[] = [];
-                    let currentPeriod = '';
-                    let currentGroup: { period: string; weeks: number[] } | null = null;
-
-                    planData.forEach((d) => {
-                      const period = getPeriodForPhase(d.fase);
-                      if (period !== currentPeriod) {
-                        if (currentGroup) groups.push(currentGroup);
-                        currentPeriod = period;
-                        currentGroup = { period, weeks: [d.wk] };
-                      } else {
-                        currentGroup?.weeks.push(d.wk);
-                      }
-                    });
-                    if (currentGroup) groups.push(currentGroup);
-
-                    return groups.map((group, i) => (
-                      <td 
-                        key={i} 
-                        colSpan={group.weeks.length}
-                        className={cn(
-                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-gray-600 last:border-r-0",
-                          group.period === 'PERSIAPAN' ? 'bg-gray-600' : 'bg-gray-800'
-                        )}
-                      >
-                        {group.period}
-                      </td>
-                    ));
-                  })()}
-                </tr>
-                {/* Fase Row */}
-                <tr className="bg-secondary/70">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border">
-                    Fase
-                  </td>
-                  {(() => {
-                    const groups: { fase: string; weeks: number[] }[] = [];
-                    let currentFase = '';
-                    let currentGroup: { fase: string; weeks: number[] } | null = null;
-
-                    planData.forEach((d) => {
-                      if (d.fase !== currentFase) {
-                        if (currentGroup) groups.push(currentGroup);
-                        currentFase = d.fase;
-                        currentGroup = { fase: d.fase, weeks: [d.wk] };
-                      } else {
-                        currentGroup?.weeks.push(d.wk);
-                      }
-                    });
-                    if (currentGroup) groups.push(currentGroup);
-
-                    return groups.map((group, i) => (
-                      <td 
-                        key={i} 
-                        colSpan={group.weeks.length}
-                        className={cn(
-                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-border last:border-r-0",
-                          phaseClasses[group.fase]
-                        )}
-                      >
-                        {group.fase}
-                      </td>
-                    ));
-                  })()}
-                </tr>
-                {/* Tes & Kompetisi Row */}
-                <tr className="bg-card border-t-2 border-border">
-                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-secondary/50">
-                    Tes & Komp
-                  </td>
-                  {planData.map((d) => {
-                    const event = getEventForWeek(d.wk);
-                    return (
-                      <td 
-                        key={d.wk} 
-                        className={cn(
-                          "p-1 text-center border-r border-border/50 last:border-r-0 cursor-pointer transition-all",
-                          event?.type === 'test' && "bg-blue-500/30",
-                          event?.type === 'competition' && "bg-red-500/30",
-                          !event && "hover:bg-secondary/50"
-                        )}
-                        onClick={() => {
-                          if (event) {
-                            removeScheduledEvent(d.wk);
-                          } else {
-                            setAddingEvent({ week: d.wk });
-                          }
-                        }}
-                      >
-                        {event ? (
-                          <div className="flex flex-col items-center gap-0.5">
-                            {event.type === 'test' ? (
-                              <FlaskConical className="w-3 h-3 text-blue-600" />
-                            ) : (
-                              <Flag className="w-3 h-3 text-red-600" />
-                            )}
-                            <span className={cn(
-                              "text-[8px] font-bold truncate max-w-[40px]",
-                              event.type === 'test' ? 'text-blue-700' : 'text-red-700'
-                            )}>
-                              {event.name}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground">-</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add Event Dialog */}
-      <Dialog open={!!addingEvent} onOpenChange={(open) => !open && setAddingEvent(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Tambah Tes atau Kompetisi - Minggu {addingEvent?.week}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>Tipe</Label>
-              <Select value={newEventType} onValueChange={(v) => setNewEventType(v as 'test' | 'competition')}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="test">
-                    <span className="flex items-center gap-2">
-                      <FlaskConical className="w-4 h-4 text-blue-500" />
-                      Tes
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="competition">
-                    <span className="flex items-center gap-2">
-                      <Flag className="w-4 h-4 text-red-500" />
-                      Kompetisi
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Nama</Label>
-              <Input 
-                value={newEventName} 
-                onChange={(e) => setNewEventName(e.target.value)}
-                placeholder={newEventType === 'test' ? 'Contoh: Tes Fisik' : 'Contoh: Kejuaraan Nasional'}
-                className="mt-1"
-              />
-            </div>
-            <Button onClick={addScheduledEvent} className="w-full" disabled={!newEventName.trim()}>
-              Tambah
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Chart */}
-      <Card className="border-border shadow-card">
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            {/* Legend */}
-            <div className="flex flex-col justify-center gap-6 pr-4 border-r-2 border-border">
-              <div className="writing-mode-vertical transform rotate-180 text-xs font-extrabold text-accent uppercase tracking-widest"
-                   style={{ writingMode: 'vertical-rl' }}>
-                Volume Load
-              </div>
-              <div className="writing-mode-vertical transform rotate-180 text-xs font-extrabold text-destructive uppercase tracking-widest"
-                   style={{ writingMode: 'vertical-rl' }}>
-                Intensitas
-              </div>
-            </div>
-
-            {/* Chart Area */}
-            <div className="flex-1">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 10, fontWeight: 600 }}
-                      stroke="hsl(var(--muted-foreground))"
-                    />
-                    <YAxis 
-                      domain={[0, 140]}
-                      tick={{ fontSize: 10, fontWeight: 600 }}
-                      stroke="hsl(var(--muted-foreground))"
-                      orientation="right"
-                    />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                      }}
-                    />
-                    {phaseAreas.map((area, i) => (
-                      <ReferenceArea
-                        key={i}
-                        x1={`W${area.x1 + 1}`}
-                        x2={`W${area.x2 + 1}`}
-                        fill={phaseColors[area.fase]}
-                        fillOpacity={0.3}
-                      />
-                    ))}
-                    {competitionWeeks.map((cw, i) => (
-                      <ReferenceLine
-                        key={`comp-${i}`}
-                        x={`W${cw.week}`}
-                        stroke="hsl(var(--destructive))"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        label={{
-                          value: `🏆 ${cw.competition?.name || 'Kompetisi'}`,
-                          position: 'top',
-                          fill: 'hsl(var(--destructive))',
-                          fontSize: 10,
-                          fontWeight: 700,
-                        }}
-                      />
-                    ))}
-                    {/* Scheduled Events Reference Lines */}
-                    {scheduledEvents.map((event, i) => (
-                      <ReferenceLine
-                        key={`event-${i}`}
-                        x={`W${event.week}`}
-                        stroke={event.type === 'test' ? 'hsl(217, 91%, 60%)' : 'hsl(var(--destructive))'}
-                        strokeWidth={2}
-                        strokeDasharray={event.type === 'test' ? '3 3' : '5 5'}
-                        label={{
-                          value: event.type === 'test' ? `🧪 ${event.name}` : `🏁 ${event.name}`,
-                          position: 'top',
-                          fill: event.type === 'test' ? 'hsl(217, 91%, 60%)' : 'hsl(var(--destructive))',
-                          fontSize: 9,
-                          fontWeight: 700,
-                        }}
-                      />
-                    ))}
-                    <Line 
-                      type="monotone" 
-                      dataKey="volume" 
-                      stroke="hsl(var(--accent))" 
-                      strokeWidth={3}
-                      dot={false}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="intensitas" 
-                      stroke="hsl(var(--destructive))" 
-                      strokeWidth={3}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Mesocycle Strip */}
-              <div className="flex h-6 mt-2 rounded overflow-hidden">
-                {mesocycles.map((m, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-center text-[10px] font-bold text-primary-foreground"
-                    style={{ 
-                      flex: m.weeks,
-                      backgroundColor: i % 2 === 0 ? 'hsl(222, 47%, 11%)' : 'hsl(215, 14%, 34%)',
-                    }}
-                  >
-                    {m.name}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tujuan Latihan Table with Blocks */}
+      {/* Calendar Periodisasi - Combined */}
       <Card className="border-border shadow-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-extrabold text-muted-foreground uppercase">
-              Tujuan Latihan Per Minggu (Blok)
+              Kalender Periodisasi
             </CardTitle>
             <div className="flex items-center gap-2">
               {selectedCells.weeks.length > 0 && (
@@ -952,26 +592,254 @@ export function AnnualPlanSection() {
               )}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Klik beberapa minggu untuk memilih, lalu buat blok dengan warna. Klik blok yang sudah ada untuk mengedit.
-          </p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full border-collapse">
+              {/* Bulan Row */}
               <thead>
-                <tr className="bg-secondary/50">
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-32 border-r border-border">
-                    Tujuan Latihan
+                <tr className="bg-orange-500 text-white">
+                  <th className="p-2 text-left text-[10px] font-extrabold uppercase w-24 border-r border-orange-600 sticky left-0 bg-orange-500 z-10">
+                    Bulan
                   </th>
-                  {planData.map((d) => (
-                    <th key={d.wk} className="p-2 text-center text-[10px] font-extrabold text-muted-foreground uppercase min-w-[60px] border-r border-border last:border-r-0">
-                      W{d.wk}
+                  {monthGroups.map((group, i) => (
+                    <th 
+                      key={i} 
+                      colSpan={group.weeks.length}
+                      className="p-2 text-center text-[10px] font-extrabold uppercase border-r border-orange-600 last:border-r-0"
+                    >
+                      {group.month}
                     </th>
                   ))}
                 </tr>
+                {/* Minggu Row */}
+                <tr className="bg-orange-400 text-white">
+                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-500 sticky left-0 bg-orange-400 z-10">
+                    Minggu
+                  </th>
+                  {planData.map((d) => (
+                    <th 
+                      key={d.wk} 
+                      className="p-1 text-center text-[10px] font-bold border-r border-orange-500/50 last:border-r-0 min-w-[45px]"
+                    >
+                      {d.wk}
+                    </th>
+                  ))}
+                </tr>
+                {/* Tanggal Row */}
+                <tr className="bg-orange-300 text-orange-900">
+                  <th className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-orange-400 sticky left-0 bg-orange-300 z-10">
+                    Tanggal
+                  </th>
+                  {planData.map((d) => {
+                    const { dateRange } = getWeekDateRange(d.wk);
+                    return (
+                      <th 
+                        key={d.wk} 
+                        className="p-1 text-center text-[9px] font-semibold border-r border-orange-400/50 last:border-r-0"
+                      >
+                        {dateRange}
+                      </th>
+                    );
+                  })}
+                </tr>
               </thead>
               <tbody>
+                {/* Periode Row */}
+                <tr className="bg-gray-700 text-white">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-gray-600 sticky left-0 bg-gray-700 z-10">
+                    Periode
+                  </td>
+                  {(() => {
+                    const groups: { period: string; weeks: number[] }[] = [];
+                    let currentPeriod = '';
+                    let currentGroup: { period: string; weeks: number[] } | null = null;
+
+                    planData.forEach((d) => {
+                      const period = getPeriodForPhase(d.fase);
+                      if (period !== currentPeriod) {
+                        if (currentGroup) groups.push(currentGroup);
+                        currentPeriod = period;
+                        currentGroup = { period, weeks: [d.wk] };
+                      } else {
+                        currentGroup?.weeks.push(d.wk);
+                      }
+                    });
+                    if (currentGroup) groups.push(currentGroup);
+
+                    return groups.map((group, i) => (
+                      <td 
+                        key={i} 
+                        colSpan={group.weeks.length}
+                        className={cn(
+                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-gray-600 last:border-r-0",
+                          group.period === 'PERSIAPAN' ? 'bg-gray-600' : 'bg-gray-800'
+                        )}
+                      >
+                        {group.period}
+                      </td>
+                    ));
+                  })()}
+                </tr>
+                {/* Fase Row */}
+                <tr className="bg-secondary/70">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border sticky left-0 bg-secondary/70 z-10">
+                    Fase
+                  </td>
+                  {(() => {
+                    const groups: { fase: string; weeks: number[] }[] = [];
+                    let currentFase = '';
+                    let currentGroup: { fase: string; weeks: number[] } | null = null;
+
+                    planData.forEach((d) => {
+                      if (d.fase !== currentFase) {
+                        if (currentGroup) groups.push(currentGroup);
+                        currentFase = d.fase;
+                        currentGroup = { fase: d.fase, weeks: [d.wk] };
+                      } else {
+                        currentGroup?.weeks.push(d.wk);
+                      }
+                    });
+                    if (currentGroup) groups.push(currentGroup);
+
+                    return groups.map((group, i) => (
+                      <td 
+                        key={i} 
+                        colSpan={group.weeks.length}
+                        className={cn(
+                          "p-2 text-center text-[10px] font-extrabold uppercase border-r border-border last:border-r-0",
+                          phaseClasses[group.fase]
+                        )}
+                      >
+                        {group.fase}
+                      </td>
+                    ));
+                  })()}
+                </tr>
+                {/* Tes & Kompetisi Row */}
+                <tr className="bg-card border-t-2 border-border">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-secondary/50 sticky left-0 z-10">
+                    Tes & Komp
+                  </td>
+                  {planData.map((d) => {
+                    const event = getEventForWeek(d.wk);
+                    return (
+                      <td 
+                        key={d.wk} 
+                        className={cn(
+                          "p-1 text-center border-r border-border/50 last:border-r-0 cursor-pointer transition-all",
+                          event?.type === 'test' && "bg-blue-500/30",
+                          event?.type === 'competition' && "bg-red-500/30",
+                          !event && "hover:bg-secondary/50"
+                        )}
+                        onClick={() => {
+                          if (event) {
+                            removeScheduledEvent(d.wk);
+                          } else {
+                            setAddingEvent({ week: d.wk });
+                          }
+                        }}
+                      >
+                        {event ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            {event.type === 'test' ? (
+                              <FlaskConical className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <Flag className="w-3 h-3 text-red-600" />
+                            )}
+                            <span className={cn(
+                              "text-[8px] font-bold truncate max-w-[40px]",
+                              event.type === 'test' ? 'text-blue-700' : 'text-red-700'
+                            )}>
+                              {event.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">-</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+                {/* Volume Row */}
+                <tr className="bg-accent/10 border-t-2 border-accent/30">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-accent/20 text-accent sticky left-0 z-10">
+                    Volume %
+                  </td>
+                  {planData.map((d) => (
+                    <td 
+                      key={d.wk} 
+                      className="p-1 text-center border-r border-border/30 last:border-r-0"
+                    >
+                      <div 
+                        className="mx-auto w-full h-6 bg-accent/40 rounded-sm flex items-end justify-center relative"
+                        style={{ height: `${Math.max(d.vol * 0.4, 8)}px` }}
+                      >
+                        <span className="text-[8px] font-bold text-accent-foreground absolute -top-3">{d.vol}</span>
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+                {/* Intensitas Row */}
+                <tr className="bg-destructive/10">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-destructive/20 text-destructive sticky left-0 z-10">
+                    Intensitas %
+                  </td>
+                  {planData.map((d) => (
+                    <td 
+                      key={d.wk} 
+                      className="p-1 text-center border-r border-border/30 last:border-r-0"
+                    >
+                      <div 
+                        className="mx-auto w-full h-6 bg-destructive/40 rounded-sm flex items-end justify-center relative"
+                        style={{ height: `${Math.max(d.int * 0.4, 8)}px` }}
+                      >
+                        <span className="text-[8px] font-bold text-destructive absolute -top-3">{d.int}</span>
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+                {/* Mesocycle Row */}
+                <tr className="bg-secondary/30 border-t border-border">
+                  <td className="p-2 text-left text-[10px] font-extrabold uppercase border-r border-border bg-secondary/50 sticky left-0 z-10">
+                    Mesocycle
+                  </td>
+                  {(() => {
+                    const groups: { meso: string; weeks: number[] }[] = [];
+                    let currentMeso = '';
+                    let currentGroup: { meso: string; weeks: number[] } | null = null;
+
+                    planData.forEach((d) => {
+                      if (d.meso !== currentMeso) {
+                        if (currentGroup) groups.push(currentGroup);
+                        currentMeso = d.meso;
+                        currentGroup = { meso: d.meso, weeks: [d.wk] };
+                      } else {
+                        currentGroup?.weeks.push(d.wk);
+                      }
+                    });
+                    if (currentGroup) groups.push(currentGroup);
+
+                    return groups.map((group, i) => (
+                      <td 
+                        key={i} 
+                        colSpan={group.weeks.length}
+                        className="p-2 text-center text-[9px] font-bold uppercase border-r border-border last:border-r-0"
+                        style={{
+                          backgroundColor: i % 2 === 0 ? 'hsl(222, 47%, 11%)' : 'hsl(215, 14%, 34%)',
+                          color: 'white'
+                        }}
+                      >
+                        {group.meso}
+                      </td>
+                    ));
+                  })()}
+                </tr>
+                {/* Separator */}
+                <tr>
+                  <td colSpan={planData.length + 1} className="h-2 bg-border"></td>
+                </tr>
+                {/* Tujuan Latihan Rows */}
                 {(['kekuatan', 'kecepatan', 'dayaTahan', 'fleksibilitas', 'mental'] as BlockCategory[]).map((category) => {
                   const labels: Record<BlockCategory, string> = {
                     kekuatan: 'Kekuatan',
@@ -986,7 +854,7 @@ export function AnnualPlanSection() {
                   return (
                     <tr key={category} className="border-t border-border/50">
                       <td className={cn(
-                        "p-3 font-bold text-sm border-r border-border",
+                        "p-2 font-bold text-[10px] border-r border-border sticky left-0 z-10",
                         blockColors[category].bg,
                         blockColors[category].text
                       )}>
@@ -995,14 +863,12 @@ export function AnnualPlanSection() {
                       {planData.map((d) => {
                         const week = d.wk;
                         
-                        // Skip if already rendered as part of a block
                         if (renderedWeeks.has(week)) return null;
 
                         const block = getBlockForWeek(category, week);
                         const span = getBlockSpan(category, week);
 
                         if (block && isBlockStart(category, week)) {
-                          // Mark all weeks in this block as rendered
                           for (let w = block.startWeek; w <= block.endWeek; w++) {
                             renderedWeeks.add(w);
                           }
@@ -1012,11 +878,11 @@ export function AnnualPlanSection() {
                               key={week}
                               colSpan={span}
                               className={cn(
-                                "p-2 text-center cursor-pointer transition-all border-2",
+                                "p-1 text-center cursor-pointer transition-all border-2",
                                 blockColors[category].bg,
                                 blockColors[category].text,
                                 blockColors[category].border,
-                                "hover:opacity-80 font-bold text-xs rounded-lg"
+                                "hover:opacity-80 font-bold text-[9px] rounded"
                               )}
                               onClick={() => handleCellClick(category, week)}
                             >
@@ -1025,7 +891,6 @@ export function AnnualPlanSection() {
                           );
                         }
 
-                        // Check if this week is already part of a block but not the start
                         if (block) return null;
 
                         const isSelected = selectedCells.category === category && selectedCells.weeks.includes(week);
@@ -1040,7 +905,7 @@ export function AnnualPlanSection() {
                             )}
                             onClick={() => handleCellClick(category, week)}
                           >
-                            <span className="text-xs text-muted-foreground">-</span>
+                            <span className="text-[10px] text-muted-foreground">-</span>
                           </td>
                         );
                       })}
@@ -1050,89 +915,12 @@ export function AnnualPlanSection() {
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Klik beberapa minggu pada baris Tujuan Latihan untuk memilih, lalu buat blok. Klik blok yang sudah ada untuk mengedit.
+          </p>
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card className="border-border shadow-card">
-        <CardContent className="pt-6">
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[1000px]">
-              <thead>
-                <tr className="bg-secondary/50">
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-14">Wk</th>
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-28">Meso</th>
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-24">Phase</th>
-                  <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase w-32">Kompetisi</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-20">Vol%</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-20">Int%</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Kekuatan</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Kecepatan</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">D.Tahan</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Teknik</th>
-                  <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Taktik</th>
-                </tr>
-              </thead>
-              <tbody>
-                {planData.map((d, i) => {
-                  const competition = d.competitionId ? competitions.find(c => c.id === d.competitionId) : null;
-                  return (
-                    <tr key={i} className={cn(
-                      "border-t border-border/50 hover:bg-secondary/30 transition-colors",
-                      competition && "bg-destructive/10"
-                    )}>
-                      <td className="p-3 font-bold text-sm">W{d.wk}</td>
-                      <td className="p-3 text-sm">{d.meso}</td>
-                      <td className={cn("p-3 font-bold text-sm rounded", phaseClasses[d.fase])}>
-                        {d.fase}
-                      </td>
-                      <td className="p-3 text-sm">
-                        {competition ? (
-                          <span className="flex items-center gap-1 text-destructive font-bold">
-                            <Trophy className="w-3 h-3" />
-                            {competition.name}
-                          </span>
-                        ) : '-'}
-                      </td>
-                    <td className="p-3">
-                      <Input
-                        type="number"
-                        value={d.vol}
-                        onChange={(e) => updatePlanWeek(i, { vol: Number(e.target.value) })}
-                        className="text-center text-accent font-bold h-8 text-sm"
-                      />
-                    </td>
-                    <td className="p-3">
-                      <Input
-                        type="number"
-                        value={d.int}
-                        onChange={(e) => updatePlanWeek(i, { int: Number(e.target.value) })}
-                        className="text-center text-accent font-bold h-8 text-sm"
-                      />
-                    </td>
-                    <td className="p-3 text-center text-sm font-semibold">
-                      {Math.round(setup.targets.strength * d.vol / 100)}
-                    </td>
-                    <td className="p-3 text-center text-sm font-semibold">
-                      {Math.round(setup.targets.speed * d.vol / 100)}
-                    </td>
-                    <td className="p-3 text-center text-sm font-semibold">
-                      {(setup.targets.endurance * d.vol / 100).toFixed(1)}
-                    </td>
-                    <td className="p-3 text-center text-sm font-semibold">
-                      {Math.round(setup.targets.technique * d.vol / 100)}
-                    </td>
-                    <td className="p-3 text-center text-sm font-semibold">
-                      {Math.round(setup.targets.tactic * d.vol / 100)}
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
