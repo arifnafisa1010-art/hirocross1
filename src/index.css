@@ -141,3 +141,79 @@
     background-color: hsl(var(--intensity-rest));
   }
 }
+
+/* Print styles for periodization calendar */
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide non-essential elements when printing */
+  .no-print,
+  header,
+  nav,
+  .sidebar,
+  button:not(.print-visible),
+  [data-sidebar],
+  .recharts-wrapper {
+    display: none !important;
+  }
+
+  /* Make the calendar take full width */
+  .print-container {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure table fits on page */
+  table {
+    width: 100% !important;
+    font-size: 7px !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    padding: 2px !important;
+    border: 1px solid #000 !important;
+  }
+
+  /* Preserve background colors */
+  .phase-umum,
+  .phase-khusus,
+  .phase-prakomp,
+  .phase-kompetisi,
+  .intensity-high,
+  .intensity-med,
+  .intensity-low,
+  .intensity-rest,
+  .bg-phase-umum,
+  .bg-phase-khusus,
+  .bg-phase-prakomp,
+  .bg-phase-kompetisi {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide inputs, show text */
+  input {
+    border: none !important;
+    background: transparent !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Card styles for print */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+}
