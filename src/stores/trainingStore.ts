@@ -214,18 +214,32 @@ export const useTrainingStore = create<TrainingStore>()(
               fase = 'Kompetisi';
             }
             
-            let v = fase === 'Umum' ? 90 : 
-                    fase === 'Khusus' ? 75 : 
-                    fase === 'Pra-Komp' ? 55 : 35;
+            // Volume: 60% awal → 100% di akhir Umum (40%) → turun ke 50% di Kompetisi
+            // Intensity: 50% awal → 100% di Kompetisi
+            let v: number;
+            let int: number;
             
-            let int = fase === 'Umum' ? 30 : 
-                      fase === 'Khusus' ? 60 : 
-                      fase === 'Pra-Komp' ? 85 : 100;
+            if (prog <= 0.4) {
+              // Fase Umum: Volume naik dari 60% ke 100%
+              const phaseProgress = prog / 0.4; // 0 to 1 within Umum phase
+              v = 60 + (40 * phaseProgress); // 60% → 100%
+            } else {
+              // Setelah Umum: Volume turun dari 100% ke 50%
+              const remainingProgress = (prog - 0.4) / 0.6; // 0 to 1 for remaining phases
+              v = 100 - (50 * remainingProgress); // 100% → 50%
+            }
+            
+            // Intensity: 50% awal → 100% di akhir (linear progression)
+            int = 50 + (50 * prog); // 50% → 100%
+            
+            // Round values
+            v = Math.round(v);
+            int = Math.round(int);
             
             // Deload on last week of mesocycle
             if (i === m.weeks) {
-              v -= 15;
-              int -= 5;
+              v = Math.max(30, v - 15);
+              int = Math.max(45, int - 5);
             }
             
             plan.push({ 
