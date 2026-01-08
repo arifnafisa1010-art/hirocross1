@@ -191,26 +191,35 @@ export function TestsSection() {
   // Get norm info for display
   const currentNorm = getNormForItem(form.category, form.item, currentGender);
 
-  // Build radar data - only include categories with completed tests
-  const radarData = categories
-    .map(cat => {
-      const categoryResults = results.filter(
-        r => r.category === cat && (selectedAthlete === '__all__' || r.athlete_id === selectedAthlete)
-      );
-      
-      // Get latest score for each category
-      const latestResult = categoryResults.sort(
-        (a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime()
-      )[0];
+  // Build radar data - show each test item separately (not grouped by category)
+  const radarData = (() => {
+    const filteredResults = results.filter(
+      r => selectedAthlete === '__all__' || r.athlete_id === selectedAthlete
+    );
 
-      return {
-        category: cat,
-        score: latestResult?.score || 0,
-        fullMark: 5,
-        hasData: categoryResults.length > 0,
-      };
-    })
-    .filter(item => item.hasData);
+    // Group by item and get latest score for each item
+    const itemScores: Record<string, { item: string; category: string; score: number; date: string }> = {};
+    
+    filteredResults.forEach(r => {
+      const existing = itemScores[r.item];
+      if (!existing || new Date(r.test_date) > new Date(existing.date)) {
+        itemScores[r.item] = {
+          item: r.item,
+          category: r.category,
+          score: r.score,
+          date: r.test_date,
+        };
+      }
+    });
+
+    return Object.values(itemScores).map(entry => ({
+      category: entry.item, // Use item name as radar axis label
+      originalCategory: entry.category,
+      score: entry.score,
+      fullMark: 5,
+      hasData: true,
+    }));
+  })();
 
   const scoreLabels: Record<number, string> = {
     1: 'Sangat Kurang',
