@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus, Loader2, Edit2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2, Plus, Loader2, Edit2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTestNorms } from '@/hooks/useTestNorms';
@@ -16,6 +17,13 @@ import {
   PolarRadiusAxis,
   Radar,
   ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
 } from 'recharts';
 import {
   Dialog,
@@ -91,6 +99,9 @@ export function TestsSection() {
 
   const [calculatedScore, setCalculatedScore] = useState<number | null>(null);
   const [selectedAthlete, setSelectedAthlete] = useState<string>('__all__');
+  const [selectedAthletesForComparison, setSelectedAthletesForComparison] = useState<string[]>([]);
+  const [trendItem, setTrendItem] = useState<string>('');
+  const [trendAthleteId, setTrendAthleteId] = useState<string>('');
   const [newAthleteDialog, setNewAthleteDialog] = useState(false);
   const [newAthlete, setNewAthlete] = useState({
     name: '',
@@ -199,8 +210,57 @@ export function TestsSection() {
   // Get norm info for display
   const currentNorm = getNormForItem(form.category, form.item, currentGender);
 
+  // Athlete colors for comparison chart
+  const athleteColors = [
+    'hsl(var(--accent))',
+    'hsl(220, 70%, 50%)',
+    'hsl(340, 70%, 50%)',
+    'hsl(160, 70%, 40%)',
+    'hsl(45, 80%, 45%)',
+    'hsl(280, 60%, 50%)',
+  ];
+
+  // Build radar data for multi-athlete comparison
+  const comparisonRadarData = useMemo(() => {
+    if (selectedAthletesForComparison.length === 0) return [];
+
+    // Get all unique items from all selected athletes
+    const allItems = new Set<string>();
+    const athleteItemScores: Record<string, Record<string, number>> = {};
+
+    selectedAthletesForComparison.forEach(athleteId => {
+      athleteItemScores[athleteId] = {};
+      const athleteResults = results.filter(r => r.athlete_id === athleteId);
+      
+      // Get latest score per item
+      const itemScores: Record<string, { score: number; date: string }> = {};
+      athleteResults.forEach(r => {
+        allItems.add(r.item);
+        const existing = itemScores[r.item];
+        if (!existing || new Date(r.test_date) > new Date(existing.date)) {
+          itemScores[r.item] = { score: r.score, date: r.test_date };
+        }
+      });
+
+      Object.entries(itemScores).forEach(([item, data]) => {
+        athleteItemScores[athleteId][item] = data.score;
+      });
+    });
+
+    // Create data array with all items
+    return Array.from(allItems).map(item => {
+      const dataPoint: Record<string, string | number> = { item };
+      selectedAthletesForComparison.forEach(athleteId => {
+        const athlete = athletes.find(a => a.id === athleteId);
+        const key = athlete?.name || athleteId;
+        dataPoint[key] = athleteItemScores[athleteId]?.[item] || 0;
+      });
+      return dataPoint;
+    });
+  }, [selectedAthletesForComparison, results, athletes]);
+
   // Build radar data - show each test item separately (not grouped by category)
-  const radarData = (() => {
+  const radarData = useMemo(() => {
     const filteredResults = results.filter(
       r => selectedAthlete === '__all__' || r.athlete_id === selectedAthlete
     );
@@ -227,7 +287,30 @@ export function TestsSection() {
       fullMark: 5,
       hasData: true,
     }));
-  })();
+  }, [results, selectedAthlete]);
+
+  // Trend data for progress chart
+  const trendData = useMemo(() => {
+    if (!trendItem || !trendAthleteId) return [];
+
+    const athleteResults = results
+      .filter(r => r.athlete_id === trendAthleteId && r.item === trendItem)
+      .sort((a, b) => new Date(a.test_date).getTime() - new Date(b.test_date).getTime());
+
+    return athleteResults.map(r => ({
+      date: new Date(r.test_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }),
+      value: r.value,
+      score: r.score,
+      unit: r.unit,
+    }));
+  }, [results, trendItem, trendAthleteId]);
+
+  // Get unique test items from results
+  const uniqueTestItems = useMemo(() => {
+    const items = new Set<string>();
+    results.forEach(r => items.add(r.item));
+    return Array.from(items);
+  }, [results]);
 
   const scoreLabels: Record<number, string> = {
     1: 'Sangat Kurang',
@@ -235,6 +318,19 @@ export function TestsSection() {
     3: 'Cukup',
     4: 'Baik',
     5: 'Sangat Baik',
+  };
+
+  const toggleAthleteForComparison = (athleteId: string) => {
+    setSelectedAthletesForComparison(prev => {
+      if (prev.includes(athleteId)) {
+        return prev.filter(id => id !== athleteId);
+      }
+      if (prev.length >= 6) {
+        toast.error('Maksimal 6 atlet untuk perbandingan');
+        return prev;
+      }
+      return [...prev, athleteId];
+    });
   };
 
   if (athletesLoading || normsLoading) {
@@ -536,6 +632,206 @@ export function TestsSection() {
               </RadarChart>
             </ResponsiveContainer>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Multi-Athlete Comparison Chart */}
+      <Card className="border-border shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            Perbandingan Antar Atlet
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Pilih maksimal 6 atlet untuk membandingkan profil tes dalam satu radar chart
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3 mb-4">
+            {athletes.map((athlete, index) => (
+              <label
+                key={athlete.id}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
+                  selectedAthletesForComparison.includes(athlete.id)
+                    ? 'border-accent bg-accent/10'
+                    : 'border-border hover:bg-secondary/50'
+                }`}
+              >
+                <Checkbox
+                  checked={selectedAthletesForComparison.includes(athlete.id)}
+                  onCheckedChange={() => toggleAthleteForComparison(athlete.id)}
+                />
+                <span className="text-sm font-medium">{athlete.name}</span>
+                {selectedAthletesForComparison.includes(athlete.id) && (
+                  <span
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: athleteColors[selectedAthletesForComparison.indexOf(athlete.id)] }}
+                  />
+                )}
+              </label>
+            ))}
+          </div>
+          
+          {selectedAthletesForComparison.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={comparisonRadarData}>
+                  <PolarGrid stroke="hsl(var(--border))" />
+                  <PolarAngleAxis 
+                    dataKey="item" 
+                    tick={{ fontSize: 10, fontWeight: 500, fill: 'hsl(var(--foreground))' }}
+                  />
+                  <PolarRadiusAxis 
+                    angle={30} 
+                    domain={[0, 5]} 
+                    tick={{ fontSize: 10 }}
+                  />
+                  {selectedAthletesForComparison.map((athleteId, index) => {
+                    const athlete = athletes.find(a => a.id === athleteId);
+                    const name = athlete?.name || athleteId;
+                    return (
+                      <Radar
+                        key={athleteId}
+                        name={name}
+                        dataKey={name}
+                        stroke={athleteColors[index]}
+                        fill={athleteColors[index]}
+                        fillOpacity={0.15}
+                        strokeWidth={2}
+                      />
+                    );
+                  })}
+                  <Legend />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-muted-foreground">
+              Pilih atlet untuk melihat perbandingan
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Trend Chart */}
+      <Card className="border-border shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="w-5 h-5" />
+            Grafik Tren Perkembangan
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Lihat perkembangan hasil tes atlet dari waktu ke waktu
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label className="text-xs font-extrabold text-muted-foreground uppercase">
+                Pilih Atlet
+              </Label>
+              <Select value={trendAthleteId} onValueChange={setTrendAthleteId}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Pilih atlet..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {athletes.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-extrabold text-muted-foreground uppercase">
+                Pilih Item Tes
+              </Label>
+              <Select value={trendItem} onValueChange={setTrendItem}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Pilih item tes..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueTestItems.map(item => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {trendData.length > 0 ? (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    label={{ 
+                      value: `Nilai (${trendData[0]?.unit || ''})`, 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      style: { fontSize: 11, fill: 'hsl(var(--muted-foreground))' }
+                    }}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    domain={[0, 5]}
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    label={{ 
+                      value: 'Skor', 
+                      angle: 90, 
+                      position: 'insideRight',
+                      style: { fontSize: 11, fill: 'hsl(var(--muted-foreground))' }
+                    }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name === 'value') return [`${value} ${trendData[0]?.unit || ''}`, 'Nilai'];
+                      if (name === 'score') return [`${value}/5`, 'Skor'];
+                      return [value, name];
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="value" 
+                    name="Nilai"
+                    stroke="hsl(var(--accent))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: 'hsl(var(--accent))' }}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="score" 
+                    name="Skor"
+                    stroke="hsl(220, 70%, 50%)" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={{ fill: 'hsl(220, 70%, 50%)', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-72 flex items-center justify-center text-muted-foreground">
+              {trendAthleteId && trendItem 
+                ? 'Belum ada data untuk item tes ini'
+                : 'Pilih atlet dan item tes untuk melihat tren'
+              }
+            </div>
+          )}
         </CardContent>
       </Card>
 
