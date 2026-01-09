@@ -8,7 +8,21 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
+
+// Function to auto-link athlete when user logs in
+async function autoLinkAthlete(userId: string, email: string) {
+  try {
+    await supabase
+      .from('athletes')
+      .update({ linked_user_id: userId, pending_link_email: null })
+      .eq('pending_link_email', email.toLowerCase())
+      .is('linked_user_id', null);
+  } catch (error) {
+    console.error('Error auto-linking athlete:', error);
+  }
+}
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -19,10 +33,29 @@ export default function Auth() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Check if user is an athlete and redirect accordingly
   useEffect(() => {
-    if (user && !loading) {
-      navigate('/app');
-    }
+    const checkUserRole = async () => {
+      if (user && !loading) {
+        // Auto-link if there's a pending link
+        await autoLinkAthlete(user.id, user.email || '');
+        
+        // Check if user is linked as an athlete
+        const { data: athleteData } = await supabase
+          .from('athletes')
+          .select('id')
+          .eq('linked_user_id', user.id)
+          .maybeSingle();
+        
+        if (athleteData) {
+          navigate('/athlete');
+        } else {
+          navigate('/app');
+        }
+      }
+    };
+    
+    checkUserRole();
   }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

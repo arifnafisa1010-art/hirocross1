@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, Trophy, Star } from 'lucide-react';
 import { Mesocycle, PlanWeek, Competition } from '@/types/training';
 import { cn } from '@/lib/utils';
+import { AthletesManagement } from '@/components/AthletesManagement';
 
 export function SetupSection() {
   const { 
@@ -379,6 +380,9 @@ export function SetupSection() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Athletes Management */}
+      <AthletesManagement />
     </div>
   );
 }
