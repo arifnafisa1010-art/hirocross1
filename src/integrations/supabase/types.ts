@@ -21,8 +21,10 @@ export type Database = {
           gender: string | null
           height: number | null
           id: string
+          linked_user_id: string | null
           name: string
           notes: string | null
+          pending_link_email: string | null
           position: string | null
           resting_hr: number | null
           sport: string | null
@@ -36,8 +38,10 @@ export type Database = {
           gender?: string | null
           height?: number | null
           id?: string
+          linked_user_id?: string | null
           name: string
           notes?: string | null
+          pending_link_email?: string | null
           position?: string | null
           resting_hr?: number | null
           sport?: string | null
@@ -51,8 +55,10 @@ export type Database = {
           gender?: string | null
           height?: number | null
           id?: string
+          linked_user_id?: string | null
           name?: string
           notes?: string | null
+          pending_link_email?: string | null
           position?: string | null
           resting_hr?: number | null
           sport?: string | null
@@ -281,7 +287,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_athlete_id_from_user: { Args: { _user_id: string }; Returns: string }
+      is_athlete_in_program: {
+        Args: { _program_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
