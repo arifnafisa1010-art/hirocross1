@@ -116,7 +116,7 @@ export function AthletesManagement() {
     return { status: 'none', label: 'Belum', color: 'bg-gray-400' };
   };
 
-  const AthleteForm = () => (
+  const athleteFormContent = (
     <div className="grid gap-4 py-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -247,7 +247,7 @@ export function AthletesManagement() {
             <DialogHeader>
               <DialogTitle>Tambah Atlet Baru</DialogTitle>
             </DialogHeader>
-            <AthleteForm />
+            {athleteFormContent}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => { setAddDialogOpen(false); resetForm(); }}>
                 Batal
@@ -313,7 +313,7 @@ export function AthletesManagement() {
                             <DialogHeader>
                               <DialogTitle>Edit Atlet</DialogTitle>
                             </DialogHeader>
-                            <AthleteForm />
+                            {athleteFormContent}
                             <div className="flex justify-end gap-2">
                               <Button variant="outline" onClick={() => { setEditingAthlete(null); resetForm(); }}>
                                 Batal
