@@ -11,16 +11,40 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
 
-// Function to auto-link athlete when user logs in
-async function autoLinkAthlete(userId: string, email: string) {
+// Function to auto-link athlete when user logs in and check if they are an athlete
+async function checkAndLinkAthlete(userId: string, email: string): Promise<boolean> {
+  const normalizedEmail = email.toLowerCase().trim();
+  
   try {
-    await supabase
+    // First, try to auto-link if there's a pending link
+    const { data: pendingAthlete } = await supabase
       .from('athletes')
-      .update({ linked_user_id: userId, pending_link_email: null })
-      .eq('pending_link_email', email.toLowerCase())
-      .is('linked_user_id', null);
+      .select('id')
+      .eq('pending_link_email', normalizedEmail)
+      .is('linked_user_id', null)
+      .maybeSingle();
+    
+    if (pendingAthlete) {
+      // Link the athlete to this user
+      await supabase
+        .from('athletes')
+        .update({ linked_user_id: userId, pending_link_email: null })
+        .eq('id', pendingAthlete.id);
+      
+      return true; // User is now linked as athlete
+    }
+    
+    // Check if user is already linked as an athlete
+    const { data: linkedAthlete } = await supabase
+      .from('athletes')
+      .select('id')
+      .eq('linked_user_id', userId)
+      .maybeSingle();
+    
+    return !!linkedAthlete;
   } catch (error) {
-    console.error('Error auto-linking athlete:', error);
+    console.error('Error checking/linking athlete:', error);
+    return false;
   }
 }
 
@@ -32,31 +56,28 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [checkingRole, setCheckingRole] = useState(false);
 
   // Check if user is an athlete and redirect accordingly
   useEffect(() => {
     const checkUserRole = async () => {
-      if (user && !loading) {
-        // Auto-link if there's a pending link
-        await autoLinkAthlete(user.id, user.email || '');
+      if (user && !loading && !checkingRole) {
+        setCheckingRole(true);
         
-        // Check if user is linked as an athlete
-        const { data: athleteData } = await supabase
-          .from('athletes')
-          .select('id')
-          .eq('linked_user_id', user.id)
-          .maybeSingle();
+        const isAthlete = await checkAndLinkAthlete(user.id, user.email || '');
         
-        if (athleteData) {
-          navigate('/athlete');
+        if (isAthlete) {
+          navigate('/athlete', { replace: true });
         } else {
-          navigate('/app');
+          navigate('/app', { replace: true });
         }
+        
+        setCheckingRole(false);
       }
     };
     
     checkUserRole();
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, checkingRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
