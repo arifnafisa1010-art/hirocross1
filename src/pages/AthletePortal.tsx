@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Target, Trophy, User, LogOut, Dumbbell } from 'lucide-react';
+import { Calendar, Target, Trophy, User, LogOut, Dumbbell, ClipboardCheck } from 'lucide-react';
 import { format, parseISO, differenceInWeeks, addWeeks, isWithinInterval } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { AthleteSessionsView } from '@/components/AthleteSessionsView';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete } = useAthletePortal();
@@ -154,12 +155,24 @@ const AthletePortal = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <Tabs defaultValue="overview">
-                        <TabsList className="grid w-full grid-cols-3">
+                      <Tabs defaultValue="sessions">
+                        <TabsList className="grid w-full grid-cols-4">
+                          <TabsTrigger value="sessions">
+                            <ClipboardCheck className="h-4 w-4 mr-1" />
+                            Sesi
+                          </TabsTrigger>
                           <TabsTrigger value="overview">Ringkasan</TabsTrigger>
                           <TabsTrigger value="schedule">Jadwal</TabsTrigger>
                           <TabsTrigger value="competitions">Kompetisi</TabsTrigger>
                         </TabsList>
+
+                        <TabsContent value="sessions" className="mt-4">
+                          <AthleteSessionsView 
+                            programId={program.id}
+                            startDate={program.start_date}
+                            planData={program.plan_data || []}
+                          />
+                        </TabsContent>
 
                         <TabsContent value="overview" className="space-y-4 mt-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
