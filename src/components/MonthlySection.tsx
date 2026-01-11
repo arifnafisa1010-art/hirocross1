@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
-import { Users, Save, Loader2 } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
@@ -39,6 +40,25 @@ export function MonthlySection() {
   const currentMonthWeeks = months[selectedMonth]?.weeks || [];
 
   const getSessionKey = (wk: number, day: string) => `W${wk}-${day}`;
+
+  // Calculate biomotor targets per week based on volume
+  const calculateWeekBiomotorTargets = (volume: number) => {
+    return {
+      strength: Math.round(setup.targets.strength * (volume / 100)),
+      speed: Math.round(setup.targets.speed * (volume / 100)),
+      endurance: Math.round(setup.targets.endurance * (volume / 100)),
+      technique: Math.round(setup.targets.technique * (volume / 100)),
+      tactic: Math.round(setup.targets.tactic * (volume / 100)),
+    };
+  };
+
+  // Get intensity recommendation based on volume and intensity percentage
+  const getIntensityRecommendation = (vol: number, int: number): 'Rest' | 'Low' | 'Med' | 'High' => {
+    if (int >= 80) return 'High';
+    if (int >= 60) return 'Med';
+    if (int >= 30) return 'Low';
+    return 'Rest';
+  };
 
   const handleDayClick = (week: number, day: string) => {
     setSelectedDay({ week, day });
@@ -209,90 +229,154 @@ export function MonthlySection() {
       <div className="space-y-5">
         {currentMonthWeeks.map((wk) => {
           const weekData = planData.find(p => p.wk === wk);
+          const biomotorTargets = weekData ? calculateWeekBiomotorTargets(weekData.vol) : null;
+          const recommendedIntensity = weekData ? getIntensityRecommendation(weekData.vol, weekData.int) : 'Rest';
           
           return (
-            <div key={wk} className="grid grid-cols-8 gap-3">
-              {/* Week Header */}
-              <Card className="flex flex-col justify-center p-4 border-border shadow-card">
-                <div className="text-xs font-extrabold text-muted-foreground uppercase">
-                  {weekData?.meso}
-                </div>
-                <div className="text-lg font-extrabold mt-1">W{wk}</div>
-                <div className={cn(
-                  "mt-2 px-2 py-1 rounded text-[10px] font-bold text-center",
-                  weekData?.fase === 'Umum' && 'phase-umum',
-                  weekData?.fase === 'Khusus' && 'phase-khusus',
-                  weekData?.fase === 'Pra-Komp' && 'phase-prakomp',
-                  weekData?.fase === 'Kompetisi' && 'phase-kompetisi',
-                )}>
-                  {weekData?.fase}
-                </div>
-                <div className="mt-2 text-[10px] text-muted-foreground">
-                  Vol: {weekData?.vol}% | Int: {weekData?.int}%
-                </div>
-              </Card>
+            <div key={wk} className="space-y-2">
+              {/* Week Info Row with Biomotor Targets */}
+              <div className="grid grid-cols-8 gap-3">
+                {/* Week Header */}
+                <Card className="flex flex-col justify-center p-4 border-border shadow-card">
+                  <div className="text-xs font-extrabold text-muted-foreground uppercase">
+                    {weekData?.meso}
+                  </div>
+                  <div className="text-lg font-extrabold mt-1">W{wk}</div>
+                  <div className={cn(
+                    "mt-2 px-2 py-1 rounded text-[10px] font-bold text-center",
+                    weekData?.fase === 'Umum' && 'phase-umum',
+                    weekData?.fase === 'Khusus' && 'phase-khusus',
+                    weekData?.fase === 'Pra-Komp' && 'phase-prakomp',
+                    weekData?.fase === 'Kompetisi' && 'phase-kompetisi',
+                  )}>
+                    {weekData?.fase}
+                  </div>
+                  <div className="mt-2 text-[10px] text-muted-foreground">
+                    Vol: {weekData?.vol}% | Int: {weekData?.int}%
+                  </div>
+                  {/* Recommended Intensity */}
+                  <div className="mt-2 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-accent" />
+                    <span className="text-[9px] text-muted-foreground">Rec:</span>
+                    <Badge variant="outline" className={cn(
+                      "text-[8px] px-1 py-0 h-4",
+                      recommendedIntensity === 'High' && 'border-destructive text-destructive',
+                      recommendedIntensity === 'Med' && 'border-warning text-warning',
+                      recommendedIntensity === 'Low' && 'border-success text-success',
+                      recommendedIntensity === 'Rest' && 'border-muted text-muted-foreground',
+                    )}>
+                      {recommendedIntensity}
+                    </Badge>
+                  </div>
+                </Card>
 
-              {/* Days */}
-              {days.map((day) => {
-                const key = getSessionKey(wk, day);
-                const session = sessions[key];
-                const hasContent = session?.exercises?.length > 0;
-                const isDone = session?.isDone;
-                const intensity = session?.int || 'Rest';
+                {/* Days */}
+                {days.map((day) => {
+                  const key = getSessionKey(wk, day);
+                  const session = sessions[key];
+                  const hasContent = session?.exercises?.length > 0;
+                  const isDone = session?.isDone;
+                  const intensity = session?.int || 'Rest';
 
-                return (
-                  <Card
-                    key={day}
-                    onClick={() => handleDayClick(wk, day)}
-                    className={cn(
-                      "p-3 min-h-28 cursor-pointer border-border shadow-card transition-all hover:-translate-y-1 hover:shadow-lg relative",
-                      intensity === 'High' && 'intensity-high',
-                      intensity === 'Med' && 'intensity-med',
-                      intensity === 'Low' && 'intensity-low',
-                      intensity === 'Rest' && 'intensity-rest',
-                    )}
-                  >
-                    <div className="absolute top-2 right-2 text-[10px] font-bold text-muted-foreground">
-                      {day.slice(0, 3)}
-                    </div>
-                    
-                    {hasContent && (
-                      <div className="mt-4 space-y-1">
-                        {session.exercises.slice(0, 2).map((ex, i) => (
-                          <div key={i} className="text-[10px] font-semibold truncate">
-                            {ex.name}
-                          </div>
-                        ))}
-                        {session.exercises.length > 2 && (
-                          <div className="text-[9px] text-muted-foreground">
-                            +{session.exercises.length - 2} lainnya
-                          </div>
+                  // Calculate total load from completed exercises
+                  const totalLoad = session?.exercises?.reduce((sum, ex) => sum + (ex.load * ex.set * ex.rep), 0) || 0;
+
+                  return (
+                    <Card
+                      key={day}
+                      onClick={() => handleDayClick(wk, day)}
+                      className={cn(
+                        "p-3 min-h-28 cursor-pointer border-border shadow-card transition-all hover:-translate-y-1 hover:shadow-lg relative",
+                        intensity === 'High' && 'intensity-high',
+                        intensity === 'Med' && 'intensity-med',
+                        intensity === 'Low' && 'intensity-low',
+                        intensity === 'Rest' && 'intensity-rest',
+                      )}
+                    >
+                      <div className="absolute top-2 right-2 text-[10px] font-bold text-muted-foreground">
+                        {day.slice(0, 3)}
+                      </div>
+                      
+                      {hasContent && (
+                        <div className="mt-4 space-y-1">
+                          {session.exercises.slice(0, 2).map((ex, i) => (
+                            <div key={i} className="text-[10px] font-semibold truncate">
+                              {ex.name}
+                            </div>
+                          ))}
+                          {session.exercises.length > 2 && (
+                            <div className="text-[9px] text-muted-foreground">
+                              +{session.exercises.length - 2} lainnya
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Show total load if session is done */}
+                      {isDone && totalLoad > 0 && (
+                        <div className="mt-1 text-[8px] text-accent font-bold">
+                          Total: {totalLoad.toLocaleString()} kg
+                        </div>
+                      )}
+
+                      {/* RPE & Duration display */}
+                      <div className="absolute bottom-2 left-2 flex gap-1.5">
+                        {session?.rpe && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">
+                            RPE {session.rpe}
+                          </span>
+                        )}
+                        {session?.duration && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                            {session.duration}m
+                          </span>
                         )}
                       </div>
-                    )}
 
-                    {/* RPE & Duration display */}
-                    <div className="absolute bottom-2 left-2 flex gap-1.5">
-                      {session?.rpe && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">
-                          RPE {session.rpe}
-                        </span>
+                      {isDone && (
+                        <div className="absolute bottom-2 right-2 bg-success text-success-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">
+                          ✓
+                        </div>
                       )}
-                      {session?.duration && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-                          {session.duration}m
-                        </span>
-                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Biomotor Targets Row */}
+              {biomotorTargets && (
+                <Card className="p-3 bg-accent/5 border-accent/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-bold text-accent">Target Biomotor Minggu {wk}</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">
+                      (berdasarkan volume {weekData?.vol}%)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-3">
+                    <div className="text-center p-2 bg-card rounded-lg">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Kekuatan</div>
+                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.strength} <span className="text-[9px] text-muted-foreground">kg</span></div>
                     </div>
-
-                    {isDone && (
-                      <div className="absolute bottom-2 right-2 bg-success text-success-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">
-                        ✓
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
+                    <div className="text-center p-2 bg-card rounded-lg">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Kecepatan</div>
+                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.speed} <span className="text-[9px] text-muted-foreground">m</span></div>
+                    </div>
+                    <div className="text-center p-2 bg-card rounded-lg">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Daya Tahan</div>
+                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.endurance} <span className="text-[9px] text-muted-foreground">min</span></div>
+                    </div>
+                    <div className="text-center p-2 bg-card rounded-lg">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Teknik</div>
+                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.technique} <span className="text-[9px] text-muted-foreground">rep</span></div>
+                    </div>
+                    <div className="text-center p-2 bg-card rounded-lg">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Taktik</div>
+                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.tactic} <span className="text-[9px] text-muted-foreground">rep</span></div>
+                    </div>
+                  </div>
+                </Card>
+              )}
             </div>
           );
         })}
