@@ -609,7 +609,8 @@ export function AnnualPlanSection() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
+          {/* Unified Container for Table + Chart */}
           <div className="rounded-xl border border-border overflow-hidden">
             <table className="w-full border-collapse table-fixed">
               {/* Bulan Row */}
@@ -904,178 +905,208 @@ export function AnnualPlanSection() {
                 })}
               </tbody>
             </table>
-          </div>
-          
-          {/* Volume & Intensity Chart - Connected directly to table */}
-          <div className="h-48 w-full border-x border-b border-border rounded-b-xl bg-card/50">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 8 }} 
-                  tickLine={false}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <YAxis 
-                  domain={[0, 100]} 
-                  tick={{ fontSize: 8 }} 
-                  tickLine={false}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '10px' }} />
-                <Area
-                  type="monotone"
-                  dataKey="volume"
-                  name="Volume"
-                  stroke="hsl(var(--accent))"
-                  fill="hsl(var(--accent))"
-                  fillOpacity={0.3}
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="intensitas"
-                  name="Intensitas"
-                  stroke="hsl(var(--destructive))"
-                  fill="hsl(var(--destructive))"
-                  fillOpacity={0.3}
-                  strokeWidth={2}
-                />
-                {/* Reference lines for scheduled events */}
-                {scheduledEvents.map((event, i) => (
-                  <ReferenceLine
-                    key={i}
-                    x={`W${event.week}`}
-                    stroke={event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)'}
-                    strokeWidth={2}
-                    strokeDasharray={event.type === 'test' ? '5 5' : '0'}
-                    label={{
-                      value: event.name,
-                      position: 'top',
-                      fill: event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)',
-                      fontSize: 9,
-                      fontWeight: 'bold'
-                    }}
-                  />
-                ))}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Volume & Intensity Edit Table - Below chart */}
-          <div className="mt-4 rounded-xl border border-border overflow-hidden">
-            <table className="w-full border-collapse table-fixed">
-              <thead>
-                <tr className="bg-muted/50">
-                  <th className="p-1 text-left text-[8px] font-extrabold uppercase w-16 border-r border-border">
-                    Edit
-                  </th>
-                  {planData.map((d) => (
-                    <th key={d.wk} className="p-0.5 text-center text-[7px] font-bold border-r border-border/50 last:border-r-0">
-                      W{d.wk}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {/* Volume Row */}
-                <tr className="bg-accent/10">
-                  <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-accent/20 text-accent">
-                    Vol %
-                  </td>
-                  {planData.map((d, idx) => (
-                    <td 
-                      key={d.wk} 
-                      className="p-0.5 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-accent/20 transition-colors"
-                      onClick={() => {
-                        setEditingVolInt({ week: d.wk, type: 'vol' });
-                        setEditVolIntValue(d.vol);
+            
+            {/* Volume & Intensity Chart - Seamlessly connected */}
+            <div className="border-t border-border bg-gradient-to-b from-card to-card/80">
+              <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border/50">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-sm bg-accent/60"></div>
+                    <span className="text-[10px] font-semibold text-muted-foreground">Volume (%)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-sm bg-destructive/60"></div>
+                    <span className="text-[10px] font-semibold text-muted-foreground">Intensitas (%)</span>
+                  </div>
+                </div>
+              </div>
+              <div className="h-40 w-full px-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 7, fill: 'hsl(var(--muted-foreground))' }} 
+                      tickLine={false}
+                      axisLine={false}
+                      interval={Math.floor(planData.length / 12)}
+                    />
+                    <YAxis 
+                      domain={[0, 100]} 
+                      tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} 
+                      tickLine={false}
+                      axisLine={false}
+                      width={25}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                       }}
-                    >
-                      {editingVolInt?.week === d.wk && editingVolInt?.type === 'vol' ? (
-                        <Input
-                          type="number"
-                          value={editVolIntValue}
-                          onChange={(e) => setEditVolIntValue(Number(e.target.value))}
-                          onBlur={() => {
-                            updatePlanWeek(idx, { vol: Math.max(0, Math.min(100, editVolIntValue)) });
-                            setEditingVolInt(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="volume"
+                      name="Volume"
+                      stroke="hsl(var(--accent))"
+                      fill="url(#volumeGradient)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="intensitas"
+                      name="Intensitas"
+                      stroke="hsl(var(--destructive))"
+                      fill="url(#intensitasGradient)"
+                      strokeWidth={2}
+                    />
+                    <defs>
+                      <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.05} />
+                      </linearGradient>
+                      <linearGradient id="intensitasGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    {/* Reference lines for scheduled events */}
+                    {scheduledEvents.map((event, i) => (
+                      <ReferenceLine
+                        key={i}
+                        x={`W${event.week}`}
+                        stroke={event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)'}
+                        strokeWidth={1.5}
+                        strokeDasharray={event.type === 'test' ? '4 4' : '0'}
+                        label={{
+                          value: event.name,
+                          position: 'top',
+                          fill: event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)',
+                          fontSize: 8,
+                          fontWeight: 'bold'
+                        }}
+                      />
+                    ))}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+          
+          {/* Volume & Intensity Edit Section - Below chart */}
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Edit Volume & Intensitas</h4>
+              <span className="text-[10px] text-muted-foreground/70">(klik nilai untuk mengubah)</span>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden shadow-sm">
+              <table className="w-full border-collapse table-fixed">
+                <thead>
+                  <tr className="bg-muted/60">
+                    <th className="p-1.5 text-left text-[9px] font-bold uppercase w-20 border-r border-border bg-muted">
+                      Minggu
+                    </th>
+                    {planData.map((d) => (
+                      <th key={d.wk} className="p-1 text-center text-[8px] font-semibold border-r border-border/50 last:border-r-0 text-muted-foreground">
+                        {d.wk}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Volume Row */}
+                  <tr className="bg-accent/5 hover:bg-accent/10 transition-colors">
+                    <td className="p-1.5 text-left text-[9px] font-bold uppercase border-r border-border bg-accent/15 text-accent">
+                      Volume (%)
+                    </td>
+                    {planData.map((d, idx) => (
+                      <td 
+                        key={d.wk} 
+                        className="p-1 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-accent/20 transition-colors group"
+                        onClick={() => {
+                          setEditingVolInt({ week: d.wk, type: 'vol' });
+                          setEditVolIntValue(d.vol);
+                        }}
+                      >
+                        {editingVolInt?.week === d.wk && editingVolInt?.type === 'vol' ? (
+                          <Input
+                            type="number"
+                            value={editVolIntValue}
+                            onChange={(e) => setEditVolIntValue(Number(e.target.value))}
+                            onBlur={() => {
                               updatePlanWeek(idx, { vol: Math.max(0, Math.min(100, editVolIntValue)) });
                               setEditingVolInt(null);
-                            }
-                            if (e.key === 'Escape') setEditingVolInt(null);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="w-6 h-4 text-[6px] text-center p-0"
-                          min={0}
-                          max={100}
-                        />
-                      ) : (
-                        <span className="text-[7px] font-bold text-accent">{d.vol}</span>
-                      )}
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                updatePlanWeek(idx, { vol: Math.max(0, Math.min(100, editVolIntValue)) });
+                                setEditingVolInt(null);
+                              }
+                              if (e.key === 'Escape') setEditingVolInt(null);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="w-8 h-5 text-[9px] text-center p-0 border-accent"
+                            min={0}
+                            max={100}
+                          />
+                        ) : (
+                          <span className="text-[9px] font-semibold text-accent group-hover:font-bold">{d.vol}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  {/* Intensitas Row */}
+                  <tr className="bg-destructive/5 hover:bg-destructive/10 transition-colors">
+                    <td className="p-1.5 text-left text-[9px] font-bold uppercase border-r border-border bg-destructive/15 text-destructive">
+                      Intensitas (%)
                     </td>
-                  ))}
-                </tr>
-                {/* Intensitas Row */}
-                <tr className="bg-destructive/10">
-                  <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-destructive/20 text-destructive">
-                    Int %
-                  </td>
-                  {planData.map((d, idx) => (
-                    <td 
-                      key={d.wk} 
-                      className="p-0.5 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-destructive/20 transition-colors"
-                      onClick={() => {
-                        setEditingVolInt({ week: d.wk, type: 'int' });
-                        setEditVolIntValue(d.int);
-                      }}
-                    >
-                      {editingVolInt?.week === d.wk && editingVolInt?.type === 'int' ? (
-                        <Input
-                          type="number"
-                          value={editVolIntValue}
-                          onChange={(e) => setEditVolIntValue(Number(e.target.value))}
-                          onBlur={() => {
-                            updatePlanWeek(idx, { int: Math.max(0, Math.min(100, editVolIntValue)) });
-                            setEditingVolInt(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                    {planData.map((d, idx) => (
+                      <td 
+                        key={d.wk} 
+                        className="p-1 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-destructive/20 transition-colors group"
+                        onClick={() => {
+                          setEditingVolInt({ week: d.wk, type: 'int' });
+                          setEditVolIntValue(d.int);
+                        }}
+                      >
+                        {editingVolInt?.week === d.wk && editingVolInt?.type === 'int' ? (
+                          <Input
+                            type="number"
+                            value={editVolIntValue}
+                            onChange={(e) => setEditVolIntValue(Number(e.target.value))}
+                            onBlur={() => {
                               updatePlanWeek(idx, { int: Math.max(0, Math.min(100, editVolIntValue)) });
                               setEditingVolInt(null);
-                            }
-                            if (e.key === 'Escape') setEditingVolInt(null);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="w-6 h-4 text-[6px] text-center p-0"
-                          min={0}
-                          max={100}
-                        />
-                      ) : (
-                        <span className="text-[7px] font-bold text-destructive">{d.int}</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                updatePlanWeek(idx, { int: Math.max(0, Math.min(100, editVolIntValue)) });
+                                setEditingVolInt(null);
+                              }
+                              if (e.key === 'Escape') setEditingVolInt(null);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="w-8 h-5 text-[9px] text-center p-0 border-destructive"
+                            min={0}
+                            max={100}
+                          />
+                        ) : (
+                          <span className="text-[9px] font-semibold text-destructive group-hover:font-bold">{d.int}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           
-          <p className="text-xs text-muted-foreground mt-2">
-            Klik beberapa minggu pada baris Tujuan Latihan untuk memilih, lalu buat blok. Klik blok yang sudah ada untuk mengedit. Klik cell pada tabel Edit untuk mengubah nilai Volume/Intensitas.
+          <p className="text-[11px] text-muted-foreground mt-4 px-1">
+            💡 <span className="font-medium">Tips:</span> Klik beberapa minggu pada baris Tujuan Latihan untuk memilih dan buat blok. Klik blok yang sudah ada untuk mengedit.
           </p>
         </CardContent>
       </Card>
