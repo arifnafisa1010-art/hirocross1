@@ -924,7 +924,7 @@ export function AnnualPlanSection() {
               {/* Line Chart with table-aligned grid */}
               <div className="relative">
                 {/* Grid lines matching table columns */}
-                <div className="absolute inset-0 flex" style={{ marginLeft: '64px' }}>
+                <div className="absolute inset-0 flex" style={{ marginLeft: '64px', marginRight: '0' }}>
                   {planData.map((_, i) => (
                     <div 
                       key={i} 
@@ -934,7 +934,7 @@ export function AnnualPlanSection() {
                 </div>
                 
                 {/* SVG Line Chart */}
-                <div className="h-32 w-full relative" style={{ marginLeft: '64px' }}>
+                <div className="h-32 relative" style={{ marginLeft: '64px', width: 'calc(100% - 64px)' }}>
                   <svg 
                     viewBox={`0 0 ${planData.length * 100} 100`} 
                     preserveAspectRatio="none"

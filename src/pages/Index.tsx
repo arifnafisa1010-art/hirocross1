@@ -23,7 +23,7 @@ const Index = () => {
         />
       </Helmet>
 
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={false}>
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
           
