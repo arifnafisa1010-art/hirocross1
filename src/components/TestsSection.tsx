@@ -82,6 +82,62 @@ const defaultUnits: Record<string, string> = {
   'Triple Jump Standing': 'cm',
 };
 
+// Validation ranges for test items - realistic min/max values
+const testValueRanges: Record<string, { min: number; max: number; hint: string }> = {
+  // Kekuatan (Strength) - weight/reps/time
+  '1RM Back Squat': { min: 20, max: 500, hint: '20-500 kg' },
+  '1RM Bench Press': { min: 10, max: 400, hint: '10-400 kg' },
+  'Deadlift 1RM': { min: 30, max: 600, hint: '30-600 kg' },
+  'Push Up Max': { min: 0, max: 200, hint: '0-200 reps' },
+  'Pull-up Max': { min: 0, max: 100, hint: '0-100 reps' },
+  'Plank Hold': { min: 1, max: 1800, hint: '1-1800 detik' },
+  // Kecepatan (Speed) - times in seconds
+  'Sprint 20m': { min: 2, max: 10, hint: '2-10 detik' },
+  'Sprint 40m': { min: 4, max: 15, hint: '4-15 detik' },
+  'Sprint 60m': { min: 5.5, max: 20, hint: '5.5-20 detik' },
+  'Sprint 100m': { min: 9, max: 30, hint: '9-30 detik' },
+  'Flying 30m': { min: 2.5, max: 10, hint: '2.5-10 detik' },
+  // Daya Tahan (Endurance)
+  'VO2Max Test': { min: 15, max: 90, hint: '15-90 ml/kg/min' },
+  'Yo-Yo IR1': { min: 100, max: 4000, hint: '100-4000 m' },
+  'Cooper Test': { min: 500, max: 4000, hint: '500-4000 m' },
+  'Beep Test': { min: 1, max: 21, hint: 'Level 1-21' },
+  'Harvard Step Test': { min: 40, max: 120, hint: 'Index 40-120' },
+  // Kelincahan (Agility) - times in seconds
+  'Illinois Agility Test': { min: 12, max: 30, hint: '12-30 detik' },
+  'T-Test': { min: 7, max: 20, hint: '7-20 detik' },
+  'Pro Agility 5-10-5': { min: 3.5, max: 10, hint: '3.5-10 detik' },
+  'Hexagon Test': { min: 8, max: 30, hint: '8-30 detik' },
+  // Fleksibilitas (Flexibility) - cm
+  'Sit and Reach': { min: -30, max: 50, hint: '-30 sampai 50 cm' },
+  'Shoulder Flexibility': { min: -20, max: 40, hint: '-20 sampai 40 cm' },
+  'Trunk Rotation': { min: 0, max: 90, hint: '0-90 cm' },
+  'Groin Flexibility': { min: 0, max: 60, hint: '0-60 cm' },
+  // Power - cm/m
+  'Vertical Jump': { min: 10, max: 150, hint: '10-150 cm' },
+  'Standing Long Jump': { min: 50, max: 400, hint: '50-400 cm' },
+  'Medicine Ball Throw': { min: 1, max: 25, hint: '1-25 m' },
+  'Triple Jump Standing': { min: 300, max: 1200, hint: '300-1200 cm' },
+};
+
+// Validation function for test values
+const validateTestValue = (item: string, value: number): { valid: boolean; error?: string } => {
+  const range = testValueRanges[item];
+  if (!range) {
+    // For unknown items, just ensure non-negative for most tests
+    return { valid: true };
+  }
+  
+  if (value < range.min || value > range.max) {
+    return { 
+      valid: false, 
+      error: `Nilai harus antara ${range.min} dan ${range.max} (${range.hint})` 
+    };
+  }
+  
+  return { valid: true };
+};
+
 export function TestsSection() {
   const { athletes, loading: athletesLoading, addAthlete, updateAthlete } = useAthletes();
   const { calculateScore, getNormForItem, loading: normsLoading } = useTestNorms();
@@ -144,6 +200,20 @@ export function TestsSection() {
     }
 
     const value = parseFloat(form.value);
+    
+    // Validate the value is a valid number
+    if (isNaN(value)) {
+      toast.error('Nilai harus berupa angka yang valid!');
+      return;
+    }
+    
+    // Validate against realistic ranges
+    const validation = validateTestValue(form.item, value);
+    if (!validation.valid) {
+      toast.error(validation.error || 'Nilai tidak valid!');
+      return;
+    }
+    
     const score = calculatedScore || 3;
 
     await addResult({
