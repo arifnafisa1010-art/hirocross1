@@ -922,24 +922,36 @@ export function AnnualPlanSection() {
                 </div>
               </div>
               {/* Line Chart with table-aligned grid */}
-              <div className="relative">
-                {/* Grid lines matching table columns */}
-                <div className="absolute inset-0 flex" style={{ marginLeft: '64px', marginRight: '0' }}>
-                  {planData.map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="flex-1 border-r border-border/10 last:border-r-0"
-                    />
-                  ))}
+              <div className="relative flex">
+                {/* Y-axis labels on the left - matching table first column width */}
+                <div className="w-16 flex-shrink-0 flex flex-col justify-between py-2 pr-1 bg-muted/20 border-r border-border/30">
+                  <div className="text-[7px] font-bold text-accent text-right">100%</div>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[8px] font-bold text-accent">VOL</span>
+                    <span className="text-[8px] font-bold text-destructive">INT</span>
+                  </div>
+                  <div className="text-[7px] font-bold text-muted-foreground text-right">0%</div>
                 </div>
                 
-                {/* SVG Line Chart */}
-                <div className="h-32 relative" style={{ marginLeft: '64px', width: 'calc(100% - 64px)' }}>
-                  <svg 
-                    viewBox={`0 0 ${planData.length * 100} 100`} 
-                    preserveAspectRatio="none"
-                    className="w-full h-full"
-                  >
+                {/* Chart area */}
+                <div className="flex-1 relative">
+                  {/* Grid lines matching table columns */}
+                  <div className="absolute inset-0 flex">
+                    {planData.map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="flex-1 border-r border-border/10 last:border-r-0"
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* SVG Line Chart */}
+                  <div className="h-32 relative w-full">
+                    <svg 
+                      viewBox={`0 0 ${planData.length * 100} 100`} 
+                      preserveAspectRatio="none"
+                      className="w-full h-full"
+                    >
                     {/* Gradient definitions */}
                     <defs>
                       <linearGradient id="volumeGradientLine" x1="0" y1="0" x2="0" y2="1">
@@ -1044,6 +1056,7 @@ export function AnnualPlanSection() {
               </div>
             </div>
           </div>
+        </div>
           
           {/* Volume & Intensity Edit Section - Below chart */}
           <div className="mt-6">
