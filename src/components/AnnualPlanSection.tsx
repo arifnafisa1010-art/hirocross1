@@ -902,12 +902,92 @@ export function AnnualPlanSection() {
                     </tr>
                   );
                 })}
-                {/* Separator */}
-                <tr>
-                  <td colSpan={planData.length + 1} className="h-1 bg-border"></td>
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Volume & Intensity Chart - Connected directly to table */}
+          <div className="h-48 w-full border-x border-b border-border rounded-b-xl bg-card/50">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 8 }} 
+                  tickLine={false}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <YAxis 
+                  domain={[0, 100]} 
+                  tick={{ fontSize: 8 }} 
+                  tickLine={false}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                <Area
+                  type="monotone"
+                  dataKey="volume"
+                  name="Volume"
+                  stroke="hsl(var(--accent))"
+                  fill="hsl(var(--accent))"
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="intensitas"
+                  name="Intensitas"
+                  stroke="hsl(var(--destructive))"
+                  fill="hsl(var(--destructive))"
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                />
+                {/* Reference lines for scheduled events */}
+                {scheduledEvents.map((event, i) => (
+                  <ReferenceLine
+                    key={i}
+                    x={`W${event.week}`}
+                    stroke={event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)'}
+                    strokeWidth={2}
+                    strokeDasharray={event.type === 'test' ? '5 5' : '0'}
+                    label={{
+                      value: event.name,
+                      position: 'top',
+                      fill: event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)',
+                      fontSize: 9,
+                      fontWeight: 'bold'
+                    }}
+                  />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Volume & Intensity Edit Table - Below chart */}
+          <div className="mt-4 rounded-xl border border-border overflow-hidden">
+            <table className="w-full border-collapse table-fixed">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="p-1 text-left text-[8px] font-extrabold uppercase w-16 border-r border-border">
+                    Edit
+                  </th>
+                  {planData.map((d) => (
+                    <th key={d.wk} className="p-0.5 text-center text-[7px] font-bold border-r border-border/50 last:border-r-0">
+                      W{d.wk}
+                    </th>
+                  ))}
                 </tr>
-                {/* Volume Row - Moved to bottom */}
-                <tr className="bg-accent/10 border-t border-accent/30">
+              </thead>
+              <tbody>
+                {/* Volume Row */}
+                <tr className="bg-accent/10">
                   <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-accent/20 text-accent">
                     Vol %
                   </td>
@@ -943,17 +1023,12 @@ export function AnnualPlanSection() {
                           max={100}
                         />
                       ) : (
-                        <div 
-                          className="mx-auto w-full bg-accent/40 rounded-sm flex items-end justify-center relative"
-                          style={{ height: `${Math.max(d.vol * 0.2, 4)}px` }}
-                        >
-                          <span className="text-[5px] font-bold text-accent-foreground absolute -top-2">{d.vol}</span>
-                        </div>
+                        <span className="text-[7px] font-bold text-accent">{d.vol}</span>
                       )}
                     </td>
                   ))}
                 </tr>
-                {/* Intensitas Row - Moved to bottom */}
+                {/* Intensitas Row */}
                 <tr className="bg-destructive/10">
                   <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-destructive/20 text-destructive">
                     Int %
@@ -990,12 +1065,7 @@ export function AnnualPlanSection() {
                           max={100}
                         />
                       ) : (
-                        <div 
-                          className="mx-auto w-full bg-destructive/40 rounded-sm flex items-end justify-center relative"
-                          style={{ height: `${Math.max(d.int * 0.2, 4)}px` }}
-                        >
-                          <span className="text-[5px] font-bold text-destructive absolute -top-2">{d.int}</span>
-                        </div>
+                        <span className="text-[7px] font-bold text-destructive">{d.int}</span>
                       )}
                     </td>
                   ))}
@@ -1004,75 +1074,8 @@ export function AnnualPlanSection() {
             </table>
           </div>
           
-          {/* Volume & Intensity Chart */}
-          <div className="mt-6">
-            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Grafik Volume & Intensitas</h4>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                  <XAxis 
-                    dataKey="name" 
-                    tick={{ fontSize: 10 }} 
-                    tickLine={false}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
-                  />
-                  <YAxis 
-                    domain={[0, 100]} 
-                    tick={{ fontSize: 10 }} 
-                    tickLine={false}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: '12px'
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="volume"
-                    name="Volume"
-                    stroke="hsl(var(--accent))"
-                    fill="hsl(var(--accent))"
-                    fillOpacity={0.3}
-                    strokeWidth={2}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="intensitas"
-                    name="Intensitas"
-                    stroke="hsl(var(--destructive))"
-                    fill="hsl(var(--destructive))"
-                    fillOpacity={0.3}
-                    strokeWidth={2}
-                  />
-                  {/* Reference lines for scheduled events */}
-                  {scheduledEvents.map((event, i) => (
-                    <ReferenceLine
-                      key={i}
-                      x={`W${event.week}`}
-                      stroke={event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)'}
-                      strokeWidth={2}
-                      strokeDasharray={event.type === 'test' ? '5 5' : '0'}
-                      label={{
-                        value: event.name,
-                        position: 'top',
-                        fill: event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)',
-                        fontSize: 9,
-                        fontWeight: 'bold'
-                      }}
-                    />
-                  ))}
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          
           <p className="text-xs text-muted-foreground mt-2">
-            Klik beberapa minggu pada baris Tujuan Latihan untuk memilih, lalu buat blok. Klik blok yang sudah ada untuk mengedit. Klik cell Volume/Intensitas untuk edit nilai.
+            Klik beberapa minggu pada baris Tujuan Latihan untuk memilih, lalu buat blok. Klik blok yang sudah ada untuk mengedit. Klik cell pada tabel Edit untuk mengubah nilai Volume/Intensitas.
           </p>
         </CardContent>
       </Card>
