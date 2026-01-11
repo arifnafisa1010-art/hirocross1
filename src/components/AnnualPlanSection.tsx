@@ -906,7 +906,7 @@ export function AnnualPlanSection() {
               </tbody>
             </table>
             
-            {/* Volume & Intensity Chart - Aligned with table columns */}
+            {/* Volume & Intensity Line Chart - Aligned with table columns */}
             <div className="border-t border-border bg-gradient-to-b from-card to-card/80">
               <div className="flex items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border/50">
                 <div className="flex items-center gap-4">
@@ -920,45 +920,115 @@ export function AnnualPlanSection() {
                   </div>
                 </div>
               </div>
-              {/* Bar Chart aligned with table columns */}
-              <table className="w-full border-collapse table-fixed">
-                <tbody>
-                  {/* Volume bars */}
-                  <tr className="h-16">
-                    <td className="p-1 text-left text-[7px] font-extrabold uppercase w-16 border-r border-border bg-accent/10 text-accent align-bottom">
-                      <span className="block rotate-0">Vol</span>
-                    </td>
-                    {planData.map((d) => (
-                      <td key={d.wk} className="p-0 align-bottom border-r border-border/20 last:border-r-0">
-                        <div className="relative flex flex-col items-center justify-end h-14 px-px">
-                          <span className="text-[6px] font-bold text-accent mb-0.5">{d.vol}</span>
-                          <div 
-                            className="w-full bg-gradient-to-t from-accent/70 to-accent/30 rounded-t-sm transition-all duration-300"
-                            style={{ height: `${Math.max(d.vol * 0.5, 2)}px` }}
-                          />
-                        </div>
-                      </td>
+              {/* Line Chart with table-aligned grid */}
+              <div className="relative">
+                {/* Grid lines matching table columns */}
+                <div className="absolute inset-0 flex" style={{ marginLeft: '64px' }}>
+                  {planData.map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="flex-1 border-r border-border/10 last:border-r-0"
+                    />
+                  ))}
+                </div>
+                
+                {/* SVG Line Chart */}
+                <div className="h-32 w-full relative">
+                  <svg 
+                    viewBox={`0 0 ${planData.length * 20 + 40} 100`} 
+                    preserveAspectRatio="none"
+                    className="w-full h-full"
+                    style={{ marginLeft: '0' }}
+                  >
+                    {/* Gradient definitions */}
+                    <defs>
+                      <linearGradient id="volumeGradientLine" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0.05" />
+                      </linearGradient>
+                      <linearGradient id="intensitasGradientLine" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    
+                    {/* Horizontal grid lines */}
+                    {[0, 25, 50, 75, 100].map((v) => (
+                      <line
+                        key={v}
+                        x1="20"
+                        y1={100 - v}
+                        x2={planData.length * 20 + 40}
+                        y2={100 - v}
+                        stroke="hsl(var(--border))"
+                        strokeWidth="0.3"
+                        strokeOpacity="0.5"
+                      />
                     ))}
-                  </tr>
-                  {/* Intensitas bars */}
-                  <tr className="h-16">
-                    <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-destructive/10 text-destructive align-top">
-                      <span className="block rotate-0">Int</span>
-                    </td>
-                    {planData.map((d) => (
-                      <td key={d.wk} className="p-0 align-top border-r border-border/20 last:border-r-0">
-                        <div className="relative flex flex-col items-center justify-start h-14 px-px">
-                          <div 
-                            className="w-full bg-gradient-to-b from-destructive/70 to-destructive/30 rounded-b-sm transition-all duration-300"
-                            style={{ height: `${Math.max(d.int * 0.5, 2)}px` }}
-                          />
-                          <span className="text-[6px] font-bold text-destructive mt-0.5">{d.int}</span>
-                        </div>
-                      </td>
+                    
+                    {/* Volume Area */}
+                    <path
+                      d={`M ${20 + 10} ${100 - planData[0]?.vol || 0} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.vol}`).join(' ')} L ${20 + (planData.length - 1) * 20 + 10} 100 L ${20 + 10} 100 Z`}
+                      fill="url(#volumeGradientLine)"
+                    />
+                    
+                    {/* Volume Line */}
+                    <path
+                      d={`M ${20 + 10} ${100 - (planData[0]?.vol || 0)} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.vol}`).join(' ')}`}
+                      fill="none"
+                      stroke="hsl(var(--accent))"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    
+                    {/* Intensitas Area */}
+                    <path
+                      d={`M ${20 + 10} ${100 - planData[0]?.int || 0} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.int}`).join(' ')} L ${20 + (planData.length - 1) * 20 + 10} 100 L ${20 + 10} 100 Z`}
+                      fill="url(#intensitasGradientLine)"
+                    />
+                    
+                    {/* Intensitas Line */}
+                    <path
+                      d={`M ${20 + 10} ${100 - (planData[0]?.int || 0)} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.int}`).join(' ')}`}
+                      fill="none"
+                      stroke="hsl(var(--destructive))"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    
+                    {/* Data points - Volume */}
+                    {planData.map((d, i) => (
+                      <circle
+                        key={`vol-${i}`}
+                        cx={20 + i * 20 + 10}
+                        cy={100 - d.vol}
+                        r="2"
+                        fill="hsl(var(--accent))"
+                      />
                     ))}
-                  </tr>
-                </tbody>
-              </table>
+                    
+                    {/* Data points - Intensitas */}
+                    {planData.map((d, i) => (
+                      <circle
+                        key={`int-${i}`}
+                        cx={20 + i * 20 + 10}
+                        cy={100 - d.int}
+                        r="2"
+                        fill="hsl(var(--destructive))"
+                      />
+                    ))}
+                    
+                    {/* Y-axis labels */}
+                    <text x="15" y="5" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">100</text>
+                    <text x="15" y="30" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">75</text>
+                    <text x="15" y="55" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">50</text>
+                    <text x="15" y="80" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">25</text>
+                    <text x="15" y="100" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">0</text>
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
           
