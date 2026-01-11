@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTrainingStore, TrainingBlocks, TrainingBlock, BlockCategory, ScheduledEvent } from '@/stores/trainingStore';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format, addDays, addWeeks, getDay } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Legend, ComposedChart, Bar } from 'recharts';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const phaseColors: Record<string, string> = {
   'Umum': 'hsl(195, 53%, 79%)',
@@ -97,6 +99,57 @@ export function AnnualPlanSection() {
   const [inlineEditingBlock, setInlineEditingBlock] = useState<{ category: BlockCategory; startWeek: number } | null>(null);
   const [inlineBlockText, setInlineBlockText] = useState('');
   const [hoveredWeek, setHoveredWeek] = useState<{ week: number; vol: number; int: number; x: number; y: number } | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  // Calculate biomotor targets based on volume percentage
+  const calculateBiomotorTargets = (vol: number) => {
+    const targets = setup.targets;
+    return {
+      strength: Math.round((targets.strength * vol) / 100),
+      speed: Math.round((targets.speed * vol) / 100),
+      endurance: Math.round((targets.endurance * vol) / 100),
+      technique: Math.round((targets.technique * vol) / 100),
+      tactic: Math.round((targets.tactic * vol) / 100),
+    };
+  };
+
+  // Export to PDF function
+  const handleExportPDF = async () => {
+    if (!printRef.current) return;
+    
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a3',
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+      
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`${setup.planName || 'Annual-Plan'}.pdf`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Calculate week dates based on start date
   const getWeekDateRange = (weekNumber: number) => {
@@ -435,6 +488,15 @@ export function AnnualPlanSection() {
           {setup.planName}
         </h2>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExportPDF}
+            disabled={exporting}
+          >
+            {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+            Export PDF
+          </Button>
           <Dialog open={phaseSettingsOpen} onOpenChange={setPhaseSettingsOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -523,6 +585,9 @@ export function AnnualPlanSection() {
           </Button>
         </div>
       </div>
+
+      {/* Printable content wrapper */}
+      <div ref={printRef} className="space-y-4">
 
       {/* Mesocycle Editor */}
       <Card className="border-border shadow-card">
@@ -972,9 +1037,10 @@ export function AnnualPlanSection() {
                         y1={100 - v}
                         x2={planData.length * 100}
                         y2={100 - v}
-                        stroke="hsl(var(--border))"
-                        strokeWidth="0.3"
-                        strokeOpacity="0.5"
+                        stroke={v === 50 || v === 75 ? "hsl(var(--muted-foreground))" : "hsl(var(--border))"}
+                        strokeWidth={v === 50 || v === 75 ? "0.8" : "0.3"}
+                        strokeOpacity={v === 50 || v === 75 ? "0.6" : "0.5"}
+                        strokeDasharray={v === 50 || v === 75 ? "4 2" : "0"}
                       />
                     ))}
                     
@@ -1171,8 +1237,105 @@ export function AnnualPlanSection() {
           <p className="text-[11px] text-muted-foreground mt-4 px-1">
             💡 <span className="font-medium">Tips:</span> Klik beberapa minggu pada baris Tujuan Latihan untuk memilih dan buat blok. Klik blok yang sudah ada untuk mengedit.
           </p>
+          
+          {/* Biomotor Targets Section */}
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Target Biomotor per Minggu</h4>
+              <span className="text-[10px] text-muted-foreground/70">(berdasarkan volume)</span>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden shadow-sm">
+              <table className="w-full border-collapse table-fixed">
+                <thead>
+                  <tr className="bg-muted/60">
+                    <th className="p-1.5 text-left text-[9px] font-bold uppercase w-20 border-r border-border bg-muted">
+                      Komponen
+                    </th>
+                    {planData.map((d) => (
+                      <th key={d.wk} className="p-1 text-center text-[8px] font-semibold border-r border-border/50 last:border-r-0 text-muted-foreground">
+                        {d.wk}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Kekuatan Row */}
+                  <tr className="bg-orange-500/5 hover:bg-orange-500/10 transition-colors">
+                    <td className="p-1.5 text-left text-[9px] font-bold uppercase border-r border-border bg-orange-500/15 text-orange-700">
+                      Kekuatan
+                    </td>
+                    {planData.map((d) => {
+                      const targets = calculateBiomotorTargets(d.vol);
+                      return (
+                        <td key={d.wk} className="p-1 text-center border-r border-border/30 last:border-r-0">
+                          <span className="text-[8px] font-medium text-orange-700">{targets.strength}</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {/* Kecepatan Row */}
+                  <tr className="bg-blue-500/5 hover:bg-blue-500/10 transition-colors">
+                    <td className="p-1.5 text-left text-[9px] font-bold uppercase border-r border-border bg-blue-500/15 text-blue-700">
+                      Kecepatan
+                    </td>
+                    {planData.map((d) => {
+                      const targets = calculateBiomotorTargets(d.vol);
+                      return (
+                        <td key={d.wk} className="p-1 text-center border-r border-border/30 last:border-r-0">
+                          <span className="text-[8px] font-medium text-blue-700">{targets.speed}</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {/* Daya Tahan Row */}
+                  <tr className="bg-green-500/5 hover:bg-green-500/10 transition-colors">
+                    <td className="p-1.5 text-left text-[9px] font-bold uppercase border-r border-border bg-green-500/15 text-green-700">
+                      D.Tahan
+                    </td>
+                    {planData.map((d) => {
+                      const targets = calculateBiomotorTargets(d.vol);
+                      return (
+                        <td key={d.wk} className="p-1 text-center border-r border-border/30 last:border-r-0">
+                          <span className="text-[8px] font-medium text-green-700">{targets.endurance}</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {/* Teknik Row */}
+                  <tr className="bg-purple-500/5 hover:bg-purple-500/10 transition-colors">
+                    <td className="p-1.5 text-left text-[9px] font-bold uppercase border-r border-border bg-purple-500/15 text-purple-700">
+                      Teknik
+                    </td>
+                    {planData.map((d) => {
+                      const targets = calculateBiomotorTargets(d.vol);
+                      return (
+                        <td key={d.wk} className="p-1 text-center border-r border-border/30 last:border-r-0">
+                          <span className="text-[8px] font-medium text-purple-700">{targets.technique}</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {/* Taktik Row */}
+                  <tr className="bg-rose-500/5 hover:bg-rose-500/10 transition-colors">
+                    <td className="p-1.5 text-left text-[9px] font-bold uppercase border-r border-border bg-rose-500/15 text-rose-700">
+                      Taktik
+                    </td>
+                    {planData.map((d) => {
+                      const targets = calculateBiomotorTargets(d.vol);
+                      return (
+                        <td key={d.wk} className="p-1 text-center border-r border-border/30 last:border-r-0">
+                          <span className="text-[8px] font-medium text-rose-700">{targets.tactic}</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </CardContent>
       </Card>
+      </div> {/* End of printable content wrapper */}
 
     </div>
   );
