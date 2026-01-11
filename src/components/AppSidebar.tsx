@@ -28,7 +28,7 @@ export function AppSidebar() {
   const isCollapsed = state === 'collapsed';
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
+    <Sidebar collapsible="offcanvas" className="border-r border-border">
       <SidebarContent className="pt-4">
         <SidebarGroup>
           <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
