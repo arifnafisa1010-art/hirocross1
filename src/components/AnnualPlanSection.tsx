@@ -933,12 +933,11 @@ export function AnnualPlanSection() {
                 </div>
                 
                 {/* SVG Line Chart */}
-                <div className="h-32 w-full relative">
+                <div className="h-32 w-full relative" style={{ marginLeft: '64px' }}>
                   <svg 
-                    viewBox={`0 0 ${planData.length * 20 + 40} 100`} 
+                    viewBox={`0 0 ${planData.length * 100} 100`} 
                     preserveAspectRatio="none"
                     className="w-full h-full"
-                    style={{ marginLeft: '0' }}
                   >
                     {/* Gradient definitions */}
                     <defs>
@@ -956,9 +955,9 @@ export function AnnualPlanSection() {
                     {[0, 25, 50, 75, 100].map((v) => (
                       <line
                         key={v}
-                        x1="20"
+                        x1="0"
                         y1={100 - v}
-                        x2={planData.length * 20 + 40}
+                        x2={planData.length * 100}
                         y2={100 - v}
                         stroke="hsl(var(--border))"
                         strokeWidth="0.3"
@@ -966,15 +965,15 @@ export function AnnualPlanSection() {
                       />
                     ))}
                     
-                    {/* Volume Area */}
+                    {/* Volume Area - starts from center of first column to center of last column */}
                     <path
-                      d={`M ${20 + 10} ${100 - planData[0]?.vol || 0} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.vol}`).join(' ')} L ${20 + (planData.length - 1) * 20 + 10} 100 L ${20 + 10} 100 Z`}
+                      d={`M ${50} ${100 - (planData[0]?.vol || 0)} ${planData.map((d, i) => `L ${i * 100 + 50} ${100 - d.vol}`).join(' ')} L ${(planData.length - 1) * 100 + 50} 100 L 50 100 Z`}
                       fill="url(#volumeGradientLine)"
                     />
                     
                     {/* Volume Line */}
                     <path
-                      d={`M ${20 + 10} ${100 - (planData[0]?.vol || 0)} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.vol}`).join(' ')}`}
+                      d={`M ${50} ${100 - (planData[0]?.vol || 0)} ${planData.map((d, i) => `L ${i * 100 + 50} ${100 - d.vol}`).join(' ')}`}
                       fill="none"
                       stroke="hsl(var(--accent))"
                       strokeWidth="1.5"
@@ -984,13 +983,13 @@ export function AnnualPlanSection() {
                     
                     {/* Intensitas Area */}
                     <path
-                      d={`M ${20 + 10} ${100 - planData[0]?.int || 0} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.int}`).join(' ')} L ${20 + (planData.length - 1) * 20 + 10} 100 L ${20 + 10} 100 Z`}
+                      d={`M ${50} ${100 - (planData[0]?.int || 0)} ${planData.map((d, i) => `L ${i * 100 + 50} ${100 - d.int}`).join(' ')} L ${(planData.length - 1) * 100 + 50} 100 L 50 100 Z`}
                       fill="url(#intensitasGradientLine)"
                     />
                     
                     {/* Intensitas Line */}
                     <path
-                      d={`M ${20 + 10} ${100 - (planData[0]?.int || 0)} ${planData.map((d, i) => `L ${20 + i * 20 + 10} ${100 - d.int}`).join(' ')}`}
+                      d={`M ${50} ${100 - (planData[0]?.int || 0)} ${planData.map((d, i) => `L ${i * 100 + 50} ${100 - d.int}`).join(' ')}`}
                       fill="none"
                       stroke="hsl(var(--destructive))"
                       strokeWidth="1.5"
