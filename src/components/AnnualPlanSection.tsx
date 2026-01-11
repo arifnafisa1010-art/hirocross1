@@ -906,9 +906,9 @@ export function AnnualPlanSection() {
               </tbody>
             </table>
             
-            {/* Volume & Intensity Chart - Seamlessly connected */}
+            {/* Volume & Intensity Chart - Aligned with table columns */}
             <div className="border-t border-border bg-gradient-to-b from-card to-card/80">
-              <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border/50">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border/50">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-sm bg-accent/60"></div>
@@ -920,78 +920,45 @@ export function AnnualPlanSection() {
                   </div>
                 </div>
               </div>
-              <div className="h-40 w-full px-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 7, fill: 'hsl(var(--muted-foreground))' }} 
-                      tickLine={false}
-                      axisLine={false}
-                      interval={Math.floor(planData.length / 12)}
-                    />
-                    <YAxis 
-                      domain={[0, 100]} 
-                      tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} 
-                      tickLine={false}
-                      axisLine={false}
-                      width={25}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="volume"
-                      name="Volume"
-                      stroke="hsl(var(--accent))"
-                      fill="url(#volumeGradient)"
-                      strokeWidth={2}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="intensitas"
-                      name="Intensitas"
-                      stroke="hsl(var(--destructive))"
-                      fill="url(#intensitasGradient)"
-                      strokeWidth={2}
-                    />
-                    <defs>
-                      <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.05} />
-                      </linearGradient>
-                      <linearGradient id="intensitasGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    {/* Reference lines for scheduled events */}
-                    {scheduledEvents.map((event, i) => (
-                      <ReferenceLine
-                        key={i}
-                        x={`W${event.week}`}
-                        stroke={event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)'}
-                        strokeWidth={1.5}
-                        strokeDasharray={event.type === 'test' ? '4 4' : '0'}
-                        label={{
-                          value: event.name,
-                          position: 'top',
-                          fill: event.type === 'test' ? 'hsl(210, 100%, 50%)' : 'hsl(0, 86%, 50%)',
-                          fontSize: 8,
-                          fontWeight: 'bold'
-                        }}
-                      />
+              {/* Bar Chart aligned with table columns */}
+              <table className="w-full border-collapse table-fixed">
+                <tbody>
+                  {/* Volume bars */}
+                  <tr className="h-16">
+                    <td className="p-1 text-left text-[7px] font-extrabold uppercase w-16 border-r border-border bg-accent/10 text-accent align-bottom">
+                      <span className="block rotate-0">Vol</span>
+                    </td>
+                    {planData.map((d) => (
+                      <td key={d.wk} className="p-0 align-bottom border-r border-border/20 last:border-r-0">
+                        <div className="relative flex flex-col items-center justify-end h-14 px-px">
+                          <span className="text-[6px] font-bold text-accent mb-0.5">{d.vol}</span>
+                          <div 
+                            className="w-full bg-gradient-to-t from-accent/70 to-accent/30 rounded-t-sm transition-all duration-300"
+                            style={{ height: `${Math.max(d.vol * 0.5, 2)}px` }}
+                          />
+                        </div>
+                      </td>
                     ))}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
+                  </tr>
+                  {/* Intensitas bars */}
+                  <tr className="h-16">
+                    <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-destructive/10 text-destructive align-top">
+                      <span className="block rotate-0">Int</span>
+                    </td>
+                    {planData.map((d) => (
+                      <td key={d.wk} className="p-0 align-top border-r border-border/20 last:border-r-0">
+                        <div className="relative flex flex-col items-center justify-start h-14 px-px">
+                          <div 
+                            className="w-full bg-gradient-to-b from-destructive/70 to-destructive/30 rounded-b-sm transition-all duration-300"
+                            style={{ height: `${Math.max(d.int * 0.5, 2)}px` }}
+                          />
+                          <span className="text-[6px] font-bold text-destructive mt-0.5">{d.int}</span>
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           
