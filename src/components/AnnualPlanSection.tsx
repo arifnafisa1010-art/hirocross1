@@ -96,6 +96,7 @@ export function AnnualPlanSection() {
   const [editVolIntValue, setEditVolIntValue] = useState<number>(0);
   const [inlineEditingBlock, setInlineEditingBlock] = useState<{ category: BlockCategory; startWeek: number } | null>(null);
   const [inlineBlockText, setInlineBlockText] = useState('');
+  const [hoveredWeek, setHoveredWeek] = useState<{ week: number; vol: number; int: number; x: number; y: number } | null>(null);
 
   // Calculate week dates based on start date
   const getWeekDateRange = (weekNumber: number) => {
@@ -997,36 +998,49 @@ export function AnnualPlanSection() {
                       strokeLinejoin="round"
                     />
                     
-                    {/* Data points - Volume */}
+                    {/* Invisible hover areas for tooltips */}
                     {planData.map((d, i) => (
-                      <circle
-                        key={`vol-${i}`}
-                        cx={20 + i * 20 + 10}
-                        cy={100 - d.vol}
-                        r="2"
-                        fill="hsl(var(--accent))"
+                      <rect
+                        key={`hover-${i}`}
+                        x={i * 100}
+                        y="0"
+                        width="100"
+                        height="100"
+                        fill="transparent"
+                        className="cursor-pointer"
+                        onMouseEnter={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setHoveredWeek({ week: d.wk, vol: d.vol, int: d.int, x: rect.left + rect.width / 2, y: rect.top });
+                        }}
+                        onMouseLeave={() => setHoveredWeek(null)}
                       />
                     ))}
-                    
-                    {/* Data points - Intensitas */}
-                    {planData.map((d, i) => (
-                      <circle
-                        key={`int-${i}`}
-                        cx={20 + i * 20 + 10}
-                        cy={100 - d.int}
-                        r="2"
-                        fill="hsl(var(--destructive))"
-                      />
-                    ))}
-                    
-                    {/* Y-axis labels */}
-                    <text x="15" y="5" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">100</text>
-                    <text x="15" y="30" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">75</text>
-                    <text x="15" y="55" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">50</text>
-                    <text x="15" y="80" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">25</text>
-                    <text x="15" y="100" fontSize="6" fill="hsl(var(--muted-foreground))" textAnchor="end">0</text>
                   </svg>
                 </div>
+                
+                {/* Tooltip */}
+                {hoveredWeek && (
+                  <div 
+                    className="fixed z-50 pointer-events-none bg-popover border border-border rounded-lg shadow-lg px-3 py-2 text-xs"
+                    style={{ 
+                      left: hoveredWeek.x, 
+                      top: hoveredWeek.y - 70,
+                      transform: 'translateX(-50%)'
+                    }}
+                  >
+                    <div className="font-bold text-foreground mb-1">Minggu {hoveredWeek.week}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-accent"></span>
+                      <span className="text-muted-foreground">Volume:</span>
+                      <span className="font-semibold text-accent">{hoveredWeek.vol}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-destructive"></span>
+                      <span className="text-muted-foreground">Intensitas:</span>
+                      <span className="font-semibold text-destructive">{hoveredWeek.int}%</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
