@@ -26,20 +26,38 @@ export function useTestNorms() {
     category: string, 
     item: string, 
     value: number, 
-    gender: string = 'M'
+    gender: string = 'M',
+    age: number = 20
   ): number => {
-    // Find matching norm
+    // Find matching norm with age range
     const norm = norms.find(n => 
       n.category === category && 
       n.item === item && 
-      (n.gender === gender || n.gender === 'ALL')
+      (n.gender === gender || n.gender === 'ALL') &&
+      (n.age_min || 0) <= age &&
+      (n.age_max || 99) >= age
     );
 
     if (!norm) {
-      // Default to score 3 if no norm found
-      return 3;
+      // Try to find norm without age constraint
+      const fallbackNorm = norms.find(n => 
+        n.category === category && 
+        n.item === item && 
+        (n.gender === gender || n.gender === 'ALL')
+      );
+      
+      if (!fallbackNorm) {
+        // Default to score 3 if no norm found
+        return 3;
+      }
+      
+      return calculateScoreFromNorm(fallbackNorm, value);
     }
 
+    return calculateScoreFromNorm(norm, value);
+  };
+
+  const calculateScoreFromNorm = (norm: TestNorm, value: number): number => {
     const lowerIsBetter = norm.lower_is_better || false;
     const s1 = norm.score_1_max || 0;
     const s2 = norm.score_2_max || 0;
@@ -64,12 +82,51 @@ export function useTestNorms() {
     }
   };
 
-  const getNormForItem = (category: string, item: string, gender: string = 'M'): TestNorm | null => {
+  const getNormForItem = (
+    category: string, 
+    item: string, 
+    gender: string = 'M',
+    age: number = 20
+  ): TestNorm | null => {
+    // First try to find norm with matching age range
+    const normWithAge = norms.find(n => 
+      n.category === category && 
+      n.item === item && 
+      (n.gender === gender || n.gender === 'ALL') &&
+      (n.age_min || 0) <= age &&
+      (n.age_max || 99) >= age
+    );
+    
+    if (normWithAge) return normWithAge;
+    
+    // Fallback to any matching norm
     return norms.find(n => 
       n.category === category && 
       n.item === item && 
       (n.gender === gender || n.gender === 'ALL')
     ) || null;
+  };
+
+  // Get all unique categories from norms
+  const getCategories = (): string[] => {
+    const categories = [...new Set(norms.map(n => n.category))];
+    return categories.sort();
+  };
+
+  // Get all items for a category
+  const getItemsForCategory = (category: string): string[] => {
+    const items = [...new Set(
+      norms
+        .filter(n => n.category === category)
+        .map(n => n.item)
+    )];
+    return items.sort();
+  };
+
+  // Get unit for an item
+  const getUnitForItem = (category: string, item: string): string => {
+    const norm = norms.find(n => n.category === category && n.item === item);
+    return norm?.unit || '';
   };
 
   useEffect(() => {
@@ -81,6 +138,9 @@ export function useTestNorms() {
     loading,
     calculateScore,
     getNormForItem,
+    getCategories,
+    getItemsForCategory,
+    getUnitForItem,
     refetch: fetchNorms,
   };
 }

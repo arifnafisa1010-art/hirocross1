@@ -33,91 +33,102 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+// Categories matching database norms
 const categories = [
-  'Kekuatan',
-  'Kecepatan',
-  'Daya Tahan',
-  'Kelincahan',
-  'Fleksibilitas',
-  'Power',
+  'Strength',
+  'Speed',
+  'Endurance',
+  'Technique',
+  'Tactic',
 ];
 
+// Items for each category matching database norms
 const items: Record<string, string[]> = {
-  'Kekuatan': ['1RM Back Squat', '1RM Bench Press', 'Deadlift 1RM', 'Push Up Max', 'Pull-up Max', 'Plank Hold'],
-  'Kecepatan': ['Sprint 20m', 'Sprint 40m', 'Sprint 60m', 'Sprint 100m', 'Flying 30m'],
-  'Daya Tahan': ['VO2Max Test', 'Yo-Yo IR1', 'Cooper Test', 'Beep Test', 'Harvard Step Test'],
-  'Kelincahan': ['Illinois Agility Test', 'T-Test', 'Pro Agility 5-10-5', 'Hexagon Test'],
-  'Fleksibilitas': ['Sit and Reach', 'Shoulder Flexibility', 'Trunk Rotation', 'Groin Flexibility'],
-  'Power': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw', 'Triple Jump Standing'],
+  'Strength': [
+    'Bench Press 1RM', 'Squat 1RM', 'Deadlift 1RM', 'Push Up', 'Pull Up',
+    'Leg Dynamometer', 'Back Dynamometer', 'Hand Grip Right', 'Hand Grip Left', 'Sit Up 60s'
+  ],
+  'Speed': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m', 'Agility T-Test', 'Illinois Agility'],
+  'Endurance': ['Cooper Test 12min', 'Bleep Test', 'VO2 Max', 'Run 1600m', 'Harvard Step Test'],
+  'Technique': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw', 'Balance Test', 'Hexagon Test'],
+  'Tactic': ['Reaction Time', 'Decision Making', 'Anticipation Test', 'Peripheral Vision', 'Tactical Assessment'],
 };
 
 const defaultUnits: Record<string, string> = {
-  '1RM Back Squat': 'kg',
-  '1RM Bench Press': 'kg',
+  // Strength
+  'Bench Press 1RM': 'kg',
+  'Squat 1RM': 'kg',
   'Deadlift 1RM': 'kg',
-  'Push Up Max': 'reps',
-  'Pull-up Max': 'reps',
-  'Plank Hold': 's',
-  'Sprint 20m': 's',
-  'Sprint 40m': 's',
+  'Push Up': 'reps',
+  'Pull Up': 'reps',
+  'Leg Dynamometer': 'kg',
+  'Back Dynamometer': 'kg',
+  'Hand Grip Right': 'kg',
+  'Hand Grip Left': 'kg',
+  'Sit Up 60s': 'reps',
+  // Speed
+  'Sprint 30m': 's',
   'Sprint 60m': 's',
   'Sprint 100m': 's',
-  'Flying 30m': 's',
-  'VO2Max Test': 'ml/kg/min',
-  'Yo-Yo IR1': 'm',
-  'Cooper Test': 'm',
-  'Beep Test': 'level',
+  'Agility T-Test': 's',
+  'Illinois Agility': 's',
+  // Endurance
+  'Cooper Test 12min': 'm',
+  'Bleep Test': 'level',
+  'VO2 Max': 'ml/kg/min',
+  'Run 1600m': 'min',
   'Harvard Step Test': 'index',
-  'Illinois Agility Test': 's',
-  'T-Test': 's',
-  'Pro Agility 5-10-5': 's',
-  'Hexagon Test': 's',
-  'Sit and Reach': 'cm',
-  'Shoulder Flexibility': 'cm',
-  'Trunk Rotation': 'cm',
-  'Groin Flexibility': 'cm',
+  // Technique
   'Vertical Jump': 'cm',
   'Standing Long Jump': 'cm',
   'Medicine Ball Throw': 'm',
-  'Triple Jump Standing': 'cm',
+  'Balance Test': 's',
+  'Hexagon Test': 's',
+  // Tactic
+  'Reaction Time': 'ms',
+  'Decision Making': 'score',
+  'Anticipation Test': 'score',
+  'Peripheral Vision': 'degrees',
+  'Tactical Assessment': 'score',
 };
 
-// Validation ranges for test items - realistic min/max values
+// Validation ranges for test items
 const testValueRanges: Record<string, { min: number; max: number; hint: string }> = {
-  // Kekuatan (Strength) - weight/reps/time
-  '1RM Back Squat': { min: 20, max: 500, hint: '20-500 kg' },
-  '1RM Bench Press': { min: 10, max: 400, hint: '10-400 kg' },
-  'Deadlift 1RM': { min: 30, max: 600, hint: '30-600 kg' },
-  'Push Up Max': { min: 0, max: 200, hint: '0-200 reps' },
-  'Pull-up Max': { min: 0, max: 100, hint: '0-100 reps' },
-  'Plank Hold': { min: 1, max: 1800, hint: '1-1800 detik' },
-  // Kecepatan (Speed) - times in seconds
-  'Sprint 20m': { min: 2, max: 10, hint: '2-10 detik' },
-  'Sprint 40m': { min: 4, max: 15, hint: '4-15 detik' },
-  'Sprint 60m': { min: 5.5, max: 20, hint: '5.5-20 detik' },
-  'Sprint 100m': { min: 9, max: 30, hint: '9-30 detik' },
-  'Flying 30m': { min: 2.5, max: 10, hint: '2.5-10 detik' },
-  // Daya Tahan (Endurance)
-  'VO2Max Test': { min: 15, max: 90, hint: '15-90 ml/kg/min' },
-  'Yo-Yo IR1': { min: 100, max: 4000, hint: '100-4000 m' },
-  'Cooper Test': { min: 500, max: 4000, hint: '500-4000 m' },
-  'Beep Test': { min: 1, max: 21, hint: 'Level 1-21' },
+  // Strength
+  'Bench Press 1RM': { min: 10, max: 200, hint: '10-200 kg' },
+  'Squat 1RM': { min: 20, max: 300, hint: '20-300 kg' },
+  'Deadlift 1RM': { min: 30, max: 400, hint: '30-400 kg' },
+  'Push Up': { min: 0, max: 150, hint: '0-150 reps' },
+  'Pull Up': { min: 0, max: 50, hint: '0-50 reps' },
+  'Leg Dynamometer': { min: 50, max: 400, hint: '50-400 kg' },
+  'Back Dynamometer': { min: 30, max: 300, hint: '30-300 kg' },
+  'Hand Grip Right': { min: 10, max: 100, hint: '10-100 kg' },
+  'Hand Grip Left': { min: 10, max: 100, hint: '10-100 kg' },
+  'Sit Up 60s': { min: 0, max: 100, hint: '0-100 reps' },
+  // Speed
+  'Sprint 30m': { min: 3, max: 8, hint: '3-8 detik' },
+  'Sprint 60m': { min: 6, max: 15, hint: '6-15 detik' },
+  'Sprint 100m': { min: 10, max: 20, hint: '10-20 detik' },
+  'Agility T-Test': { min: 8, max: 20, hint: '8-20 detik' },
+  'Illinois Agility': { min: 13, max: 25, hint: '13-25 detik' },
+  // Endurance
+  'Cooper Test 12min': { min: 1000, max: 4000, hint: '1000-4000 m' },
+  'Bleep Test': { min: 1, max: 21, hint: 'Level 1-21' },
+  'VO2 Max': { min: 20, max: 80, hint: '20-80 ml/kg/min' },
+  'Run 1600m': { min: 4, max: 15, hint: '4-15 menit' },
   'Harvard Step Test': { min: 40, max: 120, hint: 'Index 40-120' },
-  // Kelincahan (Agility) - times in seconds
-  'Illinois Agility Test': { min: 12, max: 30, hint: '12-30 detik' },
-  'T-Test': { min: 7, max: 20, hint: '7-20 detik' },
-  'Pro Agility 5-10-5': { min: 3.5, max: 10, hint: '3.5-10 detik' },
-  'Hexagon Test': { min: 8, max: 30, hint: '8-30 detik' },
-  // Fleksibilitas (Flexibility) - cm
-  'Sit and Reach': { min: -30, max: 50, hint: '-30 sampai 50 cm' },
-  'Shoulder Flexibility': { min: -20, max: 40, hint: '-20 sampai 40 cm' },
-  'Trunk Rotation': { min: 0, max: 90, hint: '0-90 cm' },
-  'Groin Flexibility': { min: 0, max: 60, hint: '0-60 cm' },
-  // Power - cm/m
-  'Vertical Jump': { min: 10, max: 150, hint: '10-150 cm' },
-  'Standing Long Jump': { min: 50, max: 400, hint: '50-400 cm' },
-  'Medicine Ball Throw': { min: 1, max: 25, hint: '1-25 m' },
-  'Triple Jump Standing': { min: 300, max: 1200, hint: '300-1200 cm' },
+  // Technique
+  'Vertical Jump': { min: 10, max: 100, hint: '10-100 cm' },
+  'Standing Long Jump': { min: 100, max: 350, hint: '100-350 cm' },
+  'Medicine Ball Throw': { min: 2, max: 20, hint: '2-20 m' },
+  'Balance Test': { min: 5, max: 120, hint: '5-120 detik' },
+  'Hexagon Test': { min: 8, max: 25, hint: '8-25 detik' },
+  // Tactic
+  'Reaction Time': { min: 100, max: 500, hint: '100-500 ms' },
+  'Decision Making': { min: 0, max: 100, hint: '0-100 score' },
+  'Anticipation Test': { min: 0, max: 100, hint: '0-100 score' },
+  'Peripheral Vision': { min: 80, max: 200, hint: '80-200 degrees' },
+  'Tactical Assessment': { min: 0, max: 100, hint: '0-100 score' },
 };
 
 // Validation function for test values
@@ -140,14 +151,14 @@ const validateTestValue = (item: string, value: number): { valid: boolean; error
 
 export function TestsSection() {
   const { athletes, loading: athletesLoading, addAthlete, updateAthlete } = useAthletes();
-  const { calculateScore, getNormForItem, loading: normsLoading } = useTestNorms();
+  const { calculateScore, getNormForItem, loading: normsLoading, getUnitForItem } = useTestNorms();
   const { results, loading: resultsLoading, addResult, deleteResult } = useTestResults();
   
   const [form, setForm] = useState({
     athleteId: '',
     date: '',
-    category: 'Kekuatan',
-    item: '1RM Back Squat',
+    category: 'Strength',
+    item: 'Bench Press 1RM',
     value: '',
     unit: 'kg',
     notes: '',
@@ -239,8 +250,8 @@ export function TestsSection() {
     setForm({
       athleteId: '',
       date: '',
-      category: 'Kekuatan',
-      item: '1RM Back Squat',
+      category: 'Strength',
+      item: 'Bench Press 1RM',
       value: '',
       unit: 'kg',
       notes: '',
