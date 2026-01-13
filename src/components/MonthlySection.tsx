@@ -364,7 +364,7 @@ export function MonthlySection() {
                     </div>
                     <div className="text-center p-2 bg-card rounded-lg">
                       <div className="text-[10px] text-muted-foreground uppercase font-bold">Daya Tahan</div>
-                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.endurance} <span className="text-[9px] text-muted-foreground">min</span></div>
+                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.endurance} <span className="text-[9px] text-muted-foreground">km</span></div>
                     </div>
                     <div className="text-center p-2 bg-card rounded-lg">
                       <div className="text-[10px] text-muted-foreground uppercase font-bold">Teknik</div>
