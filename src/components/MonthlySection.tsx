@@ -92,11 +92,21 @@ export function MonthlySection() {
     }
 
     setSaving(true);
-    const success = await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds);
+    // Pass sessions from store to save to database
+    const success = await saveProgram(
+      setup, 
+      mesocycles, 
+      planData, 
+      competitions, 
+      selectedAthleteIds,
+      undefined, // trainingBlocks
+      undefined, // scheduledEvents
+      sessions // Pass sessions from store
+    );
     setSaving(false);
 
     if (success) {
-      toast.success('Program berhasil disimpan ke database!');
+      // Toast is already shown in saveProgram
     }
   };
 

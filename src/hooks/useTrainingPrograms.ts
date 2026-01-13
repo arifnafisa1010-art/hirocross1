@@ -91,7 +91,8 @@ export function useTrainingPrograms() {
     competitions: Competition[] = [],
     athleteIds: string[] = [],
     trainingBlocks?: TrainingBlocks,
-    scheduledEvents?: ScheduledEvent[]
+    scheduledEvents?: ScheduledEvent[],
+    storeSessions?: Record<string, DaySession>
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
@@ -120,6 +121,8 @@ export function useTrainingPrograms() {
       scheduled_events: scheduledEvents as unknown as Json,
     };
 
+    let programId: string;
+
     if (currentProgram) {
       // Update existing
       const { error } = await supabase
@@ -133,6 +136,7 @@ export function useTrainingPrograms() {
         return false;
       }
       
+      programId = currentProgram.id;
       setCurrentProgram({ ...currentProgram, ...programData } as TrainingProgram);
       setPrograms(prev => prev.map(p => p.id === currentProgram.id ? { ...p, ...programData } as TrainingProgram : p));
     } else {
@@ -149,11 +153,96 @@ export function useTrainingPrograms() {
         return false;
       }
       
+      programId = data.id;
       setCurrentProgram(data);
       setPrograms(prev => [data, ...prev]);
     }
+
+    // Generate base sessions from planData and merge with storeSessions
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const sessionsToSave: Array<{
+      program_id: string;
+      session_key: string;
+      warmup: string;
+      exercises: Json;
+      cooldown: string;
+      recovery: string;
+      intensity: string;
+      is_done: boolean;
+    }> = [];
+
+    // Generate sessions for all weeks in planData
+    for (const weekPlan of planData) {
+      const weekNum = weekPlan.wk;
+      
+      // Get intensity based on week's volume/intensity percentage
+      const getIntensityForDay = (dayIndex: number): 'Rest' | 'Low' | 'Med' | 'High' => {
+        // Sunday (index 6) is typically rest
+        if (dayIndex === 6) return 'Rest';
+        
+        const weekInt = weekPlan.int;
+        if (weekInt >= 80) return 'High';
+        if (weekInt >= 60) return 'Med';
+        if (weekInt >= 30) return 'Low';
+        return 'Rest';
+      };
+
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const dayName = days[dayIndex];
+        const storeKey = `W${weekNum}-${dayName}`;
+        const sessionKey = `week-${weekNum}-day-${dayIndex + 1}-session-1`;
+        const storedSession = storeSessions?.[storeKey];
+
+        // Use stored session data if available, otherwise create default
+        if (storedSession) {
+          // Map intensity value to valid constraint values
+          let intensity: string = storedSession.int || 'Rest';
+          // Ensure valid intensity value
+          if (!['Rest', 'Low', 'Med', 'High'].includes(intensity)) {
+            intensity = 'Rest';
+          }
+          
+          sessionsToSave.push({
+            program_id: programId,
+            session_key: sessionKey,
+            warmup: storedSession.warmup || '',
+            exercises: storedSession.exercises as unknown as Json,
+            cooldown: storedSession.cooldown || '',
+            recovery: storedSession.recovery || '',
+            intensity: intensity,
+            is_done: storedSession.isDone || false,
+          });
+        } else {
+          // Create default session based on week plan
+          sessionsToSave.push({
+            program_id: programId,
+            session_key: sessionKey,
+            warmup: '',
+            exercises: [] as unknown as Json,
+            cooldown: '',
+            recovery: '',
+            intensity: getIntensityForDay(dayIndex),
+            is_done: false,
+          });
+        }
+      }
+    }
+
+    if (sessionsToSave.length > 0) {
+      const { error: sessionsError } = await supabase
+        .from('training_sessions')
+        .upsert(sessionsToSave, { 
+          onConflict: 'program_id,session_key' 
+        });
+
+      if (sessionsError) {
+        console.error('Error saving sessions:', sessionsError);
+        toast.error('Program tersimpan, tapi gagal menyimpan sesi latihan');
+        return false;
+      }
+    }
     
-    toast.success('Program berhasil disimpan!');
+    toast.success('Program dan sesi latihan berhasil disimpan!');
     return true;
   };
 
