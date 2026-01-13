@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Loader2, Edit2, TrendingUp } from 'lucide-react';
+import { Trash2, Plus, Loader2, Edit2, TrendingUp, Download, BookOpen, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTestNorms } from '@/hooks/useTestNorms';
@@ -32,6 +32,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TestNormsTable } from './TestNormsTable';
+import { AthleteEvaluationReport } from './AthleteEvaluationReport';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { format } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
 // Categories matching database norms
 const categories = [
@@ -153,6 +160,9 @@ export function TestsSection() {
   const { athletes, loading: athletesLoading, addAthlete, updateAthlete } = useAthletes();
   const { calculateScore, getNormForItem, loading: normsLoading, getUnitForItem } = useTestNorms();
   const { results, loading: resultsLoading, addResult, deleteResult } = useTestResults();
+  const historyRef = useRef<HTMLDivElement>(null);
+  const [exportingHistory, setExportingHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState('input');
   
   const [form, setForm] = useState({
     athleteId: '',
@@ -414,6 +424,44 @@ export function TestsSection() {
     });
   };
 
+  // Export test history to PDF
+  const handleExportHistoryPDF = async () => {
+    if (!historyRef.current) return;
+
+    setExportingHistory(true);
+    try {
+      const canvas = await html2canvas(historyRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`Riwayat_Tes_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      toast.success('PDF berhasil diexport!');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Gagal export PDF');
+    } finally {
+      setExportingHistory(false);
+    }
+  };
+
   if (athletesLoading || normsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -424,7 +472,31 @@ export function TestsSection() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <h2 className="text-2xl font-extrabold">Tes & Pengukuran Fisik</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-extrabold">Tes & Pengukuran Fisik</h2>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="input" className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Input Tes</span>
+          </TabsTrigger>
+          <TabsTrigger value="norms" className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">Norma Tes</span>
+          </TabsTrigger>
+          <TabsTrigger value="evaluation" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            <span className="hidden sm:inline">Evaluasi</span>
+          </TabsTrigger>
+          <TabsTrigger value="analysis" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            <span className="hidden sm:inline">Analisis</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="input" className="space-y-6 mt-6">
 
       {/* Input Form */}
       <Card className="border-border shadow-card">
@@ -1083,7 +1155,22 @@ export function TestsSection() {
       </Card>
       <Card className="border-border shadow-card">
         <CardHeader>
-          <CardTitle className="text-base">Riwayat Tes</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Riwayat Tes</CardTitle>
+            <Button 
+              onClick={handleExportHistoryPDF} 
+              disabled={exportingHistory || results.length === 0}
+              variant="outline"
+              size="sm"
+            >
+              {exportingHistory ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              Export PDF
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {resultsLoading ? (
@@ -1091,64 +1178,386 @@ export function TestsSection() {
               <Loader2 className="w-6 h-6 animate-spin text-accent" />
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full min-w-[900px]">
-                <thead>
-                  <tr className="bg-secondary/50">
-                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Tanggal</th>
-                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Atlet</th>
-                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Kategori</th>
-                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Item</th>
-                    <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Nilai</th>
-                    <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Skor</th>
-                    <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Catatan</th>
-                    <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-16">Hapus</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="p-6 text-center text-muted-foreground text-sm">
-                        Belum ada data tes. Tambahkan hasil tes di form di atas.
-                      </td>
+            <div ref={historyRef} className="bg-white p-4 rounded-lg">
+              <div className="text-center mb-4 pb-4 border-b border-border">
+                <h3 className="font-bold text-lg">Riwayat Hasil Tes Fisik</h3>
+                <p className="text-xs text-muted-foreground">
+                  Tanggal: {format(new Date(), 'd MMMM yyyy', { locale: idLocale })}
+                </p>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-border">
+                <table className="w-full min-w-[900px]">
+                  <thead>
+                    <tr className="bg-secondary/50">
+                      <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Tanggal</th>
+                      <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Atlet</th>
+                      <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Kategori</th>
+                      <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Item</th>
+                      <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Nilai</th>
+                      <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Skor</th>
+                      <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Catatan</th>
+                      <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase w-16 print:hidden">Hapus</th>
                     </tr>
-                  ) : (
-                    results.map((test) => (
-                      <tr key={test.id} className="border-t border-border/50 hover:bg-secondary/30 transition-colors">
-                        <td className="p-3 text-sm">{new Date(test.test_date).toLocaleDateString('id-ID')}</td>
-                        <td className="p-3 text-sm font-semibold">{getAthleteName(test.athlete_id)}</td>
-                        <td className="p-3 text-sm">{test.category}</td>
-                        <td className="p-3 text-sm">{test.item}</td>
-                        <td className="p-3 text-sm text-center font-bold text-accent">
-                          {test.value} {test.unit}
-                        </td>
-                        <td className="p-3 text-sm text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
-                            test.score >= 4 ? 'bg-success/20 text-success' :
-                            test.score >= 3 ? 'bg-amber-100 text-amber-700' :
-                            'bg-destructive/20 text-destructive'
-                          }`}>
-                            {test.score}/5
-                          </span>
-                        </td>
-                        <td className="p-3 text-sm text-muted-foreground">{test.notes || '-'}</td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => deleteResult(test.id)}
-                            className="w-8 h-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors mx-auto"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                  </thead>
+                  <tbody>
+                    {results.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-6 text-center text-muted-foreground text-sm">
+                          Belum ada data tes. Tambahkan hasil tes di form di atas.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      results.map((test) => (
+                        <tr key={test.id} className="border-t border-border/50 hover:bg-secondary/30 transition-colors">
+                          <td className="p-3 text-sm">{new Date(test.test_date).toLocaleDateString('id-ID')}</td>
+                          <td className="p-3 text-sm font-semibold">{getAthleteName(test.athlete_id)}</td>
+                          <td className="p-3 text-sm">{test.category}</td>
+                          <td className="p-3 text-sm">{test.item}</td>
+                          <td className="p-3 text-sm text-center font-bold text-accent">
+                            {test.value} {test.unit}
+                          </td>
+                          <td className="p-3 text-sm text-center">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              test.score >= 4 ? 'bg-success/20 text-success' :
+                              test.score >= 3 ? 'bg-amber-100 text-amber-700' :
+                              'bg-destructive/20 text-destructive'
+                            }`}>
+                              {test.score}/5
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm text-muted-foreground">{test.notes || '-'}</td>
+                          <td className="p-3 text-center print:hidden">
+                            <button
+                              onClick={() => deleteResult(test.id)}
+                              className="w-8 h-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors mx-auto"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="norms" className="space-y-6 mt-6">
+          <TestNormsTable />
+        </TabsContent>
+
+        <TabsContent value="evaluation" className="space-y-6 mt-6">
+          <AthleteEvaluationReport />
+        </TabsContent>
+
+        <TabsContent value="analysis" className="space-y-6 mt-6">
+          {/* Radar Chart */}
+          <Card className="border-border shadow-card">
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <CardTitle className="text-base">Profil Performa Atlet</CardTitle>
+                <Select
+                  value={selectedAthlete}
+                  onValueChange={setSelectedAthlete}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Semua Atlet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua Atlet</SelectItem>
+                    {athletes.map(a => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {radarData.length > 0 ? (
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData}>
+                      <PolarGrid />
+                      <PolarAngleAxis 
+                        dataKey="item" 
+                        tick={{ fontSize: 10 }}
+                        tickFormatter={(value) => value.length > 12 ? value.slice(0, 12) + '...' : value}
+                      />
+                      <PolarRadiusAxis 
+                        angle={30} 
+                        domain={[0, 5]} 
+                        tick={{ fontSize: 10 }}
+                      />
+                      <Radar
+                        name="Skor"
+                        dataKey="score"
+                        stroke="hsl(var(--accent))"
+                        fill="hsl(var(--accent))"
+                        fillOpacity={0.5}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-80 flex items-center justify-center text-muted-foreground">
+                  Belum ada data tes untuk ditampilkan
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Trend Chart */}
+          <Card className="border-border shadow-card">
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Tren Perkembangan
+                </CardTitle>
+                <div className="flex gap-2 flex-wrap">
+                  <Select
+                    value={trendAthleteId}
+                    onValueChange={setTrendAthleteId}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Pilih Atlet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {athletes.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={trendItem}
+                    onValueChange={setTrendItem}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Pilih Item" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(cat => (
+                        items[cat]?.map(item => (
+                          <SelectItem key={item} value={item}>{item}</SelectItem>
+                        ))
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {trendData.length > 0 ? (
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 10 }}
+                        tickFormatter={(value) => new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                      />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip 
+                        labelFormatter={(value) => new Date(value).toLocaleDateString('id-ID')}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="value" 
+                        name="Nilai"
+                        stroke="hsl(var(--accent))" 
+                        strokeWidth={2}
+                        dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="score" 
+                        name="Skor"
+                        stroke="hsl(220, 70%, 50%)" 
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={{ fill: 'hsl(220, 70%, 50%)', strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-72 flex items-center justify-center text-muted-foreground">
+                  {trendAthleteId && trendItem 
+                    ? 'Belum ada data untuk item tes ini'
+                    : 'Pilih atlet dan item tes untuk melihat tren'
+                  }
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Heart Rate Zones */}
+          <Card className="border-border shadow-card">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Zona Latihan Berdasarkan Heart Rate</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Berdasarkan RPE 1-10 dan dihitung dari tanggal lahir atlet menggunakan rumus Karvonen
+                  </p>
+                </div>
+                <Select
+                  value={selectedAthlete === '__all__' ? '' : selectedAthlete}
+                  onValueChange={(v) => setSelectedAthlete(v || '__all__')}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Pilih Atlet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {athletes.filter(a => a.birth_date).map(a => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const athlete = athletes.find(a => a.id === selectedAthlete);
+                if (!athlete?.birth_date) {
+                  return (
+                    <p className="text-center text-muted-foreground py-8">
+                      Pilih atlet yang memiliki tanggal lahir untuk melihat zona HR
+                    </p>
+                  );
+                }
+
+                const birthDate = new Date(athlete.birth_date);
+                const today = new Date();
+                const age = today.getFullYear() - birthDate.getFullYear();
+                const maxHR = Math.round(208 - (0.7 * age));
+                const restingHR = athlete.resting_hr || 60;
+                const hrr = maxHR - restingHR;
+
+                const zones = [
+                  { rpe: 1, zone: 'Istirahat Aktif', intensity: '50-55%', hrMin: Math.round(restingHR + (hrr * 0.50)), hrMax: Math.round(restingHR + (hrr * 0.55)), color: 'bg-slate-100 text-slate-700 border-slate-300' },
+                  { rpe: 2, zone: 'Pemulihan Ringan', intensity: '55-60%', hrMin: Math.round(restingHR + (hrr * 0.55)), hrMax: Math.round(restingHR + (hrr * 0.60)), color: 'bg-blue-100 text-blue-700 border-blue-300' },
+                  { rpe: 3, zone: 'Aerobik Ringan', intensity: '60-65%', hrMin: Math.round(restingHR + (hrr * 0.60)), hrMax: Math.round(restingHR + (hrr * 0.65)), color: 'bg-cyan-100 text-cyan-700 border-cyan-300' },
+                  { rpe: 4, zone: 'Aerobik Dasar', intensity: '65-70%', hrMin: Math.round(restingHR + (hrr * 0.65)), hrMax: Math.round(restingHR + (hrr * 0.70)), color: 'bg-green-100 text-green-700 border-green-300' },
+                  { rpe: 5, zone: 'Aerobik Sedang', intensity: '70-75%', hrMin: Math.round(restingHR + (hrr * 0.70)), hrMax: Math.round(restingHR + (hrr * 0.75)), color: 'bg-lime-100 text-lime-700 border-lime-300' },
+                  { rpe: 6, zone: 'Tempo', intensity: '75-80%', hrMin: Math.round(restingHR + (hrr * 0.75)), hrMax: Math.round(restingHR + (hrr * 0.80)), color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+                  { rpe: 7, zone: 'Ambang Laktat', intensity: '80-85%', hrMin: Math.round(restingHR + (hrr * 0.80)), hrMax: Math.round(restingHR + (hrr * 0.85)), color: 'bg-amber-100 text-amber-700 border-amber-300' },
+                  { rpe: 8, zone: 'VO2Max Submaksimal', intensity: '85-90%', hrMin: Math.round(restingHR + (hrr * 0.85)), hrMax: Math.round(restingHR + (hrr * 0.90)), color: 'bg-orange-100 text-orange-700 border-orange-300' },
+                  { rpe: 9, zone: 'VO2Max', intensity: '90-95%', hrMin: Math.round(restingHR + (hrr * 0.90)), hrMax: Math.round(restingHR + (hrr * 0.95)), color: 'bg-red-100 text-red-600 border-red-300' },
+                  { rpe: 10, zone: 'Maksimal', intensity: '95-100%', hrMin: Math.round(restingHR + (hrr * 0.95)), hrMax: maxHR, color: 'bg-red-200 text-red-800 border-red-400' },
+                ];
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-3 bg-secondary/50 rounded-lg flex-wrap">
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Usia</p>
+                        <p className="text-lg font-bold">{age} tahun</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">HR Max</p>
+                        <p className="text-lg font-bold text-destructive">{maxHR} bpm</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Resting HR</p>
+                        {editingHrAthleteId === athlete.id ? (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Input
+                              type="number"
+                              value={editingHrValue}
+                              onChange={(e) => setEditingHrValue(e.target.value)}
+                              className="w-16 h-8 text-center text-sm"
+                              placeholder="60"
+                            />
+                            <Button 
+                              size="sm" 
+                              className="h-8 px-2"
+                              onClick={async () => {
+                                const newHr = parseInt(editingHrValue) || 60;
+                                await updateAthlete(athlete.id, { resting_hr: newHr });
+                                setEditingHrAthleteId(null);
+                                setEditingHrValue('');
+                              }}
+                            >
+                              ✓
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 px-2"
+                              onClick={() => {
+                                setEditingHrAthleteId(null);
+                                setEditingHrValue('');
+                              }}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <p className="text-lg font-bold">{restingHR} bpm</p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                setEditingHrAthleteId(athlete.id);
+                                setEditingHrValue(restingHR.toString());
+                              }}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">HRR</p>
+                        <p className="text-lg font-bold text-accent">{hrr} bpm</p>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-secondary/50">
+                            <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">RPE</th>
+                            <th className="p-3 text-left text-[10px] font-extrabold text-muted-foreground uppercase">Zona Latihan</th>
+                            <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">Intensitas</th>
+                            <th className="p-3 text-center text-[10px] font-extrabold text-muted-foreground uppercase">HR Range</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {zones.map((z, i) => (
+                            <tr key={i} className="border-t border-border/50">
+                              <td className="p-3 text-center">
+                                <span className={`px-3 py-1 rounded-full text-sm font-bold border ${z.color}`}>
+                                  {z.rpe}
+                                </span>
+                              </td>
+                              <td className="p-3 text-sm font-semibold">{z.zone}</td>
+                              <td className="p-3 text-sm text-center">{z.intensity}</td>
+                              <td className="p-3 text-center">
+                                <span className="font-bold text-accent">{z.hrMin} - {z.hrMax}</span>
+                                <span className="text-muted-foreground text-xs ml-1">bpm</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
