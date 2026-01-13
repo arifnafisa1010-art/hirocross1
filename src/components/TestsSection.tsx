@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Loader2, Edit2, TrendingUp, Download, BookOpen, FileText } from 'lucide-react';
+import { Trash2, Plus, Loader2, Edit2, TrendingUp, Download, BookOpen, FileText, GitCompare } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTestNorms } from '@/hooks/useTestNorms';
@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TestNormsTable } from './TestNormsTable';
 import { AthleteEvaluationReport } from './AthleteEvaluationReport';
+import { PeriodComparisonReport } from './PeriodComparisonReport';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
@@ -56,7 +57,7 @@ const items: Record<string, string[]> = {
     'Leg Dynamometer', 'Back Dynamometer', 'Hand Grip Right', 'Hand Grip Left', 'Sit Up 60s'
   ],
   'Speed': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m', 'Agility T-Test', 'Illinois Agility'],
-  'Endurance': ['Cooper Test 12min', 'Bleep Test', 'VO2 Max', 'Run 1600m', 'Harvard Step Test'],
+  'Endurance': ['Cooper Test 12min', 'Bleep Test', 'VO2 Max', 'Run 1600m', 'Harvard Step Test', 'Yo-Yo IR1'],
   'Technique': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw', 'Balance Test', 'Hexagon Test'],
   'Tactic': ['Reaction Time', 'Decision Making', 'Anticipation Test', 'Peripheral Vision', 'Tactical Assessment'],
 };
@@ -85,6 +86,7 @@ const defaultUnits: Record<string, string> = {
   'VO2 Max': 'ml/kg/min',
   'Run 1600m': 'min',
   'Harvard Step Test': 'index',
+  'Yo-Yo IR1': 'level',
   // Technique
   'Vertical Jump': 'cm',
   'Standing Long Jump': 'cm',
@@ -124,6 +126,7 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'VO2 Max': { min: 20, max: 80, hint: '20-80 ml/kg/min' },
   'Run 1600m': { min: 4, max: 15, hint: '4-15 menit' },
   'Harvard Step Test': { min: 40, max: 120, hint: 'Index 40-120' },
+  'Yo-Yo IR1': { min: 1, max: 23, hint: 'Level 1-23' },
   // Technique
   'Vertical Jump': { min: 10, max: 100, hint: '10-100 cm' },
   'Standing Long Jump': { min: 100, max: 350, hint: '100-350 cm' },
@@ -477,7 +480,7 @@ export function TestsSection() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="input" className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Input Tes</span>
@@ -489,6 +492,10 @@ export function TestsSection() {
           <TabsTrigger value="evaluation" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Evaluasi</span>
+          </TabsTrigger>
+          <TabsTrigger value="comparison" className="flex items-center gap-2">
+            <GitCompare className="w-4 h-4" />
+            <span className="hidden sm:inline">Perbandingan</span>
           </TabsTrigger>
           <TabsTrigger value="analysis" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
@@ -1252,6 +1259,10 @@ export function TestsSection() {
 
         <TabsContent value="evaluation" className="space-y-6 mt-6">
           <AthleteEvaluationReport />
+        </TabsContent>
+
+        <TabsContent value="comparison" className="space-y-6 mt-6">
+          <PeriodComparisonReport />
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-6 mt-6">
