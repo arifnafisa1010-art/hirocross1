@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
-import { Users, Save, Loader2, Target, TrendingUp } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 
@@ -17,12 +17,13 @@ const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
   const { athletes } = useAthletes();
-  const { saveProgram, currentProgram, loading: programLoading } = useTrainingPrograms();
+  const { saveProgram, currentProgram, loading: programLoading, resyncSessions } = useTrainingPrograms();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ week: number; day: string } | null>(null);
   const [showAthleteSelector, setShowAthleteSelector] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
 
   // Group weeks into months (4 weeks per month)
   const months = useMemo(() => {
@@ -110,6 +111,21 @@ export function MonthlySection() {
     }
   };
 
+  const handleResyncSessions = async () => {
+    if (!currentProgram) {
+      toast.error('Tidak ada program yang tersimpan. Simpan program terlebih dahulu!');
+      return;
+    }
+
+    setResyncing(true);
+    const success = await resyncSessions(currentProgram.id, planData, sessions);
+    setResyncing(false);
+
+    if (!success) {
+      // Error toast is shown in resyncSessions
+    }
+  };
+
   if (planData.length === 0) {
     return (
       <div className="animate-fade-in text-center py-20">
@@ -126,6 +142,20 @@ export function MonthlySection() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-extrabold">Kalender Kerja Bulanan</h2>
         <div className="flex items-center gap-3">
+          {/* Re-sync Sessions Button */}
+          {currentProgram && (
+            <Button 
+              variant="outline"
+              onClick={handleResyncSessions}
+              disabled={resyncing || programLoading}
+              className="flex items-center gap-2"
+              title="Sync ulang sesi latihan dari program yang sudah ada"
+            >
+              {resyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Re-sync Sesi
+            </Button>
+          )}
+          
           {/* Save Program Button */}
           <Button 
             onClick={handleSaveProgram}

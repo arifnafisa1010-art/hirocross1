@@ -246,6 +246,97 @@ export function useTrainingPrograms() {
     return true;
   };
 
+  // Re-sync sessions from existing program without recreating
+  const resyncSessions = async (
+    programId: string,
+    planData: PlanWeek[],
+    storeSessions?: Record<string, DaySession>
+  ) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return false;
+    }
+
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const sessionsToSave: Array<{
+      program_id: string;
+      session_key: string;
+      warmup: string;
+      exercises: Json;
+      cooldown: string;
+      recovery: string;
+      intensity: string;
+      is_done: boolean;
+    }> = [];
+
+    for (const weekPlan of planData) {
+      const weekNum = weekPlan.wk;
+      
+      const getIntensityForDay = (dayIndex: number): 'Rest' | 'Low' | 'Med' | 'High' => {
+        if (dayIndex === 6) return 'Rest';
+        
+        const weekInt = weekPlan.int;
+        if (weekInt >= 80) return 'High';
+        if (weekInt >= 60) return 'Med';
+        if (weekInt >= 30) return 'Low';
+        return 'Rest';
+      };
+
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const dayName = days[dayIndex];
+        const storeKey = `W${weekNum}-${dayName}`;
+        const sessionKey = `week-${weekNum}-day-${dayIndex + 1}-session-1`;
+        const storedSession = storeSessions?.[storeKey];
+
+        if (storedSession) {
+          let intensity: string = storedSession.int || 'Rest';
+          if (!['Rest', 'Low', 'Med', 'High'].includes(intensity)) {
+            intensity = 'Rest';
+          }
+          
+          sessionsToSave.push({
+            program_id: programId,
+            session_key: sessionKey,
+            warmup: storedSession.warmup || '',
+            exercises: storedSession.exercises as unknown as Json,
+            cooldown: storedSession.cooldown || '',
+            recovery: storedSession.recovery || '',
+            intensity: intensity,
+            is_done: storedSession.isDone || false,
+          });
+        } else {
+          sessionsToSave.push({
+            program_id: programId,
+            session_key: sessionKey,
+            warmup: '',
+            exercises: [] as unknown as Json,
+            cooldown: '',
+            recovery: '',
+            intensity: getIntensityForDay(dayIndex),
+            is_done: false,
+          });
+        }
+      }
+    }
+
+    if (sessionsToSave.length > 0) {
+      const { error: sessionsError } = await supabase
+        .from('training_sessions')
+        .upsert(sessionsToSave, { 
+          onConflict: 'program_id,session_key' 
+        });
+
+      if (sessionsError) {
+        console.error('Error resyncing sessions:', sessionsError);
+        toast.error('Gagal re-sync sesi latihan');
+        return false;
+      }
+    }
+    
+    toast.success('Sesi latihan berhasil di-sync!');
+    return true;
+  };
+
   const deleteProgram = async (programId: string) => {
     const { error } = await supabase
       .from('training_programs')
@@ -319,6 +410,7 @@ export function useTrainingPrograms() {
     saveSession,
     deleteProgram,
     createNewProgram,
+    resyncSessions,
     refetch: fetchPrograms,
   };
 }
