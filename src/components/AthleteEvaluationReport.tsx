@@ -14,6 +14,15 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 const categoryLabels: Record<string, string> = {
+  'Kekuatan': 'Kekuatan',
+  'Daya Tahan': 'Daya Tahan',
+  'Kecepatan': 'Kecepatan',
+  'Fleksibilitas': 'Fleksibilitas',
+  'Power': 'Power',
+  'Kelincahan': 'Kelincahan',
+  'Keseimbangan': 'Keseimbangan',
+  'Reaksi': 'Reaksi',
+  // Legacy mappings
   'Strength': 'Kekuatan',
   'Speed': 'Kecepatan',
   'Endurance': 'Daya Tahan',
@@ -208,54 +217,116 @@ export function AthleteEvaluationReport() {
           </div>
         ) : (
           <div ref={reportRef} className="space-y-6 bg-white p-6 rounded-lg">
-            {/* Header */}
-            <div className="border-b border-border pb-4">
+            {/* Header with Logo */}
+            <div className="border-b-2 border-accent pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold">{selectedAthlete?.name}</h2>
-                  <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                    <span>Usia: {athleteAge} tahun</span>
-                    <span>Gender: {selectedAthlete?.gender === 'M' ? 'Laki-laki' : 'Perempuan'}</span>
-                    {selectedAthlete?.sport && <span>Cabor: {selectedAthlete.sport}</span>}
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-accent rounded-lg flex items-center justify-center">
+                    <span className="text-2xl font-black text-white">HC</span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-black text-accent">LAPORAN TES BIOMOTOR</h1>
+                    <p className="text-sm text-muted-foreground">HiroCross Plan - Sports Training System</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Tanggal Laporan</p>
-                  <p className="font-semibold">{format(new Date(), 'd MMMM yyyy', { locale: idLocale })}</p>
+                  <p className="font-bold text-lg">{format(new Date(), 'd MMMM yyyy', { locale: idLocale })}</p>
                 </div>
               </div>
             </div>
 
-            {/* Overall Score */}
-            <div className="flex items-center gap-6 p-4 bg-secondary/50 rounded-lg">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground uppercase font-bold">Skor Keseluruhan</p>
-                <p className={`text-4xl font-bold mt-1 ${
+            {/* Athlete Info Card */}
+            <div className="bg-gradient-to-r from-accent/10 to-accent/5 p-4 rounded-xl border border-accent/20">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Nama Atlet</p>
+                  <p className="text-lg font-bold">{selectedAthlete?.name}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Usia</p>
+                  <p className="text-lg font-bold">{athleteAge} Tahun</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Jenis Kelamin</p>
+                  <p className="text-lg font-bold">{selectedAthlete?.gender === 'M' ? 'Laki-laki' : 'Perempuan'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Cabang Olahraga</p>
+                  <p className="text-lg font-bold">{selectedAthlete?.sport || '-'}</p>
+                </div>
+              </div>
+              {selectedAthlete?.weight && (
+                <div className="mt-3 pt-3 border-t border-accent/20 flex gap-6">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Berat Badan</p>
+                    <p className="font-semibold">{selectedAthlete.weight} kg</p>
+                  </div>
+                  {selectedAthlete?.height && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Tinggi Badan</p>
+                      <p className="font-semibold">{selectedAthlete.height} cm</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Overall Score with Radar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Overall Score */}
+              <div className="bg-gradient-to-br from-accent/20 to-accent/5 p-5 rounded-xl text-center border border-accent/30">
+                <p className="text-xs text-muted-foreground uppercase font-bold mb-2">Skor Keseluruhan</p>
+                <p className={`text-5xl font-black ${
                   overallScore >= 4 ? 'text-success' :
                   overallScore >= 3 ? 'text-amber-600' :
                   'text-destructive'
                 }`}>
-                  {overallScore}/5
+                  {overallScore}
                 </p>
-                <Badge className={scoreLabels[Math.round(overallScore)]?.color || 'bg-secondary'}>
+                <p className="text-lg text-muted-foreground">/5</p>
+                <Badge className={`mt-2 text-sm px-3 py-1 ${scoreLabels[Math.round(overallScore)]?.color || 'bg-secondary'}`}>
                   {scoreLabels[Math.round(overallScore)]?.label || '-'}
                 </Badge>
               </div>
-              <div className="flex-1 h-48">
+
+              {/* Radar Chart */}
+              <div className="md:col-span-2 h-64">
+                <p className="text-xs text-muted-foreground uppercase font-bold mb-2 text-center">Profil Biomotor</p>
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={categoryScores}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="category" tick={{ fontSize: 11 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 5]} tick={{ fontSize: 10 }} />
+                  <RadarChart data={categoryScores} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="category" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))' }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 5]} tick={{ fontSize: 9 }} tickCount={6} />
                     <Radar
                       name="Skor"
                       dataKey="score"
                       stroke="hsl(var(--accent))"
                       fill="hsl(var(--accent))"
                       fillOpacity={0.5}
+                      strokeWidth={2}
                     />
                   </RadarChart>
                 </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Category Summary Cards */}
+            <div>
+              <h3 className="font-bold text-sm mb-3 uppercase text-muted-foreground">Ringkasan per Kategori Biomotor</h3>
+              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                {categoryScores.map((cat) => (
+                  <div key={cat.category} className="p-2 bg-secondary/30 rounded-lg text-center">
+                    <p className="text-[9px] text-muted-foreground font-medium truncate">{cat.category}</p>
+                    <p className={`text-xl font-bold ${
+                      cat.score >= 4 ? 'text-success' :
+                      cat.score >= 3 ? 'text-amber-600' :
+                      'text-destructive'
+                    }`}>
+                      {cat.score}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -324,25 +395,30 @@ export function AthleteEvaluationReport() {
               </div>
             </div>
 
-            {/* Summary by Category */}
-            <div>
-              <h3 className="font-bold mb-3">Ringkasan per Kategori</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {categoryScores.map((cat) => (
-                  <div key={cat.category} className="p-3 bg-secondary/30 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground font-medium">{cat.category}</p>
-                    <p className={`text-2xl font-bold mt-1 ${
-                      cat.score >= 4 ? 'text-success' :
-                      cat.score >= 3 ? 'text-amber-600' :
-                      'text-destructive'
-                    }`}>
-                      {cat.score}
-                    </p>
-                    <Badge className={`mt-1 text-[9px] ${scoreLabels[Math.round(cat.score)]?.color || 'bg-secondary'}`}>
-                      {scoreLabels[Math.round(cat.score)]?.label || '-'}
-                    </Badge>
-                  </div>
-                ))}
+            {/* Interpretasi Skor */}
+            <div className="bg-secondary/30 p-4 rounded-lg">
+              <h3 className="font-bold text-sm mb-3 uppercase text-muted-foreground">Interpretasi Skor</h3>
+              <div className="grid grid-cols-5 gap-2 text-center text-[10px]">
+                <div className="p-2 bg-destructive/20 rounded">
+                  <p className="font-bold text-destructive">1</p>
+                  <p>Sangat Kurang</p>
+                </div>
+                <div className="p-2 bg-orange-100 rounded">
+                  <p className="font-bold text-orange-700">2</p>
+                  <p>Kurang</p>
+                </div>
+                <div className="p-2 bg-amber-100 rounded">
+                  <p className="font-bold text-amber-700">3</p>
+                  <p>Cukup</p>
+                </div>
+                <div className="p-2 bg-lime-100 rounded">
+                  <p className="font-bold text-lime-700">4</p>
+                  <p>Baik</p>
+                </div>
+                <div className="p-2 bg-success/20 rounded">
+                  <p className="font-bold text-success">5</p>
+                  <p>Sangat Baik</p>
+                </div>
               </div>
             </div>
 
@@ -382,9 +458,19 @@ export function AthleteEvaluationReport() {
             </div>
 
             {/* Footer */}
-            <div className="text-center text-[10px] text-muted-foreground pt-4 border-t border-border">
-              <p>Laporan dibuat oleh HiroCross Plan - Sports Training Periodization System</p>
-              <p className="mt-1">© {new Date().getFullYear()} HiroCross Plan</p>
+            <div className="text-center pt-6 mt-4 border-t-2 border-accent/30">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="w-8 h-8 bg-accent rounded flex items-center justify-center">
+                  <span className="text-sm font-black text-white">HC</span>
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-sm">HiroCross Plan</p>
+                  <p className="text-[10px] text-muted-foreground">Sports Training Periodization System</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                © {new Date().getFullYear()} HiroCross Plan | Laporan dibuat pada {format(new Date(), 'd MMMM yyyy, HH:mm', { locale: idLocale })}
+              </p>
             </div>
           </div>
         )}

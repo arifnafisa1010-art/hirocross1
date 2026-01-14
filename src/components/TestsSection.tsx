@@ -218,6 +218,10 @@ export function TestsSection() {
   });
   const [editingHrAthleteId, setEditingHrAthleteId] = useState<string | null>(null);
   const [editingHrValue, setEditingHrValue] = useState('');
+  
+  // Body weight ratio calculator states
+  const [liftedWeight, setLiftedWeight] = useState<string>('');
+  const [calculatedRatio, setCalculatedRatio] = useState<number | null>(null);
 
   // Get current athlete gender and age for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
@@ -255,7 +259,26 @@ export function TestsSection() {
   useEffect(() => {
     const unit = defaultUnits[form.item] || 'kg';
     setForm(prev => ({ ...prev, unit }));
+    // Reset ratio calculator when item changes
+    setLiftedWeight('');
+    setCalculatedRatio(null);
   }, [form.item]);
+
+  // Calculate ratio when lifted weight changes
+  useEffect(() => {
+    if (bodyWeightRatioTests.includes(form.item) && liftedWeight && currentAthlete?.weight) {
+      const lifted = parseFloat(liftedWeight);
+      const bw = currentAthlete.weight;
+      if (!isNaN(lifted) && bw > 0) {
+        const ratio = Math.round((lifted / bw) * 100) / 100;
+        setCalculatedRatio(ratio);
+      } else {
+        setCalculatedRatio(null);
+      }
+    } else {
+      setCalculatedRatio(null);
+    }
+  }, [liftedWeight, currentAthlete?.weight, form.item]);
 
   const handleSubmit = async () => {
     if (!form.athleteId || !form.date || !form.value) {
@@ -724,6 +747,58 @@ export function TestsSection() {
               </Select>
             </div>
 
+            {/* Body Weight Ratio Calculator */}
+            {bodyWeightRatioTests.includes(form.item) && (
+              <div className="col-span-2 p-3 bg-accent/10 rounded-lg border border-accent/30">
+                <Label className="text-xs font-extrabold text-accent uppercase">
+                  Kalkulator Rasio Berat Badan
+                </Label>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Berat Angkat (kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={liftedWeight}
+                      onChange={(e) => setLiftedWeight(e.target.value)}
+                      placeholder="Contoh: 80"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">BB Atlet (kg)</Label>
+                    <div className="mt-1 h-8 px-3 flex items-center bg-secondary rounded-md text-sm font-medium">
+                      {currentAthlete?.weight ? `${currentAthlete.weight} kg` : 'Belum diisi'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Hasil Rasio</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      calculatedRatio !== null ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {calculatedRatio !== null ? `${calculatedRatio}x BW` : '-'}
+                    </div>
+                  </div>
+                </div>
+                {calculatedRatio !== null && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full h-7 text-xs"
+                    onClick={() => setForm({ ...form, value: String(calculatedRatio) })}
+                  >
+                    Gunakan Rasio {calculatedRatio}x sebagai Nilai
+                  </Button>
+                )}
+                {!currentAthlete?.weight && currentAthlete && (
+                  <p className="text-[10px] text-destructive mt-2">
+                    ⚠️ Berat badan atlet belum diisi. Silakan update data atlet terlebih dahulu.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div>
               <Label className="text-xs font-extrabold text-muted-foreground uppercase">
                 Nilai ({form.unit})
@@ -738,12 +813,7 @@ export function TestsSection() {
               />
               {bodyWeightRatioTests.includes(form.item) && (
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Masukkan rasio (berat angkat / berat badan). Contoh: angkat 90kg, BB 60kg = 1.5
-                  {currentAthlete?.weight && (
-                    <span className="block font-medium text-accent">
-                      BB atlet: {currentAthlete.weight}kg
-                    </span>
-                  )}
+                  Masukkan rasio (berat angkat ÷ berat badan) atau gunakan kalkulator di atas
                 </p>
               )}
             </div>
