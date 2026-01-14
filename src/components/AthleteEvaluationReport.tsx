@@ -26,8 +26,6 @@ const categoryLabels: Record<string, string> = {
   'Strength': 'Kekuatan',
   'Speed': 'Kecepatan',
   'Endurance': 'Daya Tahan',
-  'Technique': 'Teknik',
-  'Tactic': 'Taktik',
 };
 
 const scoreLabels: Record<number, { label: string; color: string }> = {
@@ -74,7 +72,17 @@ export function AthleteEvaluationReport() {
     return Object.values(latestByItem).sort((a, b) => a.category.localeCompare(b.category));
   }, [selectedAthleteId, results]);
 
-  // Calculate category averages for radar chart
+  // Calculate scores for radar chart - use test item names (not categories)
+  const radarScores = useMemo(() => {
+    return athleteResults.map(r => ({
+      item: r.item,
+      category: categoryLabels[r.category] || r.category,
+      score: r.score,
+      fullMark: 5,
+    }));
+  }, [athleteResults]);
+
+  // Calculate category averages for summary
   const categoryScores = useMemo(() => {
     const scores: Record<string, { total: number; count: number }> = {};
     
@@ -290,13 +298,13 @@ export function AthleteEvaluationReport() {
                 </Badge>
               </div>
 
-              {/* Radar Chart */}
+              {/* Radar Chart - using test item names */}
               <div className="md:col-span-2 h-64">
-                <p className="text-xs text-muted-foreground uppercase font-bold mb-2 text-center">Profil Biomotor</p>
+                <p className="text-xs text-muted-foreground uppercase font-bold mb-2 text-center">Profil Biomotor (Per Item Tes)</p>
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={categoryScores} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                  <RadarChart data={radarScores} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
                     <PolarGrid stroke="hsl(var(--border))" />
-                    <PolarAngleAxis dataKey="category" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))' }} />
+                    <PolarAngleAxis dataKey="item" tick={{ fontSize: 8, fill: 'hsl(var(--foreground))' }} />
                     <PolarRadiusAxis angle={30} domain={[0, 5]} tick={{ fontSize: 9 }} tickCount={6} />
                     <Radar
                       name="Skor"
