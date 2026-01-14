@@ -58,7 +58,8 @@ const categories = [
 const items: Record<string, string[]> = {
   'Kekuatan': [
     'Push Up', 'Pull Up', 'Sit Up 60s', 'Hand Grip', 'Leg Press',
-    'Bench Press', 'Squat', 'Back Extension', 'Plank', 'Dips'
+    'Bench Press', 'Squat', 'Deadlift', 'Back Extension', 'Plank', 'Dips',
+    'Leg Dynamometer', 'Back Dynamometer'
   ],
   'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m'],
   'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m'],
@@ -76,11 +77,14 @@ const defaultUnits: Record<string, string> = {
   'Sit Up 60s': 'reps',
   'Hand Grip': 'kg',
   'Leg Press': 'kg',
-  'Bench Press': 'kg',
-  'Squat': 'kg',
+  'Bench Press': 'xBW',
+  'Squat': 'xBW',
+  'Deadlift': 'xBW',
   'Back Extension': 'reps',
   'Plank': 's',
   'Dips': 'reps',
+  'Leg Dynamometer': 'kg',
+  'Back Dynamometer': 'kg',
   // Daya Tahan
   'Cooper Test 12min': 'm',
   'Bleep Test': 'level',
@@ -112,6 +116,9 @@ const defaultUnits: Record<string, string> = {
   'Visual Reaction': 'ms',
 };
 
+// Body weight ratio tests - need special handling
+const bodyWeightRatioTests = ['Bench Press', 'Squat', 'Deadlift'];
+
 // Validation ranges for test items
 const testValueRanges: Record<string, { min: number; max: number; hint: string }> = {
   // Kekuatan
@@ -120,11 +127,14 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Sit Up 60s': { min: 0, max: 100, hint: '0-100 reps' },
   'Hand Grip': { min: 10, max: 100, hint: '10-100 kg' },
   'Leg Press': { min: 30, max: 400, hint: '30-400 kg' },
-  'Bench Press': { min: 10, max: 200, hint: '10-200 kg' },
-  'Squat': { min: 20, max: 300, hint: '20-300 kg' },
+  'Bench Press': { min: 0.1, max: 4, hint: '0.1-4x berat badan (masukkan rasio)' },
+  'Squat': { min: 0.1, max: 4, hint: '0.1-4x berat badan (masukkan rasio)' },
+  'Deadlift': { min: 0.1, max: 5, hint: '0.1-5x berat badan (masukkan rasio)' },
   'Back Extension': { min: 0, max: 80, hint: '0-80 reps' },
   'Plank': { min: 10, max: 300, hint: '10-300 detik' },
   'Dips': { min: 0, max: 50, hint: '0-50 reps' },
+  'Leg Dynamometer': { min: 30, max: 400, hint: '30-400 kg' },
+  'Back Dynamometer': { min: 30, max: 300, hint: '30-300 kg' },
   // Daya Tahan
   'Cooper Test 12min': { min: 1000, max: 4000, hint: '1000-4000 m' },
   'Bleep Test': { min: 1, max: 21, hint: 'Level 1-21' },
@@ -723,9 +733,19 @@ export function TestsSection() {
                 step="0.01"
                 value={form.value}
                 onChange={(e) => setForm({ ...form, value: e.target.value })}
-                placeholder="Masukkan nilai"
+                placeholder={bodyWeightRatioTests.includes(form.item) ? "Rasio (misal: 1.5)" : "Masukkan nilai"}
                 className="mt-1.5"
               />
+              {bodyWeightRatioTests.includes(form.item) && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Masukkan rasio (berat angkat / berat badan). Contoh: angkat 90kg, BB 60kg = 1.5
+                  {currentAthlete?.weight && (
+                    <span className="block font-medium text-accent">
+                      BB atlet: {currentAthlete.weight}kg
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
 
             {/* Auto-calculated Score Display */}
