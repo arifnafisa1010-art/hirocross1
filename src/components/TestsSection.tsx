@@ -41,104 +41,105 @@ import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
-// Categories matching database norms
+// Biomotor test categories matching database norms
 const categories = [
-  'Strength',
-  'Speed',
-  'Endurance',
-  'Technique',
-  'Tactic',
+  'Kekuatan',
+  'Daya Tahan',
+  'Kecepatan',
+  'Fleksibilitas',
+  'Power',
+  'Kelincahan',
+  'Keseimbangan',
+  'Reaksi',
 ];
 
-// Items for each category matching database norms
+// Items for each biomotor category matching database norms
 const items: Record<string, string[]> = {
-  'Strength': [
-    'Bench Press 1RM', 'Squat 1RM', 'Deadlift 1RM', 'Push Up', 'Pull Up',
-    'Leg Dynamometer', 'Back Dynamometer', 'Hand Grip Right', 'Hand Grip Left', 'Sit Up 60s'
-  ],
-  'Speed': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m', 'Agility T-Test', 'Illinois Agility'],
-  'Endurance': ['Cooper Test 12min', 'Bleep Test', 'VO2 Max', 'Run 1600m', 'Harvard Step Test', 'Yo-Yo IR1'],
-  'Technique': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw', 'Balance Test', 'Hexagon Test'],
-  'Tactic': ['Reaction Time', 'Decision Making', 'Anticipation Test', 'Peripheral Vision', 'Tactical Assessment'],
+  'Kekuatan': ['Push Up', 'Pull Up', 'Sit Up 60s', 'Hand Grip', 'Leg Press'],
+  'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m'],
+  'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m'],
+  'Fleksibilitas': ['Sit and Reach', 'Shoulder Flexibility', 'Trunk Rotation'],
+  'Power': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw'],
+  'Kelincahan': ['Agility T-Test', 'Illinois Agility', 'Hexagon Test'],
+  'Keseimbangan': ['Stork Stand Test', 'Y Balance Test', 'Single Leg Stance'],
+  'Reaksi': ['Reaction Time', 'Audio Reaction', 'Visual Reaction'],
 };
 
 const defaultUnits: Record<string, string> = {
-  // Strength
-  'Bench Press 1RM': 'kg',
-  'Squat 1RM': 'kg',
-  'Deadlift 1RM': 'kg',
+  // Kekuatan
   'Push Up': 'reps',
   'Pull Up': 'reps',
-  'Leg Dynamometer': 'kg',
-  'Back Dynamometer': 'kg',
-  'Hand Grip Right': 'kg',
-  'Hand Grip Left': 'kg',
   'Sit Up 60s': 'reps',
-  // Speed
+  'Hand Grip': 'kg',
+  'Leg Press': 'kg',
+  // Daya Tahan
+  'Cooper Test 12min': 'm',
+  'Bleep Test': 'level',
+  'Yo-Yo IR1': 'level',
+  'Lari 2400m': 'min',
+  // Kecepatan
   'Sprint 30m': 's',
   'Sprint 60m': 's',
   'Sprint 100m': 's',
-  'Agility T-Test': 's',
-  'Illinois Agility': 's',
-  // Endurance
-  'Cooper Test 12min': 'm',
-  'Bleep Test': 'level',
-  'VO2 Max': 'ml/kg/min',
-  'Run 1600m': 'min',
-  'Harvard Step Test': 'index',
-  'Yo-Yo IR1': 'level',
-  // Technique
+  // Fleksibilitas
+  'Sit and Reach': 'cm',
+  'Shoulder Flexibility': 'cm',
+  'Trunk Rotation': 'degrees',
+  // Power
   'Vertical Jump': 'cm',
   'Standing Long Jump': 'cm',
   'Medicine Ball Throw': 'm',
-  'Balance Test': 's',
+  // Kelincahan
+  'Agility T-Test': 's',
+  'Illinois Agility': 's',
   'Hexagon Test': 's',
-  // Tactic
+  // Keseimbangan
+  'Stork Stand Test': 's',
+  'Y Balance Test': 'cm',
+  'Single Leg Stance': 's',
+  // Reaksi
   'Reaction Time': 'ms',
-  'Decision Making': 'score',
-  'Anticipation Test': 'score',
-  'Peripheral Vision': 'degrees',
-  'Tactical Assessment': 'score',
+  'Audio Reaction': 'ms',
+  'Visual Reaction': 'ms',
 };
 
 // Validation ranges for test items
 const testValueRanges: Record<string, { min: number; max: number; hint: string }> = {
-  // Strength
-  'Bench Press 1RM': { min: 10, max: 200, hint: '10-200 kg' },
-  'Squat 1RM': { min: 20, max: 300, hint: '20-300 kg' },
-  'Deadlift 1RM': { min: 30, max: 400, hint: '30-400 kg' },
+  // Kekuatan
   'Push Up': { min: 0, max: 150, hint: '0-150 reps' },
   'Pull Up': { min: 0, max: 50, hint: '0-50 reps' },
-  'Leg Dynamometer': { min: 50, max: 400, hint: '50-400 kg' },
-  'Back Dynamometer': { min: 30, max: 300, hint: '30-300 kg' },
-  'Hand Grip Right': { min: 10, max: 100, hint: '10-100 kg' },
-  'Hand Grip Left': { min: 10, max: 100, hint: '10-100 kg' },
   'Sit Up 60s': { min: 0, max: 100, hint: '0-100 reps' },
-  // Speed
+  'Hand Grip': { min: 10, max: 100, hint: '10-100 kg' },
+  'Leg Press': { min: 30, max: 400, hint: '30-400 kg' },
+  // Daya Tahan
+  'Cooper Test 12min': { min: 1000, max: 4000, hint: '1000-4000 m' },
+  'Bleep Test': { min: 1, max: 21, hint: 'Level 1-21' },
+  'Yo-Yo IR1': { min: 1, max: 23, hint: 'Level 1-23' },
+  'Lari 2400m': { min: 6, max: 20, hint: '6-20 menit' },
+  // Kecepatan
   'Sprint 30m': { min: 3, max: 8, hint: '3-8 detik' },
   'Sprint 60m': { min: 6, max: 15, hint: '6-15 detik' },
   'Sprint 100m': { min: 10, max: 20, hint: '10-20 detik' },
-  'Agility T-Test': { min: 8, max: 20, hint: '8-20 detik' },
-  'Illinois Agility': { min: 13, max: 25, hint: '13-25 detik' },
-  // Endurance
-  'Cooper Test 12min': { min: 1000, max: 4000, hint: '1000-4000 m' },
-  'Bleep Test': { min: 1, max: 21, hint: 'Level 1-21' },
-  'VO2 Max': { min: 20, max: 80, hint: '20-80 ml/kg/min' },
-  'Run 1600m': { min: 4, max: 15, hint: '4-15 menit' },
-  'Harvard Step Test': { min: 40, max: 120, hint: 'Index 40-120' },
-  'Yo-Yo IR1': { min: 1, max: 23, hint: 'Level 1-23' },
-  // Technique
+  // Fleksibilitas
+  'Sit and Reach': { min: -20, max: 60, hint: '-20 sampai 60 cm' },
+  'Shoulder Flexibility': { min: -20, max: 20, hint: '-20 sampai 20 cm' },
+  'Trunk Rotation': { min: 10, max: 80, hint: '10-80 derajat' },
+  // Power
   'Vertical Jump': { min: 10, max: 100, hint: '10-100 cm' },
   'Standing Long Jump': { min: 100, max: 350, hint: '100-350 cm' },
-  'Medicine Ball Throw': { min: 2, max: 20, hint: '2-20 m' },
-  'Balance Test': { min: 5, max: 120, hint: '5-120 detik' },
-  'Hexagon Test': { min: 8, max: 25, hint: '8-25 detik' },
-  // Tactic
+  'Medicine Ball Throw': { min: 2, max: 15, hint: '2-15 m' },
+  // Kelincahan
+  'Agility T-Test': { min: 7, max: 18, hint: '7-18 detik' },
+  'Illinois Agility': { min: 12, max: 25, hint: '12-25 detik' },
+  'Hexagon Test': { min: 8, max: 20, hint: '8-20 detik' },
+  // Keseimbangan
+  'Stork Stand Test': { min: 5, max: 120, hint: '5-120 detik' },
+  'Y Balance Test': { min: 50, max: 150, hint: '50-150 cm' },
+  'Single Leg Stance': { min: 5, max: 120, hint: '5-120 detik' },
+  // Reaksi
   'Reaction Time': { min: 100, max: 500, hint: '100-500 ms' },
-  'Decision Making': { min: 0, max: 100, hint: '0-100 score' },
-  'Anticipation Test': { min: 0, max: 100, hint: '0-100 score' },
-  'Peripheral Vision': { min: 80, max: 200, hint: '80-200 degrees' },
-  'Tactical Assessment': { min: 0, max: 100, hint: '0-100 score' },
+  'Audio Reaction': { min: 80, max: 400, hint: '80-400 ms' },
+  'Visual Reaction': { min: 100, max: 500, hint: '100-500 ms' },
 };
 
 // Validation function for test values
@@ -170,10 +171,10 @@ export function TestsSection() {
   const [form, setForm] = useState({
     athleteId: '',
     date: '',
-    category: 'Strength',
-    item: 'Bench Press 1RM',
+    category: 'Kekuatan',
+    item: 'Push Up',
     value: '',
-    unit: 'kg',
+    unit: 'reps',
     notes: '',
   });
 
@@ -194,22 +195,37 @@ export function TestsSection() {
   const [editingHrAthleteId, setEditingHrAthleteId] = useState<string | null>(null);
   const [editingHrValue, setEditingHrValue] = useState('');
 
-  // Get current athlete gender for norm lookup
+  // Get current athlete gender and age for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
   const currentGender = currentAthlete?.gender || 'M';
+  
+  // Calculate athlete age from birth date
+  const calculateAge = (birthDate: string | null): number => {
+    if (!birthDate) return 20; // Default age
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+  
+  const currentAge = calculateAge(currentAthlete?.birth_date || null);
 
   // Auto-calculate score when value changes
   useEffect(() => {
     if (form.value && !normsLoading) {
       const value = parseFloat(form.value);
       if (!isNaN(value)) {
-        const score = calculateScore(form.category, form.item, value, currentGender);
+        const score = calculateScore(form.category, form.item, value, currentGender, currentAge);
         setCalculatedScore(score);
       }
     } else {
       setCalculatedScore(null);
     }
-  }, [form.value, form.category, form.item, currentGender, normsLoading, calculateScore]);
+  }, [form.value, form.category, form.item, currentGender, currentAge, normsLoading, calculateScore]);
 
   // Auto-set unit when item changes
   useEffect(() => {
@@ -263,10 +279,10 @@ export function TestsSection() {
     setForm({
       athleteId: '',
       date: '',
-      category: 'Strength',
-      item: 'Bench Press 1RM',
+      category: 'Kekuatan',
+      item: 'Push Up',
       value: '',
-      unit: 'kg',
+      unit: 'reps',
       notes: '',
     });
     setCalculatedScore(null);
@@ -302,7 +318,7 @@ export function TestsSection() {
   };
 
   // Get norm info for display
-  const currentNorm = getNormForItem(form.category, form.item, currentGender);
+  const currentNorm = getNormForItem(form.category, form.item, currentGender, currentAge);
 
   // Athlete colors for comparison chart
   const athleteColors = [
