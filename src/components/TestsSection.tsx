@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Loader2, Edit2, TrendingUp, Download, BookOpen, FileText, GitCompare } from 'lucide-react';
+import { Trash2, Plus, Loader2, Edit2, TrendingUp, Download, BookOpen, FileText, GitCompare, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTestNorms } from '@/hooks/useTestNorms';
@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TestNormsTable } from './TestNormsTable';
 import { AthleteEvaluationReport } from './AthleteEvaluationReport';
 import { PeriodComparisonReport } from './PeriodComparisonReport';
+import { BiomotorDashboard } from './BiomotorDashboard';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
@@ -55,7 +56,10 @@ const categories = [
 
 // Items for each biomotor category matching database norms
 const items: Record<string, string[]> = {
-  'Kekuatan': ['Push Up', 'Pull Up', 'Sit Up 60s', 'Hand Grip', 'Leg Press'],
+  'Kekuatan': [
+    'Push Up', 'Pull Up', 'Sit Up 60s', 'Hand Grip', 'Leg Press',
+    'Bench Press', 'Squat', 'Back Extension', 'Plank', 'Dips'
+  ],
   'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m'],
   'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m'],
   'Fleksibilitas': ['Sit and Reach', 'Shoulder Flexibility', 'Trunk Rotation'],
@@ -72,6 +76,11 @@ const defaultUnits: Record<string, string> = {
   'Sit Up 60s': 'reps',
   'Hand Grip': 'kg',
   'Leg Press': 'kg',
+  'Bench Press': 'kg',
+  'Squat': 'kg',
+  'Back Extension': 'reps',
+  'Plank': 's',
+  'Dips': 'reps',
   // Daya Tahan
   'Cooper Test 12min': 'm',
   'Bleep Test': 'level',
@@ -111,6 +120,11 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Sit Up 60s': { min: 0, max: 100, hint: '0-100 reps' },
   'Hand Grip': { min: 10, max: 100, hint: '10-100 kg' },
   'Leg Press': { min: 30, max: 400, hint: '30-400 kg' },
+  'Bench Press': { min: 10, max: 200, hint: '10-200 kg' },
+  'Squat': { min: 20, max: 300, hint: '20-300 kg' },
+  'Back Extension': { min: 0, max: 80, hint: '0-80 reps' },
+  'Plank': { min: 10, max: 300, hint: '10-300 detik' },
+  'Dips': { min: 0, max: 50, hint: '0-50 reps' },
   // Daya Tahan
   'Cooper Test 12min': { min: 1000, max: 4000, hint: '1000-4000 m' },
   'Bleep Test': { min: 1, max: 21, hint: 'Level 1-21' },
@@ -166,7 +180,7 @@ export function TestsSection() {
   const { results, loading: resultsLoading, addResult, deleteResult } = useTestResults();
   const historyRef = useRef<HTMLDivElement>(null);
   const [exportingHistory, setExportingHistory] = useState(false);
-  const [activeTab, setActiveTab] = useState('input');
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   const [form, setForm] = useState({
     athleteId: '',
@@ -496,7 +510,11 @@ export function TestsSection() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <LayoutDashboard className="w-4 h-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </TabsTrigger>
           <TabsTrigger value="input" className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Input Tes</span>
@@ -518,6 +536,10 @@ export function TestsSection() {
             <span className="hidden sm:inline">Analisis</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="mt-6">
+          <BiomotorDashboard />
+        </TabsContent>
 
         <TabsContent value="input" className="space-y-6 mt-6">
 
