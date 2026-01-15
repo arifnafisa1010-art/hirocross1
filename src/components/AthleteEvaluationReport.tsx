@@ -371,7 +371,24 @@ export function AthleteEvaluationReport() {
             {/* Athlete Info Card with BMI */}
             <div className="bg-gradient-to-r from-accent/10 to-accent/5 p-4 rounded-xl border border-accent/20">
               <div className="flex flex-col md:flex-row gap-6">
-                {/* Left: Athlete Basic Info */}
+                {/* Athlete Photo */}
+                <div className="flex-shrink-0 flex items-center justify-center">
+                  {selectedAthlete?.photo_url ? (
+                    <img 
+                      src={selectedAthlete.photo_url} 
+                      alt={`Foto ${selectedAthlete.name}`}
+                      className="w-28 h-28 rounded-xl object-cover border-2 border-accent/30 shadow-md"
+                    />
+                  ) : (
+                    <div className="w-28 h-28 rounded-xl bg-accent/20 border-2 border-accent/30 flex items-center justify-center">
+                      <span className="text-3xl font-bold text-accent/60">
+                        {selectedAthlete?.name?.charAt(0)?.toUpperCase() || 'A'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Athlete Basic Info */}
                 <div className="flex-1">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
