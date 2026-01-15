@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAthletes, Athlete } from '@/hooks/useAthletes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LinkAthleteDialog } from '@/components/LinkAthleteDialog';
-import { Users, Plus, Pencil, Trash2, Link2, Clock, CheckCircle } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Link2, Clock, CheckCircle, Upload, Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export function AthletesManagement() {
   const { athletes, loading, addAthlete, updateAthlete, deleteAthlete, refetch } = useAthletes();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     sport: '',
@@ -25,6 +29,7 @@ export function AthletesManagement() {
     weight: '',
     resting_hr: '60',
     notes: '',
+    photo_url: '',
   });
 
   const resetForm = () => {
@@ -38,7 +43,58 @@ export function AthletesManagement() {
       weight: '',
       resting_hr: '60',
       notes: '',
+      photo_url: '',
     });
+    setPreviewUrl(null);
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Hanya file gambar yang diperbolehkan');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 5MB');
+      return;
+    }
+
+    // Create preview
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    // Upload to Supabase Storage
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `athletes/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('athlete-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('athlete-photos')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, photo_url: publicUrl }));
+      toast.success('Foto berhasil diupload');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Gagal mengupload foto');
+      setPreviewUrl(null);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleAdd = async () => {
@@ -57,6 +113,7 @@ export function AthletesManagement() {
       weight: formData.weight ? parseFloat(formData.weight) : null,
       resting_hr: formData.resting_hr ? parseInt(formData.resting_hr) : 60,
       notes: formData.notes || null,
+      photo_url: formData.photo_url || null,
     });
 
     if (result) {
@@ -78,6 +135,7 @@ export function AthletesManagement() {
       weight: formData.weight ? parseFloat(formData.weight) : null,
       resting_hr: formData.resting_hr ? parseInt(formData.resting_hr) : 60,
       notes: formData.notes || null,
+      photo_url: formData.photo_url || null,
     });
 
     if (success) {
@@ -103,7 +161,9 @@ export function AthletesManagement() {
       weight: athlete.weight?.toString() || '',
       resting_hr: athlete.resting_hr?.toString() || '60',
       notes: athlete.notes || '',
+      photo_url: athlete.photo_url || '',
     });
+    setPreviewUrl(athlete.photo_url || null);
   };
 
   const getLinkStatus = (athlete: Athlete) => {
@@ -117,7 +177,46 @@ export function AthletesManagement() {
   };
 
   const athleteFormContent = (
-    <div className="grid gap-4 py-4">
+    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+      {/* Photo Upload Section */}
+      <div className="flex flex-col items-center gap-3 pb-4 border-b border-border">
+        <div className="relative">
+          {previewUrl || formData.photo_url ? (
+            <img 
+              src={previewUrl || formData.photo_url} 
+              alt="Foto atlet" 
+              className="w-24 h-24 rounded-full object-cover border-2 border-accent"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-border">
+              <Camera className="w-8 h-8 text-muted-foreground" />
+            </div>
+          )}
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+              <Loader2 className="w-6 h-6 animate-spin text-white" />
+            </div>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          {uploading ? 'Mengupload...' : 'Upload Foto'}
+        </Button>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Nama *</Label>
@@ -252,7 +351,7 @@ export function AthletesManagement() {
               <Button variant="outline" onClick={() => { setAddDialogOpen(false); resetForm(); }}>
                 Batal
               </Button>
-              <Button onClick={handleAdd}>Simpan</Button>
+              <Button onClick={handleAdd} disabled={uploading}>Simpan</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -266,6 +365,7 @@ export function AthletesManagement() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Foto</TableHead>
                 <TableHead>Nama</TableHead>
                 <TableHead>Olahraga</TableHead>
                 <TableHead>Posisi</TableHead>
@@ -278,6 +378,21 @@ export function AthletesManagement() {
                 const linkStatus = getLinkStatus(athlete);
                 return (
                   <TableRow key={athlete.id}>
+                    <TableCell>
+                      {athlete.photo_url ? (
+                        <img 
+                          src={athlete.photo_url} 
+                          alt={athlete.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                          <span className="text-sm font-bold text-muted-foreground">
+                            {athlete.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{athlete.name}</TableCell>
                     <TableCell>{athlete.sport || '-'}</TableCell>
                     <TableCell>{athlete.position || '-'}</TableCell>
@@ -318,7 +433,7 @@ export function AthletesManagement() {
                               <Button variant="outline" onClick={() => { setEditingAthlete(null); resetForm(); }}>
                                 Batal
                               </Button>
-                              <Button onClick={handleEdit}>Simpan</Button>
+                              <Button onClick={handleEdit} disabled={uploading}>Simpan</Button>
                             </div>
                           </DialogContent>
                         </Dialog>
