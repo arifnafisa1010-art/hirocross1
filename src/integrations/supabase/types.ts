@@ -25,6 +25,7 @@ export type Database = {
           name: string
           notes: string | null
           pending_link_email: string | null
+          photo_url: string | null
           position: string | null
           resting_hr: number | null
           sport: string | null
@@ -42,6 +43,7 @@ export type Database = {
           name: string
           notes?: string | null
           pending_link_email?: string | null
+          photo_url?: string | null
           position?: string | null
           resting_hr?: number | null
           sport?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           name?: string
           notes?: string | null
           pending_link_email?: string | null
+          photo_url?: string | null
           position?: string | null
           resting_hr?: number | null
           sport?: string | null
