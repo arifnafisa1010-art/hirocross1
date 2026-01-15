@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTestResults } from '@/hooks/useTestResults';
 import { useTestNorms } from '@/hooks/useTestNorms';
-import { Download, Loader2, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Download, Loader2, FileText, TrendingUp, TrendingDown, Minus, Sparkles, Brain } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const categoryLabels: Record<string, string> = {
   'Kekuatan': 'Kekuatan',
@@ -42,6 +44,8 @@ export function AthleteEvaluationReport() {
   const { getNormForItem, loading: normsLoading } = useTestNorms();
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
   const [exporting, setExporting] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [analyzing, setAnalyzing] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
@@ -130,6 +134,51 @@ export function AthleteEvaluationReport() {
     };
   };
 
+  // AI Analysis function
+  const handleAIAnalysis = useCallback(async () => {
+    if (!selectedAthlete || athleteResults.length === 0) return;
+
+    setAnalyzing(true);
+    setAiAnalysis('');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-athlete', {
+        body: {
+          athleteData: {
+            name: selectedAthlete.name,
+            age: athleteAge,
+            gender: selectedAthlete.gender,
+            sport: selectedAthlete.sport,
+            weight: selectedAthlete.weight,
+            height: selectedAthlete.height,
+          },
+          testResults: athleteResults.map(r => ({
+            item: r.item,
+            category: categoryLabels[r.category] || r.category,
+            value: r.value,
+            unit: r.unit,
+            score: r.score,
+          })),
+          categoryScores: categoryScores,
+          overallScore: overallScore,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.analysis) {
+        setAiAnalysis(data.analysis);
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      console.error('AI analysis error:', error);
+      toast.error('Gagal melakukan analisis AI');
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [selectedAthlete, athleteResults, categoryScores, overallScore, athleteAge]);
+
   const handleExportPDF = async () => {
     if (!reportRef.current || !selectedAthlete) return;
 
@@ -202,14 +251,29 @@ export function AthleteEvaluationReport() {
               </SelectContent>
             </Select>
             {selectedAthleteId && (
-              <Button onClick={handleExportPDF} disabled={exporting || athleteResults.length === 0}>
-                {exporting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 mr-2" />
-                )}
-                Export PDF
-              </Button>
+              <>
+                <Button 
+                  onClick={handleAIAnalysis} 
+                  disabled={analyzing || athleteResults.length === 0}
+                  variant="outline"
+                  className="border-accent text-accent hover:bg-accent/10"
+                >
+                  {analyzing ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  )}
+                  Analisis AI
+                </Button>
+                <Button onClick={handleExportPDF} disabled={exporting || athleteResults.length === 0}>
+                  {exporting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Export PDF
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -464,6 +528,47 @@ export function AthleteEvaluationReport() {
                 )}
               </div>
             </div>
+
+            {/* AI Analysis Section */}
+            {aiAnalysis && (
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Brain className="w-5 h-5 text-accent" />
+                  <h3 className="font-bold">Analisis AI</h3>
+                  <Badge variant="outline" className="text-[10px] border-accent text-accent">
+                    Powered by AI
+                  </Badge>
+                </div>
+                <div className="bg-gradient-to-br from-accent/5 to-accent/10 p-4 rounded-xl border border-accent/20">
+                  <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap">
+                    {aiAnalysis.split('\n').map((line, idx) => {
+                      if (line.startsWith('**') && line.endsWith('**')) {
+                        return (
+                          <h4 key={idx} className="font-bold text-accent mt-3 mb-1 first:mt-0">
+                            {line.replace(/\*\*/g, '')}
+                          </h4>
+                        );
+                      }
+                      if (line.startsWith('- ')) {
+                        return (
+                          <p key={idx} className="ml-4 my-0.5">
+                            • {line.slice(2)}
+                          </p>
+                        );
+                      }
+                      if (line.match(/^\d+\./)) {
+                        return (
+                          <p key={idx} className="font-medium mt-2 text-accent">
+                            {line}
+                          </p>
+                        );
+                      }
+                      return line ? <p key={idx} className="my-1">{line}</p> : null;
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Footer */}
             <div className="text-center pt-6 mt-4 border-t-2 border-accent/30">
