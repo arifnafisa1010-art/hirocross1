@@ -8,11 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { format, addDays, startOfWeek } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+const dayOffsets = [0, 1, 2, 3, 4, 5, 6]; // Monday = 0, Sunday = 6
 
 export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
@@ -51,6 +54,59 @@ export function MonthlySection() {
       technique: Math.round(setup.targets.technique * (volume / 100)),
       tactic: Math.round(setup.targets.tactic * (volume / 100)),
     };
+  };
+
+  // Calculate actual biomotor achieved from completed sessions
+  const calculateActualBiomotor = (wk: number) => {
+    const actual = {
+      strength: 0,
+      speed: 0,
+      endurance: 0,
+      technique: 0,
+      tactic: 0,
+    };
+
+    days.forEach(day => {
+      const key = getSessionKey(wk, day);
+      const session = sessions[key];
+      if (session?.isDone && session?.exercises) {
+        session.exercises.forEach(ex => {
+          const load = ex.load * ex.set * ex.rep;
+          // Categorize based on exercise cat field
+          switch (ex.cat) {
+            case 'strength':
+              actual.strength += load;
+              break;
+            case 'speed':
+              actual.speed += load;
+              break;
+            case 'endurance':
+              actual.endurance += load / 1000; // Convert to approximate km
+              break;
+            case 'technique':
+              actual.technique += ex.rep * ex.set;
+              break;
+            case 'tactic':
+              actual.tactic += ex.rep * ex.set;
+              break;
+            default:
+              // Default to strength for unspecified
+              actual.strength += load;
+          }
+        });
+      }
+    });
+
+    return actual;
+  };
+
+  // Get date for a specific week and day
+  const getDateForDay = (wk: number, dayIndex: number) => {
+    if (!setup.startDate) return null;
+    const startDate = new Date(setup.startDate);
+    // Calculate the Monday of week 1 (adjust if start date is not Monday)
+    const weekStart = addDays(startDate, (wk - 1) * 7);
+    return addDays(weekStart, dayIndex);
   };
 
   // Get intensity recommendation based on volume and intensity percentage
@@ -311,12 +367,13 @@ export function MonthlySection() {
                 </Card>
 
                 {/* Days */}
-                {days.map((day) => {
+                {days.map((day, dayIndex) => {
                   const key = getSessionKey(wk, day);
                   const session = sessions[key];
                   const hasContent = session?.exercises?.length > 0;
                   const isDone = session?.isDone;
                   const intensity = session?.int || 'Rest';
+                  const dayDate = getDateForDay(wk, dayIndex);
 
                   // Calculate total load from completed exercises
                   const totalLoad = session?.exercises?.reduce((sum, ex) => sum + (ex.load * ex.set * ex.rep), 0) || 0;
@@ -333,8 +390,15 @@ export function MonthlySection() {
                         intensity === 'Rest' && 'intensity-rest',
                       )}
                     >
-                      <div className="absolute top-2 right-2 text-[10px] font-bold text-muted-foreground">
-                        {day.slice(0, 3)}
+                      <div className="absolute top-2 right-2 text-right">
+                        <div className="text-[10px] font-bold text-muted-foreground">
+                          {day.slice(0, 3)}
+                        </div>
+                        {dayDate && (
+                          <div className="text-[9px] text-muted-foreground/70">
+                            {format(dayDate, 'd MMM', { locale: idLocale })}
+                          </div>
+                        )}
                       </div>
                       
                       {hasContent && (
@@ -384,39 +448,90 @@ export function MonthlySection() {
               </div>
 
               {/* Biomotor Targets Row */}
-              {biomotorTargets && (
-                <Card className="p-3 bg-accent/5 border-accent/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-accent" />
-                    <span className="text-xs font-bold text-accent">Target Biomotor Minggu {wk}</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">
-                      (berdasarkan volume {weekData?.vol}%)
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-5 gap-3">
-                    <div className="text-center p-2 bg-card rounded-lg">
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Kekuatan</div>
-                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.strength} <span className="text-[9px] text-muted-foreground">kg</span></div>
+              {biomotorTargets && (() => {
+                const actualBiomotor = calculateActualBiomotor(wk);
+                const hasActualData = Object.values(actualBiomotor).some(v => v > 0);
+                
+                return (
+                  <Card className="p-3 bg-accent/5 border-accent/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="w-4 h-4 text-accent" />
+                      <span className="text-xs font-bold text-accent">Target Biomotor Minggu {wk}</span>
+                      {hasActualData && (
+                        <Badge variant="outline" className="text-[9px] border-success text-success gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Ada Data Aktual
+                        </Badge>
+                      )}
+                      <span className="text-[10px] text-muted-foreground ml-auto">
+                        (berdasarkan volume {weekData?.vol}%)
+                      </span>
                     </div>
-                    <div className="text-center p-2 bg-card rounded-lg">
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Kecepatan</div>
-                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.speed} <span className="text-[9px] text-muted-foreground">m</span></div>
+                    <div className="grid grid-cols-5 gap-3">
+                      <div className="text-center p-2 bg-card rounded-lg">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Kekuatan</div>
+                        <div className="text-sm font-extrabold text-foreground">{biomotorTargets.strength} <span className="text-[9px] text-muted-foreground">kg</span></div>
+                        {hasActualData && (
+                          <div className={cn(
+                            "text-[10px] font-bold mt-1",
+                            actualBiomotor.strength >= biomotorTargets.strength ? "text-success" : "text-warning"
+                          )}>
+                            Aktual: {actualBiomotor.strength.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center p-2 bg-card rounded-lg">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Kecepatan</div>
+                        <div className="text-sm font-extrabold text-foreground">{biomotorTargets.speed} <span className="text-[9px] text-muted-foreground">m</span></div>
+                        {hasActualData && (
+                          <div className={cn(
+                            "text-[10px] font-bold mt-1",
+                            actualBiomotor.speed >= biomotorTargets.speed ? "text-success" : "text-warning"
+                          )}>
+                            Aktual: {actualBiomotor.speed.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center p-2 bg-card rounded-lg">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Daya Tahan</div>
+                        <div className="text-sm font-extrabold text-foreground">{biomotorTargets.endurance} <span className="text-[9px] text-muted-foreground">km</span></div>
+                        {hasActualData && (
+                          <div className={cn(
+                            "text-[10px] font-bold mt-1",
+                            actualBiomotor.endurance >= biomotorTargets.endurance ? "text-success" : "text-warning"
+                          )}>
+                            Aktual: {actualBiomotor.endurance.toFixed(1)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center p-2 bg-card rounded-lg">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Teknik</div>
+                        <div className="text-sm font-extrabold text-foreground">{biomotorTargets.technique} <span className="text-[9px] text-muted-foreground">rep</span></div>
+                        {hasActualData && (
+                          <div className={cn(
+                            "text-[10px] font-bold mt-1",
+                            actualBiomotor.technique >= biomotorTargets.technique ? "text-success" : "text-warning"
+                          )}>
+                            Aktual: {actualBiomotor.technique.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center p-2 bg-card rounded-lg">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Taktik</div>
+                        <div className="text-sm font-extrabold text-foreground">{biomotorTargets.tactic} <span className="text-[9px] text-muted-foreground">rep</span></div>
+                        {hasActualData && (
+                          <div className={cn(
+                            "text-[10px] font-bold mt-1",
+                            actualBiomotor.tactic >= biomotorTargets.tactic ? "text-success" : "text-warning"
+                          )}>
+                            Aktual: {actualBiomotor.tactic.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-center p-2 bg-card rounded-lg">
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Daya Tahan</div>
-                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.endurance} <span className="text-[9px] text-muted-foreground">km</span></div>
-                    </div>
-                    <div className="text-center p-2 bg-card rounded-lg">
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Teknik</div>
-                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.technique} <span className="text-[9px] text-muted-foreground">rep</span></div>
-                    </div>
-                    <div className="text-center p-2 bg-card rounded-lg">
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Taktik</div>
-                      <div className="text-sm font-extrabold text-foreground">{biomotorTargets.tactic} <span className="text-[9px] text-muted-foreground">rep</span></div>
-                    </div>
-                  </div>
-                </Card>
-              )}
+                  </Card>
+                );
+              })()}
             </div>
           );
         })}
