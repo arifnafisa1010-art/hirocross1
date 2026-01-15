@@ -357,7 +357,7 @@ export function AthleteEvaluationReport() {
                 <div className="flex items-center gap-4">
                   <img src={hirocrossLogo} alt="HiroCross Logo" className="w-14 h-14 object-contain" />
                   <div>
-                    <h1 className="text-xl font-black text-accent">LAPORAN TES BIOMOTOR</h1>
+                    <h1 className="text-xl font-black text-foreground">LAPORAN TES BIOMOTOR</h1>
                     <p className="text-sm text-muted-foreground">HiroCross Plan - Sports Training System</p>
                   </div>
                 </div>
