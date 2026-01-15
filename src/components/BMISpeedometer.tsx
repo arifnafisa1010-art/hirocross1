@@ -135,7 +135,7 @@ export function BMISpeedometer({ bmi, size = 180 }: BMISpeedometerProps) {
         />
       </svg>
 
-      {/* BMI Value and Category */}
+      {/* IMT Value and Category */}
       <div className="text-center -mt-2">
         <p className="text-3xl font-black" style={{ color: category.color }}>
           {bmi.toFixed(1)}
@@ -169,21 +169,25 @@ function polarToCartesian(centerX: number, centerY: number, radius: number, angl
   };
 }
 
-// BMI interpretation helper
-export function getBMIInterpretation(bmi: number): string {
-  if (bmi < 16) return 'Sangat Kurus (Severe Thinness)';
-  if (bmi < 17) return 'Kurus (Moderate Thinness)';
-  if (bmi < 18.5) return 'Kurus (Mild Thinness)';
-  if (bmi < 25) return 'Normal';
-  if (bmi < 30) return 'Kelebihan Berat Badan (Overweight)';
-  if (bmi < 35) return 'Obesitas Kelas I';
-  if (bmi < 40) return 'Obesitas Kelas II';
+// IMT interpretation helper
+export function getIMTInterpretation(imt: number): string {
+  if (imt < 16) return 'Sangat Kurus (Severe Thinness)';
+  if (imt < 17) return 'Kurus (Moderate Thinness)';
+  if (imt < 18.5) return 'Kurus (Mild Thinness)';
+  if (imt < 25) return 'Normal';
+  if (imt < 30) return 'Kelebihan Berat Badan (Overweight)';
+  if (imt < 35) return 'Obesitas Kelas I';
+  if (imt < 40) return 'Obesitas Kelas II';
   return 'Obesitas Kelas III (Morbid)';
 }
 
-export function getBMIRecommendation(bmi: number): string {
-  if (bmi < 18.5) return 'Perlu peningkatan asupan kalori dan latihan penguatan otot untuk menambah massa tubuh.';
-  if (bmi < 25) return 'Pertahankan pola makan seimbang dan aktivitas fisik rutin.';
-  if (bmi < 30) return 'Disarankan untuk meningkatkan aktivitas kardiovaskular dan menjaga pola makan.';
+export function getIMTRecommendation(imt: number): string {
+  if (imt < 18.5) return 'Perlu peningkatan asupan kalori dan latihan penguatan otot untuk menambah massa tubuh.';
+  if (imt < 25) return 'Pertahankan pola makan seimbang dan aktivitas fisik rutin.';
+  if (imt < 30) return 'Disarankan untuk meningkatkan aktivitas kardiovaskular dan menjaga pola makan.';
   return 'Konsultasikan dengan ahli gizi untuk program penurunan berat badan yang tepat.';
 }
+
+// Backward compatible aliases
+export const getBMIInterpretation = getIMTInterpretation;
+export const getBMIRecommendation = getIMTRecommendation;
