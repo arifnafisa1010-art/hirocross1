@@ -14,7 +14,8 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { BMISpeedometer, getBMIInterpretation, getBMIRecommendation } from './BMISpeedometer';
+import { BMISpeedometer, getIMTInterpretation, getIMTRecommendation } from './BMISpeedometer';
+import hirocrossLogo from '@/assets/hirocross-logo-red.png';
 
 const categoryLabels: Record<string, string> = {
   'Kekuatan': 'Kekuatan',
@@ -59,15 +60,15 @@ export function AthleteEvaluationReport() {
     return today.getFullYear() - birthDate.getFullYear();
   }, [selectedAthlete]);
 
-  // Calculate BMI
-  const bmiData = useMemo(() => {
+  // Calculate IMT (Indeks Massa Tubuh)
+  const imtData = useMemo(() => {
     if (!selectedAthlete?.weight || !selectedAthlete?.height) return null;
     const heightInMeters = selectedAthlete.height / 100;
-    const bmi = selectedAthlete.weight / (heightInMeters * heightInMeters);
+    const imt = selectedAthlete.weight / (heightInMeters * heightInMeters);
     return {
-      value: bmi,
-      interpretation: getBMIInterpretation(bmi),
-      recommendation: getBMIRecommendation(bmi),
+      value: imt,
+      interpretation: getIMTInterpretation(imt),
+      recommendation: getIMTRecommendation(imt),
     };
   }, [selectedAthlete]);
 
@@ -201,6 +202,7 @@ export function AthleteEvaluationReport() {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
+        logging: false,
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -214,14 +216,61 @@ export function AthleteEvaluationReport() {
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 10;
+      
+      // Calculate the height ratio to fit content properly with potential multiple pages
+      const ratio = pdfWidth / imgWidth;
+      const scaledHeight = imgHeight * ratio;
+      
+      // Check if content needs multiple pages
+      if (scaledHeight <= pdfHeight - 20) {
+        // Single page
+        const imgX = (pdfWidth - imgWidth * ratio) / 2;
+        const imgY = 10;
+        pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      } else {
+        // Multiple pages - split content
+        const pageContentHeight = pdfHeight - 20; // 10mm margin top and bottom
+        let remainingHeight = scaledHeight;
+        let position = 0;
+        let pageNum = 0;
 
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+        while (remainingHeight > 0) {
+          if (pageNum > 0) {
+            pdf.addPage();
+          }
+          
+          // Calculate crop position in source image
+          const sourceY = (position / ratio);
+          const sourceHeight = Math.min(pageContentHeight / ratio, imgHeight - sourceY);
+          
+          // Create a canvas for this page portion
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = imgWidth;
+          pageCanvas.height = sourceHeight;
+          const ctx = pageCanvas.getContext('2d');
+          
+          if (ctx) {
+            ctx.drawImage(
+              canvas,
+              0, sourceY, imgWidth, sourceHeight,
+              0, 0, imgWidth, sourceHeight
+            );
+            
+            const pageImgData = pageCanvas.toDataURL('image/png');
+            pdf.addImage(pageImgData, 'PNG', 0, 10, pdfWidth, sourceHeight * ratio);
+          }
+          
+          position += pageContentHeight;
+          remainingHeight -= pageContentHeight;
+          pageNum++;
+        }
+      }
+
       pdf.save(`Laporan_Evaluasi_${selectedAthlete.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      toast.success('PDF berhasil diexport!');
     } catch (error) {
       console.error('Error exporting PDF:', error);
+      toast.error('Gagal export PDF');
     } finally {
       setExporting(false);
     }
@@ -306,9 +355,7 @@ export function AthleteEvaluationReport() {
             <div className="border-b-2 border-accent pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-accent rounded-lg flex items-center justify-center">
-                    <span className="text-2xl font-black text-white">HC</span>
-                  </div>
+                  <img src={hirocrossLogo} alt="HiroCross Logo" className="w-14 h-14 object-contain" />
                   <div>
                     <h1 className="text-xl font-black text-accent">LAPORAN TES BIOMOTOR</h1>
                     <p className="text-sm text-muted-foreground">HiroCross Plan - Sports Training System</p>
@@ -362,23 +409,23 @@ export function AthleteEvaluationReport() {
                   )}
                 </div>
 
-                {/* Right: BMI Speedometer */}
-                {bmiData && (
+                {/* Right: IMT Speedometer */}
+                {imtData && (
                   <div className="flex flex-col items-center justify-center border-l border-accent/20 pl-6">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Indeks Massa Tubuh (BMI)</p>
-                    <BMISpeedometer bmi={bmiData.value} size={160} />
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Indeks Massa Tubuh (IMT)</p>
+                    <BMISpeedometer bmi={imtData.value} size={160} />
                     <p className="text-[10px] text-muted-foreground text-center mt-1 max-w-[180px]">
-                      {bmiData.interpretation}
+                      {imtData.interpretation}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* BMI Recommendation */}
-              {bmiData && (
+              {/* IMT Recommendation */}
+              {imtData && (
                 <div className="mt-3 pt-3 border-t border-accent/20">
                   <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Rekomendasi Komposisi Tubuh</p>
-                  <p className="text-xs text-muted-foreground">{bmiData.recommendation}</p>
+                  <p className="text-xs text-muted-foreground">{imtData.recommendation}</p>
                 </div>
               )}
             </div>
@@ -568,9 +615,9 @@ export function AthleteEvaluationReport() {
               </div>
             </div>
 
-            {/* AI Analysis Section */}
+            {/* AI Analysis Section - Always in PDF if available */}
             {aiAnalysis && (
-              <div className="border-t border-border pt-4">
+              <div className="border-t border-border pt-4 page-break-inside-avoid">
                 <div className="flex items-center gap-2 mb-3">
                   <Brain className="w-5 h-5 text-accent" />
                   <h3 className="font-bold">Analisis AI</h3>
@@ -612,9 +659,7 @@ export function AthleteEvaluationReport() {
             {/* Footer */}
             <div className="text-center pt-6 mt-4 border-t-2 border-accent/30">
               <div className="flex items-center justify-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-accent rounded flex items-center justify-center">
-                  <span className="text-sm font-black text-white">HC</span>
-                </div>
+                <img src={hirocrossLogo} alt="HiroCross Logo" className="w-8 h-8 object-contain" />
                 <div className="text-left">
                   <p className="font-bold text-sm">HiroCross Plan</p>
                   <p className="text-[10px] text-muted-foreground">Sports Training Periodization System</p>
