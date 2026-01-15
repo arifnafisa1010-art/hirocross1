@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { BMISpeedometer, getBMIInterpretation, getBMIRecommendation } from './BMISpeedometer';
 
 const categoryLabels: Record<string, string> = {
   'Kekuatan': 'Kekuatan',
@@ -56,6 +57,18 @@ export function AthleteEvaluationReport() {
     const birthDate = new Date(selectedAthlete.birth_date);
     const today = new Date();
     return today.getFullYear() - birthDate.getFullYear();
+  }, [selectedAthlete]);
+
+  // Calculate BMI
+  const bmiData = useMemo(() => {
+    if (!selectedAthlete?.weight || !selectedAthlete?.height) return null;
+    const heightInMeters = selectedAthlete.height / 100;
+    const bmi = selectedAthlete.weight / (heightInMeters * heightInMeters);
+    return {
+      value: bmi,
+      interpretation: getBMIInterpretation(bmi),
+      recommendation: getBMIRecommendation(bmi),
+    };
   }, [selectedAthlete]);
 
   // Get latest results for selected athlete grouped by category and item
@@ -308,38 +321,64 @@ export function AthleteEvaluationReport() {
               </div>
             </div>
 
-            {/* Athlete Info Card */}
+            {/* Athlete Info Card with BMI */}
             <div className="bg-gradient-to-r from-accent/10 to-accent/5 p-4 rounded-xl border border-accent/20">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Nama Atlet</p>
-                  <p className="text-lg font-bold">{selectedAthlete?.name}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Usia</p>
-                  <p className="text-lg font-bold">{athleteAge} Tahun</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Jenis Kelamin</p>
-                  <p className="text-lg font-bold">{selectedAthlete?.gender === 'M' ? 'Laki-laki' : 'Perempuan'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Cabang Olahraga</p>
-                  <p className="text-lg font-bold">{selectedAthlete?.sport || '-'}</p>
-                </div>
-              </div>
-              {selectedAthlete?.weight && (
-                <div className="mt-3 pt-3 border-t border-accent/20 flex gap-6">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Berat Badan</p>
-                    <p className="font-semibold">{selectedAthlete.weight} kg</p>
-                  </div>
-                  {selectedAthlete?.height && (
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Left: Athlete Basic Info */}
+                <div className="flex-1">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Tinggi Badan</p>
-                      <p className="font-semibold">{selectedAthlete.height} cm</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Nama Atlet</p>
+                      <p className="text-lg font-bold">{selectedAthlete?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Usia</p>
+                      <p className="text-lg font-bold">{athleteAge} Tahun</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Jenis Kelamin</p>
+                      <p className="text-lg font-bold">{selectedAthlete?.gender === 'M' ? 'Laki-laki' : 'Perempuan'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Cabang Olahraga</p>
+                      <p className="text-lg font-bold">{selectedAthlete?.sport || '-'}</p>
+                    </div>
+                  </div>
+                  {(selectedAthlete?.weight || selectedAthlete?.height) && (
+                    <div className="mt-3 pt-3 border-t border-accent/20 flex gap-6">
+                      {selectedAthlete?.weight && (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Berat Badan</p>
+                          <p className="font-semibold">{selectedAthlete.weight} kg</p>
+                        </div>
+                      )}
+                      {selectedAthlete?.height && (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Tinggi Badan</p>
+                          <p className="font-semibold">{selectedAthlete.height} cm</p>
+                        </div>
+                      )}
                     </div>
                   )}
+                </div>
+
+                {/* Right: BMI Speedometer */}
+                {bmiData && (
+                  <div className="flex flex-col items-center justify-center border-l border-accent/20 pl-6">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Indeks Massa Tubuh (BMI)</p>
+                    <BMISpeedometer bmi={bmiData.value} size={160} />
+                    <p className="text-[10px] text-muted-foreground text-center mt-1 max-w-[180px]">
+                      {bmiData.interpretation}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* BMI Recommendation */}
+              {bmiData && (
+                <div className="mt-3 pt-3 border-t border-accent/20">
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Rekomendasi Komposisi Tubuh</p>
+                  <p className="text-xs text-muted-foreground">{bmiData.recommendation}</p>
                 </div>
               )}
             </div>
