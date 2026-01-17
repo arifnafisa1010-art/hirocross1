@@ -1,10 +1,16 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
+import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/hirocross-logo-new.png';
 import { toast } from 'sonner';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { ShieldCheck } from 'lucide-react';
 
 export function Header() {
   const { signOut } = useAuth();
+  const { isAdmin } = useAdmin();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     const { error } = await signOut();
@@ -23,12 +29,25 @@ export function Header() {
         </h1>
       </div>
 
-      <button 
-        onClick={handleLogout}
-        className="bg-destructive text-destructive-foreground px-3 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity"
-      >
-        LOGOUT
-      </button>
+      <div className="flex items-center gap-2">
+        {isAdmin && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/admin')}
+            className="text-xs font-bold"
+          >
+            <ShieldCheck className="w-4 h-4 mr-1" />
+            Admin
+          </Button>
+        )}
+        <button 
+          onClick={handleLogout}
+          className="bg-destructive text-destructive-foreground px-3 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity"
+        >
+          LOGOUT
+        </button>
+      </div>
     </header>
   );
 }
