@@ -203,6 +203,13 @@ export type Database = {
             referencedRelation: "athletes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "test_results_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes_pending_links"
+            referencedColumns: ["id"]
+          },
         ]
       }
       training_programs: {
@@ -341,7 +348,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      athletes_pending_links: {
+        Row: {
+          id: string | null
+        }
+        Insert: {
+          id?: string | null
+        }
+        Update: {
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_add_role: {
