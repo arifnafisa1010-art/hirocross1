@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +52,7 @@ async function checkAndLinkAthlete(userId: string, email: string): Promise<boole
 export default function Auth() {
   const navigate = useNavigate();
   const { user, loading, signIn, signUp, resetPassword } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,12 +60,20 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const [checkingRole, setCheckingRole] = useState(false);
 
-  // Check if user is an athlete and redirect accordingly
+  // Check user role and redirect accordingly
   useEffect(() => {
     const checkUserRole = async () => {
-      if (user && !loading && !checkingRole) {
+      if (user && !loading && !adminLoading && !checkingRole) {
         setCheckingRole(true);
         
+        // Check if admin first
+        if (isAdmin) {
+          navigate('/admin', { replace: true });
+          setCheckingRole(false);
+          return;
+        }
+        
+        // Check if athlete
         const isAthlete = await checkAndLinkAthlete(user.id, user.email || '');
         
         if (isAthlete) {
@@ -77,7 +87,7 @@ export default function Auth() {
     };
     
     checkUserRole();
-  }, [user, loading, navigate, checkingRole]);
+  }, [user, loading, adminLoading, isAdmin, navigate, checkingRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
