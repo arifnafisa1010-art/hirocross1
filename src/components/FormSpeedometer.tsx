@@ -1,61 +1,57 @@
 import { useMemo, useState, useEffect } from 'react';
 
-interface BMISpeedometerProps {
-  bmi: number;
+interface FormSpeedometerProps {
+  value: number; // -100 to +100
   size?: number;
+  label?: string;
 }
 
-const getBMICategory = (bmi: number) => {
-  if (bmi < 18.5) return { label: 'Kurus', color: '#3b82f6', angle: -60 };
-  if (bmi < 25) return { label: 'Normal', color: '#22c55e', angle: 0 };
-  if (bmi < 30) return { label: 'Gemuk', color: '#f59e0b', angle: 45 };
-  return { label: 'Obesitas', color: '#ef4444', angle: 75 };
+const getFormCategory = (value: number) => {
+  if (value <= -50) return { label: 'Overreaching', color: '#ef4444' };
+  if (value <= -20) return { label: 'Fatigue', color: '#f97316' };
+  if (value <= 20) return { label: 'Baseline', color: '#f59e0b' };
+  if (value <= 50) return { label: 'Fresh', color: '#84cc16' };
+  return { label: 'Optimal', color: '#22c55e' };
 };
 
-export function BMISpeedometer({ bmi, size = 180 }: BMISpeedometerProps) {
-  const [animatedBMI, setAnimatedBMI] = useState(10);
+export function FormSpeedometer({ value, size = 200, label = 'Form' }: FormSpeedometerProps) {
+  const [animatedValue, setAnimatedValue] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   
-  const category = useMemo(() => getBMICategory(bmi), [bmi]);
+  const category = useMemo(() => getFormCategory(value), [value]);
   
-  // Animate on mount
   useEffect(() => {
     setIsVisible(true);
-    const duration = 1500; // 1.5 seconds
+    const duration = 1500;
     const steps = 60;
-    const startBMI = 10;
-    const stepValue = (bmi - startBMI) / steps;
+    const stepValue = value / steps;
     let currentStep = 0;
     
     const timer = setInterval(() => {
       currentStep++;
       if (currentStep >= steps) {
-        setAnimatedBMI(bmi);
+        setAnimatedValue(value);
         clearInterval(timer);
       } else {
-        setAnimatedBMI(startBMI + stepValue * currentStep);
+        setAnimatedValue(Math.round(stepValue * currentStep));
       }
     }, duration / steps);
     
     return () => clearInterval(timer);
-  }, [bmi]);
+  }, [value]);
   
   // Calculate needle angle (-90 to 90 degrees)
-  // BMI range: 10 to 40 maps to -90 to 90 degrees
+  // Value -100 to +100 maps to -90 to 90 degrees
   const needleAngle = useMemo(() => {
-    const minBMI = 10;
-    const maxBMI = 40;
-    const clampedBMI = Math.max(minBMI, Math.min(maxBMI, animatedBMI));
-    const percentage = (clampedBMI - minBMI) / (maxBMI - minBMI);
-    return -90 + percentage * 180;
-  }, [animatedBMI]);
+    const clampedValue = Math.max(-100, Math.min(100, animatedValue));
+    return (clampedValue / 100) * 90;
+  }, [animatedValue]);
 
   const centerX = size / 2;
   const centerY = size / 2 + 10;
   const radius = size * 0.38;
   const needleLength = radius * 0.85;
 
-  // Calculate needle endpoint
   const needleRadians = (needleAngle - 90) * (Math.PI / 180);
   const needleX = centerX + needleLength * Math.cos(needleRadians);
   const needleY = centerY + needleLength * Math.sin(needleRadians);
@@ -63,53 +59,61 @@ export function BMISpeedometer({ bmi, size = 180 }: BMISpeedometerProps) {
   return (
     <div className={`flex flex-col items-center transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       <svg width={size} height={size * 0.65} viewBox={`0 0 ${size} ${size * 0.65}`}>
-        {/* Background arc segments */}
-        {/* Underweight - Blue */}
+        {/* Overreaching - Red */}
         <path
-          d={describeArc(centerX, centerY, radius, -90, -45)}
+          d={describeArc(centerX, centerY, radius, -90, -54)}
           fill="none"
-          stroke="#3b82f6"
+          stroke="#ef4444"
           strokeWidth={size * 0.12}
           strokeLinecap="round"
           className="animate-[scale-in_0.5s_ease-out]"
           style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
-        {/* Normal - Green */}
+        {/* Fatigue - Orange */}
         <path
-          d={describeArc(centerX, centerY, radius, -43, 15)}
+          d={describeArc(centerX, centerY, radius, -52, -18)}
           fill="none"
-          stroke="#22c55e"
+          stroke="#f97316"
           strokeWidth={size * 0.12}
           className="animate-[scale-in_0.6s_ease-out]"
           style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
-        {/* Overweight - Yellow/Orange */}
+        {/* Baseline - Amber */}
         <path
-          d={describeArc(centerX, centerY, radius, 17, 50)}
+          d={describeArc(centerX, centerY, radius, -16, 18)}
           fill="none"
           stroke="#f59e0b"
           strokeWidth={size * 0.12}
           className="animate-[scale-in_0.7s_ease-out]"
           style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
-        {/* Obese - Red */}
+        {/* Fresh - Lime */}
         <path
-          d={describeArc(centerX, centerY, radius, 52, 90)}
+          d={describeArc(centerX, centerY, radius, 20, 54)}
           fill="none"
-          stroke="#ef4444"
+          stroke="#84cc16"
           strokeWidth={size * 0.12}
-          strokeLinecap="round"
           className="animate-[scale-in_0.8s_ease-out]"
           style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
+        {/* Optimal - Green */}
+        <path
+          d={describeArc(centerX, centerY, radius, 56, 90)}
+          fill="none"
+          stroke="#22c55e"
+          strokeWidth={size * 0.12}
+          strokeLinecap="round"
+          className="animate-[scale-in_0.9s_ease-out]"
+          style={{ transformOrigin: `${centerX}px ${centerY}px` }}
+        />
 
-        {/* Tick marks and labels */}
+        {/* Tick marks */}
         {[
-          { value: 15, angle: -90 + ((15 - 10) / 30) * 180 },
-          { value: 18.5, angle: -90 + ((18.5 - 10) / 30) * 180 },
-          { value: 25, angle: -90 + ((25 - 10) / 30) * 180 },
-          { value: 30, angle: -90 + ((30 - 10) / 30) * 180 },
-          { value: 35, angle: -90 + ((35 - 10) / 30) * 180 },
+          { value: -100, angle: -90 },
+          { value: -50, angle: -45 },
+          { value: 0, angle: 0 },
+          { value: 50, angle: 45 },
+          { value: 100, angle: 90 },
         ].map(({ value, angle }) => {
           const tickRadians = (angle - 90) * (Math.PI / 180);
           const innerRadius = radius - size * 0.08;
@@ -151,38 +155,27 @@ export function BMISpeedometer({ bmi, size = 180 }: BMISpeedometerProps) {
           stroke="hsl(var(--foreground))"
           strokeWidth={3}
           strokeLinecap="round"
+          className="transition-all duration-75"
         />
         
-        {/* Needle center circle */}
-        <circle
-          cx={centerX}
-          cy={centerY}
-          r={size * 0.045}
-          fill="hsl(var(--foreground))"
-        />
-        <circle
-          cx={centerX}
-          cy={centerY}
-          r={size * 0.025}
-          fill="hsl(var(--background))"
-        />
+        {/* Needle center */}
+        <circle cx={centerX} cy={centerY} r={size * 0.045} fill="hsl(var(--foreground))" />
+        <circle cx={centerX} cy={centerY} r={size * 0.025} fill="hsl(var(--background))" />
       </svg>
 
-      {/* IMT Value and Category */}
       <div className="text-center -mt-2 animate-fade-in" style={{ animationDelay: '0.8s', animationFillMode: 'backwards' }}>
-        <p className="text-3xl font-black transition-all duration-300" style={{ color: category.color }}>
-          {animatedBMI.toFixed(1)}
+        <p className="text-4xl font-black transition-all duration-300" style={{ color: category.color }}>
+          {animatedValue > 0 ? '+' : ''}{animatedValue}
         </p>
         <p className="text-sm font-semibold transition-all duration-300" style={{ color: category.color }}>
           {category.label}
         </p>
-        <p className="text-[10px] text-muted-foreground mt-1">kg/m²</p>
+        <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
       </div>
     </div>
   );
 }
 
-// Helper function to describe an arc path
 function describeArc(x: number, y: number, radius: number, startAngle: number, endAngle: number): string {
   const start = polarToCartesian(x, y, radius, endAngle);
   const end = polarToCartesian(x, y, radius, startAngle);
@@ -201,26 +194,3 @@ function polarToCartesian(centerX: number, centerY: number, radius: number, angl
     y: centerY + radius * Math.sin(angleInRadians)
   };
 }
-
-// IMT interpretation helper
-export function getIMTInterpretation(imt: number): string {
-  if (imt < 16) return 'Sangat Kurus (Severe Thinness)';
-  if (imt < 17) return 'Kurus (Moderate Thinness)';
-  if (imt < 18.5) return 'Kurus (Mild Thinness)';
-  if (imt < 25) return 'Normal';
-  if (imt < 30) return 'Kelebihan Berat Badan (Overweight)';
-  if (imt < 35) return 'Obesitas Kelas I';
-  if (imt < 40) return 'Obesitas Kelas II';
-  return 'Obesitas Kelas III (Morbid)';
-}
-
-export function getIMTRecommendation(imt: number): string {
-  if (imt < 18.5) return 'Perlu peningkatan asupan kalori dan latihan penguatan otot untuk menambah massa tubuh.';
-  if (imt < 25) return 'Pertahankan pola makan seimbang dan aktivitas fisik rutin.';
-  if (imt < 30) return 'Disarankan untuk meningkatkan aktivitas kardiovaskular dan menjaga pola makan.';
-  return 'Konsultasikan dengan ahli gizi untuk program penurunan berat badan yang tepat.';
-}
-
-// Backward compatible aliases
-export const getBMIInterpretation = getIMTInterpretation;
-export const getBMIRecommendation = getIMTRecommendation;

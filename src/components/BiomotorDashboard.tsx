@@ -7,21 +7,16 @@ import { useAthletes } from '@/hooks/useAthletes';
 import { useTestResults } from '@/hooks/useTestResults';
 import { Loader2, Download, Trophy, Medal, Award, TrendingUp, Users } from 'lucide-react';
 import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   Cell,
+  ResponsiveContainer,
 } from 'recharts';
+import { AnimatedRadarChart } from './AnimatedRadarChart';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
@@ -312,31 +307,12 @@ export function BiomotorDashboard() {
               <CardTitle className="text-base font-bold">Perbandingan Biomotor Antar Atlet</CardTitle>
             </CardHeader>
             <CardContent>
-              {athletes.length > 0 && radarData.some(d => Object.values(d).some(v => typeof v === 'number' && v > 0)) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="category" tick={{ fontSize: 10 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 5]} tick={{ fontSize: 10 }} />
-                    {athletes.slice(0, 5).map((athlete, index) => (
-                      <Radar
-                        key={athlete.id}
-                        name={athlete.name}
-                        dataKey={athlete.name}
-                        stroke={athleteColors[index]}
-                        fill={athleteColors[index]}
-                        fillOpacity={0.1}
-                      />
-                    ))}
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  Belum ada data tes biomotor
-                </div>
-              )}
+              <AnimatedRadarChart 
+                data={radarData}
+                athletes={athletes.slice(0, 5)}
+                colors={athleteColors}
+                height={300}
+              />
             </CardContent>
           </Card>
 
