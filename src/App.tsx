@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AthletePortal from "./pages/AthletePortal";
 import AdminPanel from "./pages/AdminPanel";
+import PremiumDashboard from "./pages/PremiumDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/premium" 
+                element={
+                  <ProtectedRoute>
+                    <PremiumDashboard />
                   </ProtectedRoute>
                 } 
               />
