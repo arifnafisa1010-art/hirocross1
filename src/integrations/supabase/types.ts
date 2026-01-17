@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_logs: {
+        Row: {
+          action: string
+          admin_email: string
+          admin_user_id: string
+          created_at: string
+          details: string | null
+          id: string
+          target_user_email: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_email: string
+          admin_user_id: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          target_user_email?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_email?: string
+          admin_user_id?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          target_user_email?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       athletes: {
         Row: {
           birth_date: string | null
@@ -325,6 +358,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_admin_activity_logs: {
+        Args: { _limit?: number }
+        Returns: {
+          action: string
+          admin_email: string
+          admin_user_id: string
+          created_at: string
+          details: string
+          id: string
+          target_user_email: string
+          target_user_id: string
+        }[]
+      }
       get_all_users: {
         Args: never
         Returns: {
@@ -353,6 +399,15 @@ export type Database = {
       is_athlete_in_program: {
         Args: { _program_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_admin_activity: {
+        Args: {
+          _action: string
+          _details?: string
+          _target_user_email?: string
+          _target_user_id?: string
+        }
+        Returns: string
       }
     }
     Enums: {
