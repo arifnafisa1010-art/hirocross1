@@ -15,6 +15,7 @@ import { id as idLocale } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { BMISpeedometer, getIMTInterpretation, getIMTRecommendation } from './BMISpeedometer';
+import { PercentageSpeedometer } from './PercentageSpeedometer';
 import hirocrossLogo from '@/assets/hirocross-logo-red.png';
 
 const categoryLabels: Record<string, string> = {
@@ -450,29 +451,9 @@ export function AthleteEvaluationReport() {
 
             {/* Overall Score with Radar */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Overall Score as Percentage */}
-              <div className="bg-gradient-to-br from-accent/20 to-accent/5 p-5 rounded-xl text-center border border-accent/30">
-                <p className="text-xs text-muted-foreground uppercase font-bold mb-2">Skor Keseluruhan</p>
-                <p className={`text-5xl font-black ${
-                  overallScore >= 80 ? 'text-success' :
-                  overallScore >= 60 ? 'text-amber-600' :
-                  'text-destructive'
-                }`}>
-                  {overallScore}%
-                </p>
-                <Badge className={`mt-2 text-sm px-3 py-1 ${
-                  overallScore >= 80 ? scoreLabels[5]?.color :
-                  overallScore >= 70 ? scoreLabels[4]?.color :
-                  overallScore >= 60 ? scoreLabels[3]?.color :
-                  overallScore >= 40 ? scoreLabels[2]?.color :
-                  scoreLabels[1]?.color
-                }`}>
-                  {overallScore >= 80 ? scoreLabels[5]?.label :
-                   overallScore >= 70 ? scoreLabels[4]?.label :
-                   overallScore >= 60 ? scoreLabels[3]?.label :
-                   overallScore >= 40 ? scoreLabels[2]?.label :
-                   scoreLabels[1]?.label}
-                </Badge>
+              {/* Overall Score Speedometer */}
+              <div className="bg-gradient-to-br from-accent/20 to-accent/5 p-4 rounded-xl border border-accent/30 flex items-center justify-center">
+                <PercentageSpeedometer percentage={overallScore} size={220} label="Skor Keseluruhan" />
               </div>
 
               {/* Radar Chart - using test item names */}
