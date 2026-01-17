@@ -311,7 +311,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _target_user_id: string
+        }
+        Returns: boolean
+      }
+      admin_remove_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _target_user_id: string
+        }
+        Returns: boolean
+      }
+      get_all_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          last_sign_in_at: string
+        }[]
+      }
       get_athlete_id_from_user: { Args: { _user_id: string }; Returns: string }
+      get_user_roles_admin: {
+        Args: never
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
