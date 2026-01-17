@@ -16,10 +16,12 @@ const categoryLabels: Record<string, string> = {
 
 // Age groups matching database norms structure
 const ageGroups = [
-  { value: '6-12', label: '6-12 tahun', age: 9 },
+  { value: '6-9', label: '6-9 tahun', age: 8 },
+  { value: '10-12', label: '10-12 tahun', age: 11 },
   { value: '13-15', label: '13-15 tahun', age: 14 },
-  { value: '16-19', label: '16-19 tahun', age: 17 },
-  { value: '20-29', label: '20-29 tahun', age: 24 },
+  { value: '16-18', label: '16-18 tahun', age: 17 },
+  { value: '19-25', label: '19-25 tahun', age: 22 },
+  { value: '26-30', label: '26-30 tahun', age: 28 },
   { value: '30+', label: '30+ tahun', age: 35 },
 ];
 
@@ -27,7 +29,7 @@ export function TestNormsTable() {
   const { norms, loading } = useTestNorms();
   const [selectedCategory, setSelectedCategory] = useState<string>('Strength');
   const [selectedGender, setSelectedGender] = useState<string>('M');
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('20-29');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('19-25');
 
   const filteredNorms = useMemo(() => {
     const ageGroup = ageGroups.find(g => g.value === selectedAgeGroup);
