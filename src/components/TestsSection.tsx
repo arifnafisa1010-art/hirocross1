@@ -57,9 +57,9 @@ const categories = [
 // Items for each biomotor category matching database norms
 const items: Record<string, string[]> = {
   'Kekuatan': [
-    'Push Up', 'Pull Up', 'Sit Up 60s', 'Hand Grip', 'Leg Press',
-    'Bench Press', 'Squat', 'Deadlift', 'Back Extension', 'Plank', 'Dips',
-    'Leg Dynamometer', 'Back Dynamometer'
+    'Push Up', 'Pull Up', 'Sit Up 60s', 'Hand Grip', 'Grip Strength Dynamometer',
+    'Leg Press', 'Bench Press', 'Squat', 'Deadlift', 'Back Extension', 'Plank', 
+    'Dips', 'Leg Dynamometer', 'Back Dynamometer', 'Arm Dynamometer'
   ],
   'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m'],
   'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m'],
@@ -76,6 +76,7 @@ const defaultUnits: Record<string, string> = {
   'Pull Up': 'reps',
   'Sit Up 60s': 'reps',
   'Hand Grip': 'kg',
+  'Grip Strength Dynamometer': 'kg',
   'Leg Press': 'kg',
   'Bench Press': 'xBW',
   'Squat': 'xBW',
@@ -85,6 +86,7 @@ const defaultUnits: Record<string, string> = {
   'Dips': 'reps',
   'Leg Dynamometer': 'kg',
   'Back Dynamometer': 'kg',
+  'Arm Dynamometer': 'kg',
   // Daya Tahan
   'Cooper Test 12min': 'm',
   'Bleep Test': 'level',
@@ -125,45 +127,47 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Push Up': { min: 0, max: 150, hint: '0-150 reps' },
   'Pull Up': { min: 0, max: 50, hint: '0-50 reps' },
   'Sit Up 60s': { min: 0, max: 100, hint: '0-100 reps' },
-  'Hand Grip': { min: 10, max: 100, hint: '10-100 kg' },
-  'Leg Press': { min: 30, max: 400, hint: '30-400 kg' },
+  'Hand Grip': { min: 5, max: 100, hint: '5-100 kg' },
+  'Grip Strength Dynamometer': { min: 5, max: 100, hint: '5-100 kg' },
+  'Leg Press': { min: 20, max: 500, hint: '20-500 kg' },
   'Bench Press': { min: 0.1, max: 4, hint: '0.1-4x berat badan (masukkan rasio)' },
   'Squat': { min: 0.1, max: 4, hint: '0.1-4x berat badan (masukkan rasio)' },
   'Deadlift': { min: 0.1, max: 5, hint: '0.1-5x berat badan (masukkan rasio)' },
   'Back Extension': { min: 0, max: 80, hint: '0-80 reps' },
-  'Plank': { min: 10, max: 300, hint: '10-300 detik' },
+  'Plank': { min: 5, max: 300, hint: '5-300 detik' },
   'Dips': { min: 0, max: 50, hint: '0-50 reps' },
-  'Leg Dynamometer': { min: 30, max: 400, hint: '30-400 kg' },
-  'Back Dynamometer': { min: 30, max: 300, hint: '30-300 kg' },
+  'Leg Dynamometer': { min: 20, max: 500, hint: '20-500 kg' },
+  'Back Dynamometer': { min: 20, max: 400, hint: '20-400 kg' },
+  'Arm Dynamometer': { min: 5, max: 100, hint: '5-100 kg' },
   // Daya Tahan
-  'Cooper Test 12min': { min: 1000, max: 4000, hint: '1000-4000 m' },
+  'Cooper Test 12min': { min: 800, max: 4000, hint: '800-4000 m' },
   'Bleep Test': { min: 1, max: 21, hint: 'Level 1-21' },
   'Yo-Yo IR1': { min: 1, max: 23, hint: 'Level 1-23' },
-  'Lari 2400m': { min: 6, max: 20, hint: '6-20 menit' },
+  'Lari 2400m': { min: 6, max: 25, hint: '6-25 menit' },
   // Kecepatan
-  'Sprint 30m': { min: 3, max: 8, hint: '3-8 detik' },
-  'Sprint 60m': { min: 6, max: 15, hint: '6-15 detik' },
-  'Sprint 100m': { min: 10, max: 20, hint: '10-20 detik' },
+  'Sprint 30m': { min: 3, max: 10, hint: '3-10 detik' },
+  'Sprint 60m': { min: 6, max: 18, hint: '6-18 detik' },
+  'Sprint 100m': { min: 10, max: 25, hint: '10-25 detik' },
   // Fleksibilitas
   'Sit and Reach': { min: -20, max: 60, hint: '-20 sampai 60 cm' },
-  'Shoulder Flexibility': { min: -20, max: 20, hint: '-20 sampai 20 cm' },
-  'Trunk Rotation': { min: 10, max: 80, hint: '10-80 derajat' },
+  'Shoulder Flexibility': { min: -25, max: 25, hint: '-25 sampai 25 cm' },
+  'Trunk Rotation': { min: 10, max: 90, hint: '10-90 derajat' },
   // Power
-  'Vertical Jump': { min: 10, max: 100, hint: '10-100 cm' },
-  'Standing Long Jump': { min: 100, max: 350, hint: '100-350 cm' },
-  'Medicine Ball Throw': { min: 2, max: 15, hint: '2-15 m' },
+  'Vertical Jump': { min: 5, max: 100, hint: '5-100 cm' },
+  'Standing Long Jump': { min: 80, max: 380, hint: '80-380 cm' },
+  'Medicine Ball Throw': { min: 1, max: 20, hint: '1-20 m' },
   // Kelincahan
-  'Agility T-Test': { min: 7, max: 18, hint: '7-18 detik' },
-  'Illinois Agility': { min: 12, max: 25, hint: '12-25 detik' },
-  'Hexagon Test': { min: 8, max: 20, hint: '8-20 detik' },
+  'Agility T-Test': { min: 7, max: 20, hint: '7-20 detik' },
+  'Illinois Agility': { min: 12, max: 30, hint: '12-30 detik' },
+  'Hexagon Test': { min: 8, max: 25, hint: '8-25 detik' },
   // Keseimbangan
-  'Stork Stand Test': { min: 5, max: 120, hint: '5-120 detik' },
-  'Y Balance Test': { min: 50, max: 150, hint: '50-150 cm' },
-  'Single Leg Stance': { min: 5, max: 120, hint: '5-120 detik' },
+  'Stork Stand Test': { min: 3, max: 120, hint: '3-120 detik' },
+  'Y Balance Test': { min: 40, max: 160, hint: '40-160 cm' },
+  'Single Leg Stance': { min: 3, max: 120, hint: '3-120 detik' },
   // Reaksi
-  'Reaction Time': { min: 100, max: 500, hint: '100-500 ms' },
-  'Audio Reaction': { min: 80, max: 400, hint: '80-400 ms' },
-  'Visual Reaction': { min: 100, max: 500, hint: '100-500 ms' },
+  'Reaction Time': { min: 80, max: 600, hint: '80-600 ms' },
+  'Audio Reaction': { min: 60, max: 500, hint: '60-500 ms' },
+  'Visual Reaction': { min: 80, max: 600, hint: '80-600 ms' },
 };
 
 // Validation function for test values
