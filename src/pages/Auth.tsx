@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdmin } from '@/hooks/useAdmin';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +10,21 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
+
+// Function to check if user is admin
+async function checkIsAdmin(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('is_admin', { _user_id: userId });
+    if (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+    return data === true;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+}
 
 // Function to auto-link athlete when user logs in and check if they are an athlete
 async function checkAndLinkAthlete(userId: string, email: string): Promise<boolean> {
@@ -52,7 +66,6 @@ async function checkAndLinkAthlete(userId: string, email: string): Promise<boole
 export default function Auth() {
   const navigate = useNavigate();
   const { user, loading, signIn, signUp, resetPassword } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,34 +73,45 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const [checkingRole, setCheckingRole] = useState(false);
 
+  // Function to determine user role and redirect
+  const handleUserRedirect = useCallback(async (userId: string, userEmail: string) => {
+    if (checkingRole) return;
+    setCheckingRole(true);
+    
+    try {
+      // Check if admin first
+      const isAdmin = await checkIsAdmin(userId);
+      
+      if (isAdmin) {
+        console.log('User is admin, redirecting to /admin');
+        navigate('/admin', { replace: true });
+        return;
+      }
+      
+      // Check if athlete
+      const isAthlete = await checkAndLinkAthlete(userId, userEmail);
+      
+      if (isAthlete) {
+        console.log('User is athlete, redirecting to /athlete');
+        navigate('/athlete', { replace: true });
+      } else {
+        console.log('User is regular user, redirecting to /app');
+        navigate('/app', { replace: true });
+      }
+    } catch (error) {
+      console.error('Error during redirect:', error);
+      navigate('/app', { replace: true });
+    } finally {
+      setCheckingRole(false);
+    }
+  }, [checkingRole, navigate]);
+
   // Check user role and redirect accordingly
   useEffect(() => {
-    const checkUserRole = async () => {
-      if (user && !loading && !adminLoading && !checkingRole) {
-        setCheckingRole(true);
-        
-        // Check if admin first
-        if (isAdmin) {
-          navigate('/admin', { replace: true });
-          setCheckingRole(false);
-          return;
-        }
-        
-        // Check if athlete
-        const isAthlete = await checkAndLinkAthlete(user.id, user.email || '');
-        
-        if (isAthlete) {
-          navigate('/athlete', { replace: true });
-        } else {
-          navigate('/app', { replace: true });
-        }
-        
-        setCheckingRole(false);
-      }
-    };
-    
-    checkUserRole();
-  }, [user, loading, adminLoading, isAdmin, navigate, checkingRole]);
+    if (user && !loading && !checkingRole) {
+      handleUserRedirect(user.id, user.email || '');
+    }
+  }, [user, loading, checkingRole, handleUserRedirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
