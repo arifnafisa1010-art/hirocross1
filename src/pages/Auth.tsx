@@ -28,19 +28,17 @@ async function checkIsAdmin(userId: string): Promise<boolean> {
 
 // Function to auto-link athlete when user logs in and check if they are an athlete
 async function checkAndLinkAthlete(userId: string, email: string): Promise<boolean> {
-  const normalizedEmail = email.toLowerCase().trim();
-  
   try {
     // First, try to auto-link if there's a pending link
+    // Use the secure view that only exposes the id (no sensitive data)
     const { data: pendingAthlete } = await supabase
-      .from('athletes')
+      .from('athletes_pending_links')
       .select('id')
-      .eq('pending_link_email', normalizedEmail)
-      .is('linked_user_id', null)
       .maybeSingle();
     
     if (pendingAthlete) {
-      // Link the athlete to this user
+      // Link the athlete to this user using the UPDATE policy
+      // The policy allows updating only records where pending_link_email matches user's email
       await supabase
         .from('athletes')
         .update({ linked_user_id: userId, pending_link_email: null })
