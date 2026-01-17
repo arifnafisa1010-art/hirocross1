@@ -14,29 +14,33 @@ const categoryLabels: Record<string, string> = {
   'Tactic': 'Taktik',
 };
 
+// Age groups matching database norms structure
 const ageGroups = [
-  { value: '13-15', label: '13-15 tahun', min: 13, max: 15 },
-  { value: '16-18', label: '16-18 tahun', min: 16, max: 18 },
-  { value: '19-25', label: '19-25 tahun', min: 19, max: 25 },
-  { value: '26-35', label: '26-35 tahun', min: 26, max: 35 },
-  { value: '36+', label: '36+ tahun', min: 36, max: 99 },
+  { value: '6-12', label: '6-12 tahun', age: 9 },
+  { value: '13-15', label: '13-15 tahun', age: 14 },
+  { value: '16-19', label: '16-19 tahun', age: 17 },
+  { value: '20-29', label: '20-29 tahun', age: 24 },
+  { value: '30+', label: '30+ tahun', age: 35 },
 ];
 
 export function TestNormsTable() {
   const { norms, loading } = useTestNorms();
   const [selectedCategory, setSelectedCategory] = useState<string>('Strength');
   const [selectedGender, setSelectedGender] = useState<string>('M');
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('19-25');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('20-29');
 
   const filteredNorms = useMemo(() => {
     const ageGroup = ageGroups.find(g => g.value === selectedAgeGroup);
     if (!ageGroup) return [];
 
+    // Use representative age to find matching norms
+    const representativeAge = ageGroup.age;
+    
     return norms.filter(n => 
       n.category === selectedCategory &&
       (n.gender === selectedGender || n.gender === 'ALL') &&
-      (n.age_min || 0) <= ageGroup.min &&
-      (n.age_max || 99) >= ageGroup.max
+      (n.age_min || 0) <= representativeAge &&
+      (n.age_max || 99) >= representativeAge
     ).sort((a, b) => a.item.localeCompare(b.item));
   }, [norms, selectedCategory, selectedGender, selectedAgeGroup]);
 
