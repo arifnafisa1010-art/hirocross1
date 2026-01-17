@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 interface PercentageSpeedometerProps {
   percentage: number;
@@ -15,14 +15,38 @@ const getPercentageCategory = (percentage: number) => {
 };
 
 export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Keseluruhan' }: PercentageSpeedometerProps) {
+  const [animatedPercentage, setAnimatedPercentage] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  
   const category = useMemo(() => getPercentageCategory(percentage), [percentage]);
+  
+  // Animate on mount
+  useEffect(() => {
+    setIsVisible(true);
+    const duration = 1500; // 1.5 seconds
+    const steps = 60;
+    const stepValue = percentage / steps;
+    let currentStep = 0;
+    
+    const timer = setInterval(() => {
+      currentStep++;
+      if (currentStep >= steps) {
+        setAnimatedPercentage(percentage);
+        clearInterval(timer);
+      } else {
+        setAnimatedPercentage(Math.round(stepValue * currentStep));
+      }
+    }, duration / steps);
+    
+    return () => clearInterval(timer);
+  }, [percentage]);
   
   // Calculate needle angle (-90 to 90 degrees)
   // Percentage 0 to 100 maps to -90 to 90 degrees
   const needleAngle = useMemo(() => {
-    const clampedPercentage = Math.max(0, Math.min(100, percentage));
+    const clampedPercentage = Math.max(0, Math.min(100, animatedPercentage));
     return -90 + (clampedPercentage / 100) * 180;
-  }, [percentage]);
+  }, [animatedPercentage]);
 
   const centerX = size / 2;
   const centerY = size / 2 + 10;
@@ -35,7 +59,7 @@ export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Ke
   const needleY = centerY + needleLength * Math.sin(needleRadians);
 
   return (
-    <div className="flex flex-col items-center">
+    <div className={`flex flex-col items-center transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       <svg width={size} height={size * 0.65} viewBox={`0 0 ${size} ${size * 0.65}`}>
         {/* Background arc segments - 5 levels from Kurang to Sangat Baik */}
         {/* Kurang (0-40%) - Red */}
@@ -45,6 +69,8 @@ export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Ke
           stroke="#ef4444"
           strokeWidth={size * 0.12}
           strokeLinecap="round"
+          className="animate-[scale-in_0.5s_ease-out]"
+          style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
         {/* Cukup (40-60%) - Orange */}
         <path
@@ -52,6 +78,8 @@ export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Ke
           fill="none"
           stroke="#f97316"
           strokeWidth={size * 0.12}
+          className="animate-[scale-in_0.6s_ease-out]"
+          style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
         {/* Sedang (60-70%) - Amber */}
         <path
@@ -59,6 +87,8 @@ export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Ke
           fill="none"
           stroke="#f59e0b"
           strokeWidth={size * 0.12}
+          className="animate-[scale-in_0.7s_ease-out]"
+          style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
         {/* Baik (70-80%) - Lime */}
         <path
@@ -66,6 +96,8 @@ export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Ke
           fill="none"
           stroke="#84cc16"
           strokeWidth={size * 0.12}
+          className="animate-[scale-in_0.8s_ease-out]"
+          style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
         {/* Sangat Baik (80-100%) - Green */}
         <path
@@ -74,6 +106,8 @@ export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Ke
           stroke="#22c55e"
           strokeWidth={size * 0.12}
           strokeLinecap="round"
+          className="animate-[scale-in_0.9s_ease-out]"
+          style={{ transformOrigin: `${centerX}px ${centerY}px` }}
         />
 
         {/* Tick marks and labels */}
@@ -143,11 +177,11 @@ export function PercentageSpeedometer({ percentage, size = 200, label = 'Skor Ke
       </svg>
 
       {/* Percentage Value and Category */}
-      <div className="text-center -mt-2">
-        <p className="text-4xl font-black" style={{ color: category.color }}>
-          {percentage}%
+      <div className="text-center -mt-2 animate-fade-in" style={{ animationDelay: '0.8s', animationFillMode: 'backwards' }}>
+        <p className="text-4xl font-black transition-all duration-300" style={{ color: category.color }}>
+          {animatedPercentage}%
         </p>
-        <p className="text-sm font-semibold" style={{ color: category.color }}>
+        <p className="text-sm font-semibold transition-all duration-300" style={{ color: category.color }}>
           {category.label}
         </p>
         <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
