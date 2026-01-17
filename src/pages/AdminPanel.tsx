@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdmin } from '@/hooks/useAdmin';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +32,7 @@ import {
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserWithRole {
   id: string;
@@ -56,13 +56,44 @@ interface ActivityLog {
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
-  const { isAdmin, loading: adminLoading, fetchAllUsers, fetchActivityLogs, addRole, removeRole, sendPasswordResetEmail } = useAdmin();
   
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [adminLoading, setAdminLoading] = useState(true);
+
+  // Check admin status directly from database
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setAdminLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('is_admin', { _user_id: user.id });
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data === true);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setAdminLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      checkAdminStatus();
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -71,18 +102,82 @@ export default function AdminPanel() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (!adminLoading && !isAdmin && user) {
+    if (!adminLoading && isAdmin === false && user) {
       toast.error('Akses ditolak. Anda bukan admin.');
       navigate('/app', { replace: true });
     }
   }, [isAdmin, adminLoading, user, navigate]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin === true) {
       loadUsers();
       loadActivityLogs();
     }
   }, [isAdmin]);
+
+  // Admin helper functions
+  const logActivity = async (action: string, targetUserId?: string, targetUserEmail?: string, details?: string) => {
+    try {
+      await supabase.rpc('log_admin_activity', {
+        _action: action,
+        _target_user_id: targetUserId || null,
+        _target_user_email: targetUserEmail || null,
+        _details: details || null
+      });
+    } catch (error) {
+      console.error('Error logging activity:', error);
+    }
+  };
+
+  const fetchAllUsers = async (): Promise<UserWithRole[]> => {
+    const { data: usersData, error: usersError } = await supabase.rpc('get_all_users');
+    if (usersError) throw usersError;
+
+    const { data: roles, error: rolesError } = await supabase.rpc('get_user_roles_admin');
+    if (rolesError) throw rolesError;
+
+    const rolesMap = new Map<string, 'admin' | 'user'>();
+    roles?.forEach((r: { user_id: string; role: 'admin' | 'user' }) => {
+      rolesMap.set(r.user_id, r.role);
+    });
+
+    return (usersData || []).map((u: { id: string; email: string; created_at: string; last_sign_in_at: string | null }) => ({
+      ...u,
+      role: rolesMap.get(u.id) || null
+    }));
+  };
+
+  const fetchActivityLogsData = async (limit: number = 50): Promise<ActivityLog[]> => {
+    const { data, error } = await supabase.rpc('get_admin_activity_logs', { _limit: limit });
+    if (error) throw error;
+    return data || [];
+  };
+
+  const addRole = async (userId: string, role: 'admin' | 'user', userEmail: string) => {
+    const { error } = await supabase.rpc('admin_add_role', {
+      _target_user_id: userId,
+      _role: role
+    });
+    if (error) throw error;
+    await logActivity('ADD_ROLE', userId, userEmail, `Menambahkan role: ${role}`);
+  };
+
+  const removeRole = async (userId: string, role: 'admin' | 'user', userEmail: string) => {
+    const { error } = await supabase.rpc('admin_remove_role', {
+      _target_user_id: userId,
+      _role: role
+    });
+    if (error) throw error;
+    await logActivity('REMOVE_ROLE', userId, userEmail, `Menghapus role: ${role}`);
+  };
+
+  const sendPasswordResetEmail = async (email: string, userId?: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth?type=recovery`,
+    });
+    if (error) throw error;
+    await logActivity('PASSWORD_RESET', userId || undefined, email, 'Mengirim link reset password');
+  };
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -99,7 +194,7 @@ export default function AdminPanel() {
   const loadActivityLogs = async () => {
     setLoadingLogs(true);
     try {
-      const data = await fetchActivityLogs(100);
+      const data = await fetchActivityLogsData(100);
       setActivityLogs(data);
     } catch (error: any) {
       toast.error('Gagal memuat log aktivitas: ' + error.message);
