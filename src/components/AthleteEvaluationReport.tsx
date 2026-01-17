@@ -119,11 +119,12 @@ export function AthleteEvaluationReport() {
     }));
   }, [athleteResults]);
 
-  // Calculate overall score
+  // Calculate overall score as percentage (0-100%)
   const overallScore = useMemo(() => {
     if (athleteResults.length === 0) return 0;
     const total = athleteResults.reduce((sum, r) => sum + r.score, 0);
-    return Math.round((total / athleteResults.length) * 10) / 10;
+    const average = total / athleteResults.length;
+    return Math.round((average / 5) * 100);
   }, [athleteResults]);
 
   // Get comparison with norm
@@ -449,19 +450,28 @@ export function AthleteEvaluationReport() {
 
             {/* Overall Score with Radar */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Overall Score */}
+              {/* Overall Score as Percentage */}
               <div className="bg-gradient-to-br from-accent/20 to-accent/5 p-5 rounded-xl text-center border border-accent/30">
                 <p className="text-xs text-muted-foreground uppercase font-bold mb-2">Skor Keseluruhan</p>
                 <p className={`text-5xl font-black ${
-                  overallScore >= 4 ? 'text-success' :
-                  overallScore >= 3 ? 'text-amber-600' :
+                  overallScore >= 80 ? 'text-success' :
+                  overallScore >= 60 ? 'text-amber-600' :
                   'text-destructive'
                 }`}>
-                  {overallScore}
+                  {overallScore}%
                 </p>
-                <p className="text-lg text-muted-foreground">/5</p>
-                <Badge className={`mt-2 text-sm px-3 py-1 ${scoreLabels[Math.round(overallScore)]?.color || 'bg-secondary'}`}>
-                  {scoreLabels[Math.round(overallScore)]?.label || '-'}
+                <Badge className={`mt-2 text-sm px-3 py-1 ${
+                  overallScore >= 80 ? scoreLabels[5]?.color :
+                  overallScore >= 70 ? scoreLabels[4]?.color :
+                  overallScore >= 60 ? scoreLabels[3]?.color :
+                  overallScore >= 40 ? scoreLabels[2]?.color :
+                  scoreLabels[1]?.color
+                }`}>
+                  {overallScore >= 80 ? scoreLabels[5]?.label :
+                   overallScore >= 70 ? scoreLabels[4]?.label :
+                   overallScore >= 60 ? scoreLabels[3]?.label :
+                   overallScore >= 40 ? scoreLabels[2]?.label :
+                   scoreLabels[1]?.label}
                 </Badge>
               </div>
 
