@@ -10,6 +10,17 @@ interface UserWithRole {
   role: 'admin' | 'user' | null;
 }
 
+interface ActivityLog {
+  id: string;
+  admin_user_id: string;
+  admin_email: string;
+  action: string;
+  target_user_id: string | null;
+  target_user_email: string | null;
+  details: string | null;
+  created_at: string;
+}
+
 export function useAdmin() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -38,6 +49,19 @@ export function useAdmin() {
     checkAdmin();
   }, [user]);
 
+  const logActivity = async (action: string, targetUserId?: string, targetUserEmail?: string, details?: string) => {
+    try {
+      await supabase.rpc('log_admin_activity', {
+        _action: action,
+        _target_user_id: targetUserId || null,
+        _target_user_email: targetUserEmail || null,
+        _details: details || null
+      });
+    } catch (error) {
+      console.error('Error logging activity:', error);
+    }
+  };
+
   const fetchAllUsers = async (): Promise<UserWithRole[]> => {
     try {
       // Get all users
@@ -64,35 +88,58 @@ export function useAdmin() {
     }
   };
 
-  const addRole = async (userId: string, role: 'admin' | 'user') => {
+  const fetchActivityLogs = async (limit: number = 50): Promise<ActivityLog[]> => {
+    try {
+      const { data, error } = await supabase.rpc('get_admin_activity_logs', { _limit: limit });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+      throw error;
+    }
+  };
+
+  const addRole = async (userId: string, role: 'admin' | 'user', userEmail: string) => {
     const { data, error } = await supabase.rpc('admin_add_role', {
       _target_user_id: userId,
       _role: role
     });
     if (error) throw error;
+    
+    // Log activity
+    await logActivity('ADD_ROLE', userId, userEmail, `Menambahkan role: ${role}`);
+    
     return data;
   };
 
-  const removeRole = async (userId: string, role: 'admin' | 'user') => {
+  const removeRole = async (userId: string, role: 'admin' | 'user', userEmail: string) => {
     const { data, error } = await supabase.rpc('admin_remove_role', {
       _target_user_id: userId,
       _role: role
     });
     if (error) throw error;
+    
+    // Log activity
+    await logActivity('REMOVE_ROLE', userId, userEmail, `Menghapus role: ${role}`);
+    
     return data;
   };
 
-  const sendPasswordResetEmail = async (email: string) => {
+  const sendPasswordResetEmail = async (email: string, userId?: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth?type=recovery`,
     });
     if (error) throw error;
+    
+    // Log activity
+    await logActivity('PASSWORD_RESET', userId || null, email, 'Mengirim link reset password');
   };
 
   return {
     isAdmin,
     loading,
     fetchAllUsers,
+    fetchActivityLogs,
     addRole,
     removeRole,
     sendPasswordResetEmail
