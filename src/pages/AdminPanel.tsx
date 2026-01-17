@@ -13,6 +13,16 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { 
   Loader2, 
@@ -64,6 +74,13 @@ export default function AdminPanel() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
+  
+  // Password reset dialog state
+  const [resetPasswordDialog, setResetPasswordDialog] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<{ id: string; email: string } | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Check admin status directly from database
   useEffect(() => {
@@ -171,12 +188,65 @@ export default function AdminPanel() {
     await logActivity('REMOVE_ROLE', userId, userEmail, `Menghapus role: ${role}`);
   };
 
-  const sendPasswordResetEmail = async (email: string, userId?: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth?type=recovery`,
-    });
-    if (error) throw error;
-    await logActivity('PASSWORD_RESET', userId || undefined, email, 'Mengirim link reset password');
+  // Direct password reset via edge function
+  const handleDirectPasswordReset = async () => {
+    if (!resetPasswordUser) return;
+    
+    if (newPassword !== confirmPassword) {
+      toast.error('Password tidak sama!');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error('Password minimal 6 karakter!');
+      return;
+    }
+    
+    setResetLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Sesi tidak valid. Silakan login ulang.');
+        return;
+      }
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId: resetPasswordUser.id,
+          newPassword: newPassword,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Gagal reset password');
+      }
+      
+      await logActivity('PASSWORD_RESET', resetPasswordUser.id, resetPasswordUser.email, 'Reset password langsung oleh admin');
+      toast.success(`Password ${resetPasswordUser.email} berhasil diubah!`);
+      setResetPasswordDialog(false);
+      setResetPasswordUser(null);
+      setNewPassword('');
+      setConfirmPassword('');
+      await loadActivityLogs();
+    } catch (error: any) {
+      toast.error('Gagal reset password: ' + error.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const openResetPasswordDialog = (userId: string, email: string) => {
+    setResetPasswordUser({ id: userId, email });
+    setNewPassword('');
+    setConfirmPassword('');
+    setResetPasswordDialog(true);
   };
 
   const loadUsers = async () => {
@@ -200,19 +270,6 @@ export default function AdminPanel() {
       toast.error('Gagal memuat log aktivitas: ' + error.message);
     } finally {
       setLoadingLogs(false);
-    }
-  };
-
-  const handleSendResetEmail = async (userId: string, email: string) => {
-    setActionLoading(email);
-    try {
-      await sendPasswordResetEmail(email, userId);
-      toast.success(`Link reset password berhasil dikirim ke ${email}`);
-      await loadActivityLogs();
-    } catch (error: any) {
-      toast.error('Gagal mengirim link reset: ' + error.message);
-    } finally {
-      setActionLoading(null);
     }
   };
 
@@ -431,9 +488,9 @@ export default function AdminPanel() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleSendResetEmail(u.id, u.email)}>
-                                      <Mail className="w-4 h-4 mr-2" />
-                                      Kirim Reset Password
+                                    <DropdownMenuItem onClick={() => openResetPasswordDialog(u.id, u.email)}>
+                                      <KeyRound className="w-4 h-4 mr-2" />
+                                      Reset Password
                                     </DropdownMenuItem>
                                     {u.role === 'admin' ? (
                                       <DropdownMenuItem 
@@ -467,8 +524,8 @@ export default function AdminPanel() {
                     </h4>
                     <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• Password tidak bisa dilihat karena dienkripsi (standar keamanan).</li>
-                      <li>• Gunakan "Kirim Reset Password" untuk mengirim link reset ke email user.</li>
-                      <li>• User akan menerima email berisi link untuk membuat password baru.</li>
+                      <li>• Gunakan "Reset Password" untuk langsung mengubah password user.</li>
+                      <li>• Admin dapat langsung membuat password baru tanpa perlu mengirim email.</li>
                     </ul>
                   </div>
                 </CardContent>
@@ -554,6 +611,65 @@ export default function AdminPanel() {
           </Tabs>
         </main>
       </div>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={resetPasswordDialog} onOpenChange={setResetPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              Reset Password
+            </DialogTitle>
+            <DialogDescription>
+              Buat password baru untuk <strong>{resetPasswordUser?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Password Baru</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Minimal 6 karakter"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Ulangi password baru"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setResetPasswordDialog(false)}
+              disabled={resetLoading}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleDirectPasswordReset}
+              disabled={resetLoading || !newPassword || !confirmPassword}
+            >
+              {resetLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Password'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
