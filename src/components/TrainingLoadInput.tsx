@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { calculateSessionLoad } from '@/hooks/useTrainingLoads';
 
 interface TrainingLoadInputProps {
   onSubmit: (data: {
@@ -56,7 +57,7 @@ export function TrainingLoadInput({ onSubmit, athleteId }: TrainingLoadInputProp
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const sessionLoad = duration * rpe;
+  const sessionLoad = calculateSessionLoad(duration, rpe);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,8 +238,9 @@ export function TrainingLoadInput({ onSubmit, athleteId }: TrainingLoadInputProp
 
           {/* Info Box */}
           <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-            <p><strong>Session Load = Durasi × RPE</strong></p>
-            <p className="mt-1">Contoh: 60 menit × RPE 7 = 420 AU (Arbitrary Units)</p>
+            <p><strong>Session Load berdasarkan RPE (untuk 60 menit):</strong></p>
+            <p className="mt-1">RPE 1-5: 20-60 AU | RPE 6-7: 70-80 AU | RPE 8-10: 100-140 AU</p>
+            <p className="mt-1 text-xs">Load dihitung proporsional dengan durasi latihan</p>
           </div>
         </form>
       </CardContent>

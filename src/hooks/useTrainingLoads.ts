@@ -35,6 +35,27 @@ interface ACWRData {
 const FITNESS_DECAY = 42; // CTL time constant (days)
 const FATIGUE_DECAY = 7; // ATL time constant (days)
 
+// RPE-based TSS calculation (for 60 min session)
+// This formula calculates load based on RPE where higher RPE has exponentially higher impact
+const RPE_LOAD_MAP: Record<number, number> = {
+  1: 20,   // Very light
+  2: 30,   // Light
+  3: 40,   // Light-moderate
+  4: 50,   // Moderate
+  5: 60,   // Moderate
+  6: 70,   // Moderate-hard
+  7: 80,   // Hard
+  8: 100,  // Very hard
+  9: 120,  // Very very hard
+  10: 140, // Maximum
+};
+
+export function calculateSessionLoad(durationMinutes: number, rpe: number): number {
+  const baseLoad = RPE_LOAD_MAP[Math.min(10, Math.max(1, Math.round(rpe)))] || 60;
+  // Scale based on duration (base is 60 min)
+  return Math.round((durationMinutes / 60) * baseLoad);
+}
+
 export function useTrainingLoads(athleteId?: string) {
   const { user } = useAuth();
   const [loads, setLoads] = useState<TrainingLoad[]>([]);
@@ -91,23 +112,13 @@ export function useTrainingLoads(athleteId?: string) {
   }, [user, athleteId]);
 
   const calculateMetrics = (loadData: TrainingLoad[]) => {
-    if (loadData.length === 0) {
-      setDailyMetrics([]);
-      setAcwrData({
-        acwr: 0,
-        acuteLoad: 0,
-        chronicLoad: 0,
-        riskZone: 'undertrained',
-      });
-      setCurrentMetrics({ fitness: 0, fatigue: 0, form: 0 });
-      return;
-    }
-
-    // Group loads by date
+    // Group loads by date (use calculated load based on RPE formula)
     const loadsByDate = new Map<string, number>();
     loadData.forEach(load => {
       const existing = loadsByDate.get(load.session_date) || 0;
-      loadsByDate.set(load.session_date, existing + load.session_load);
+      // Use session_load if available, otherwise calculate
+      const sessionLoad = load.session_load || calculateSessionLoad(load.duration_minutes, load.rpe);
+      loadsByDate.set(load.session_date, existing + sessionLoad);
     });
 
     // Calculate daily fitness and fatigue using exponential decay
@@ -189,6 +200,9 @@ export function useTrainingLoads(athleteId?: string) {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
+      // Calculate session load using RPE-based formula
+      const sessionLoad = calculateSessionLoad(data.duration_minutes, data.rpe);
+      
       const { data: insertedData, error } = await supabase
         .from('training_loads')
         .insert({
@@ -197,6 +211,7 @@ export function useTrainingLoads(athleteId?: string) {
           session_date: data.session_date,
           duration_minutes: data.duration_minutes,
           rpe: data.rpe,
+          session_load: sessionLoad,
           training_type: data.training_type,
           notes: data.notes || null,
         })
