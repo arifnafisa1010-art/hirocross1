@@ -2,17 +2,23 @@ import { useState, useMemo } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
-import { Card, CardContent } from '@/components/ui/card';
+import { useTrainingLoads } from '@/hooks/useTrainingLoads';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { TrainingLoadInput } from './TrainingLoadInput';
+import { TrainingLoadHistory } from './TrainingLoadHistory';
+import { PremiumBadge } from './PremiumBadge';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 const dayOffsets = [0, 1, 2, 3, 4, 5, 6]; // Monday = 0, Sunday = 6
@@ -21,12 +27,15 @@ export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
   const { athletes } = useAthletes();
   const { saveProgram, currentProgram, loading: programLoading, resyncSessions } = useTrainingPrograms();
+  const { hasPremium } = usePremiumAccess();
+  const { loads, loading: loadsLoading, addLoad, deleteLoad } = useTrainingLoads();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ week: number; day: string } | null>(null);
   const [showAthleteSelector, setShowAthleteSelector] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resyncing, setResyncing] = useState(false);
+  const [loadInputOpen, setLoadInputOpen] = useState(false);
 
   // Group weeks into months (4 weeks per month)
   const months = useMemo(() => {
@@ -536,6 +545,65 @@ export function MonthlySection() {
           );
         })}
       </div>
+
+      {/* Training Load Input Section (Premium Feature) */}
+      {hasPremium && (
+        <Collapsible open={loadInputOpen} onOpenChange={setLoadInputOpen}>
+          <Card className="border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50/50 to-yellow-50/50 dark:from-amber-950/20 dark:to-yellow-950/20">
+            <CardHeader className="pb-2">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Activity className="w-5 h-5 text-amber-500" />
+                    Input Training Load
+                    <PremiumBadge size="sm" />
+                  </CardTitle>
+                  <Crown className={cn(
+                    "w-5 h-5 text-amber-500 transition-transform",
+                    loadInputOpen && "rotate-180"
+                  )} />
+                </Button>
+              </CollapsibleTrigger>
+              <CardDescription>
+                Catat beban latihan harian untuk monitoring performa di Premium Dashboard
+              </CardDescription>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <TrainingLoadInput onSubmit={addLoad} />
+                  <TrainingLoadHistory 
+                    loads={loads} 
+                    loading={loadsLoading} 
+                    onDelete={deleteLoad} 
+                  />
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
+      {/* Premium Upsell for non-premium users */}
+      {!hasPremium && (
+        <Card className="border-dashed border-amber-400 bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/10 dark:to-yellow-950/10">
+          <CardContent className="p-6 text-center">
+            <Crown className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+            <h3 className="font-bold text-lg mb-1">Fitur Premium: Training Load Monitoring</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Catat beban latihan harian dan dapatkan analisis ACWR, Fitness, Fatigue, dan Form secara real-time.
+            </p>
+            <Button 
+              variant="outline" 
+              className="border-amber-500 text-amber-600 hover:bg-amber-50"
+              onClick={() => window.location.href = '/premium'}
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Lihat Premium Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {selectedDay && (
         <SessionModal

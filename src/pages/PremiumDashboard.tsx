@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Diamond, Activity, TrendingUp, TrendingDown, Zap, RefreshCw } from 'lucide-react';
+import { Loader2, ArrowLeft, Diamond, Activity, TrendingUp, TrendingDown, Zap, RefreshCw, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useTrainingLoads } from '@/hooks/useTrainingLoads';
@@ -11,9 +11,9 @@ import { PremiumBadge } from '@/components/PremiumBadge';
 import { FormSpeedometer } from '@/components/FormSpeedometer';
 import { ACWRGauge } from '@/components/ACWRGauge';
 import { PercentageSpeedometer } from '@/components/PercentageSpeedometer';
-import { TrainingLoadInput } from '@/components/TrainingLoadInput';
-import { TrainingLoadHistory } from '@/components/TrainingLoadHistory';
 import { PerformanceTrendChart } from '@/components/PerformanceTrendChart';
+import { TrainingRecommendation } from '@/components/TrainingRecommendation';
+import { TrainingLoadPDFExport } from '@/components/TrainingLoadPDFExport';
 import { toast } from 'sonner';
 
 export default function PremiumDashboard() {
@@ -26,8 +26,6 @@ export default function PremiumDashboard() {
     dailyMetrics, 
     acwrData, 
     currentMetrics,
-    addLoad,
-    deleteLoad,
     refetch 
   } = useTrainingLoads();
   const [requesting, setRequesting] = useState(false);
@@ -141,11 +139,35 @@ export default function PremiumDashboard() {
                 <p className="text-sm text-muted-foreground">Load Monitoring & Performance Analysis</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={refetch} disabled={loadsLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loadsLoading ? 'animate-spin' : ''}`} />
-              Refresh Data
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate('/app')} className="gap-2">
+                <CalendarDays className="w-4 h-4" />
+                Input di Bulanan
+              </Button>
+              <Button variant="outline" size="sm" onClick={refetch} disabled={loadsLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loadsLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
+
+          {/* Notice about input location */}
+          {loads.length === 0 && (
+            <Card className="border-dashed border-amber-400 bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/10 dark:to-yellow-950/10">
+              <CardContent className="p-4 flex items-center gap-4">
+                <CalendarDays className="w-8 h-8 text-amber-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium">Belum ada data training load</p>
+                  <p className="text-sm text-muted-foreground">
+                    Input data training load di halaman <strong>Bulanan</strong> untuk melihat analisis performa di sini.
+                  </p>
+                </div>
+                <Button onClick={() => navigate('/app')} variant="outline" size="sm">
+                  Ke Halaman Bulanan
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Main Gauges */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -259,18 +281,20 @@ export default function PremiumDashboard() {
             </Card>
           </div>
 
+          {/* Recommendations */}
+          <TrainingRecommendation acwrData={acwrData} currentMetrics={currentMetrics} />
+
           {/* Performance Trend Chart */}
           <PerformanceTrendChart dailyMetrics={dailyMetrics} />
 
-          {/* Input and History */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TrainingLoadInput onSubmit={addLoad} />
-            <TrainingLoadHistory 
-              loads={loads} 
-              loading={loadsLoading} 
-              onDelete={deleteLoad} 
-            />
-          </div>
+          {/* PDF Export */}
+          <TrainingLoadPDFExport 
+            loads={loads}
+            dailyMetrics={dailyMetrics}
+            acwrData={acwrData}
+            currentMetrics={currentMetrics}
+            userName={user.email || 'Atlet'}
+          />
 
           {/* Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
