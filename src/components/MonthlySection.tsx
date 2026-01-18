@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
 import { TrainingLoadInput } from './TrainingLoadInput';
 import { TrainingLoadHistory } from './TrainingLoadHistory';
+import { WeeklyLoadTarget } from './WeeklyLoadTarget';
 import { PremiumBadge } from './PremiumBadge';
 import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,7 +37,16 @@ export function MonthlySection() {
   const [saving, setSaving] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [loadInputOpen, setLoadInputOpen] = useState(false);
+  const [weeklyTarget, setWeeklyTarget] = useState<number>(() => {
+    // Load from localStorage or default to 400 AU
+    const saved = localStorage.getItem('weeklyLoadTarget');
+    return saved ? parseInt(saved) : 400;
+  });
 
+  const handleTargetChange = (target: number) => {
+    setWeeklyTarget(target);
+    localStorage.setItem('weeklyLoadTarget', target.toString());
+  };
   // Group weeks into months (4 weeks per month)
   const months = useMemo(() => {
     const result: { label: string; weeks: number[] }[] = [];
@@ -569,7 +579,14 @@ export function MonthlySection() {
               </CardDescription>
             </CardHeader>
             <CollapsibleContent>
-              <CardContent className="pt-4">
+              <CardContent className="pt-4 space-y-6">
+                {/* Weekly Target Section */}
+                <WeeklyLoadTarget 
+                  loads={loads} 
+                  weeklyTarget={weeklyTarget} 
+                  onTargetChange={handleTargetChange} 
+                />
+                
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <TrainingLoadInput onSubmit={addLoad} />
                   <TrainingLoadHistory 

@@ -15,6 +15,7 @@ import { PerformanceTrendChart } from '@/components/PerformanceTrendChart';
 import { TrainingRecommendation } from '@/components/TrainingRecommendation';
 import { TrainingLoadPDFExport } from '@/components/TrainingLoadPDFExport';
 import { PeriodComparison } from '@/components/PeriodComparison';
+import { WeeklyLoadTarget } from '@/components/WeeklyLoadTarget';
 import { toast } from 'sonner';
 
 export default function PremiumDashboard() {
@@ -30,6 +31,15 @@ export default function PremiumDashboard() {
     refetch 
   } = useTrainingLoads();
   const [requesting, setRequesting] = useState(false);
+  const [weeklyTarget, setWeeklyTarget] = useState<number>(() => {
+    const saved = localStorage.getItem('weeklyLoadTarget');
+    return saved ? parseInt(saved) : 400;
+  });
+
+  const handleTargetChange = (target: number) => {
+    setWeeklyTarget(target);
+    localStorage.setItem('weeklyLoadTarget', target.toString());
+  };
 
   const handleRequestAccess = async () => {
     setRequesting(true);
@@ -287,6 +297,13 @@ export default function PremiumDashboard() {
 
           {/* Period Comparison */}
           <PeriodComparison dailyMetrics={dailyMetrics} />
+
+          {/* Weekly Target */}
+          <WeeklyLoadTarget 
+            loads={loads} 
+            weeklyTarget={weeklyTarget} 
+            onTargetChange={handleTargetChange} 
+          />
 
           {/* Performance Trend Chart */}
           <PerformanceTrendChart dailyMetrics={dailyMetrics} />
