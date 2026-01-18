@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import AthletePortal from "./pages/AthletePortal";
 import AdminPanel from "./pages/AdminPanel";
 import PremiumDashboard from "./pages/PremiumDashboard";
+import MonitoringPlan from "./pages/MonitoringPlan";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <PremiumDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/monitoring" 
+                element={
+                  <ProtectedRoute>
+                    <MonitoringPlan />
                   </ProtectedRoute>
                 } 
               />

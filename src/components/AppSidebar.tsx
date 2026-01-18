@@ -68,15 +68,15 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => navigate('/premium')}
-                  tooltip="Load Monitoring (Premium)"
+                  onClick={() => navigate('/monitoring')}
+                  tooltip="Monitoring Plan (Premium)"
                   className="transition-all hover:bg-amber-500/10"
                 >
                   <div className="relative">
                     <Crown className="h-4 w-4 text-amber-500" />
                   </div>
                   <span className="flex items-center gap-2">
-                    Load Monitoring
+                    Monitoring Plan
                     {!isCollapsed && <PremiumBadge size="sm" />}
                   </span>
                 </SidebarMenuButton>

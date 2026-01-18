@@ -47,6 +47,7 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
 import { supabase } from '@/integrations/supabase/client';
+import { PremiumApprovalDialog, GrantPremiumDialog } from '@/components/PremiumApprovalDialog';
 
 interface UserWithRole {
   id: string;
@@ -95,6 +96,12 @@ export default function AdminPanel() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Premium approval dialog state
+  const [approvalDialog, setApprovalDialog] = useState(false);
+  const [approvalRequest, setApprovalRequest] = useState<{ id: string; userId: string; email: string; notes: string | null } | null>(null);
+  const [grantDialog, setGrantDialog] = useState(false);
+  const [grantUser, setGrantUser] = useState<{ id: string; email: string } | null>(null);
 
   // Check admin status directly from database
   useEffect(() => {
