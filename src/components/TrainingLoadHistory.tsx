@@ -1,12 +1,14 @@
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Trash2, Loader2, Calendar, History } from 'lucide-react';
+import { Trash2, Loader2, Calendar, History, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { calculateSessionLoad } from '@/hooks/useTrainingLoads';
 
 interface TrainingLoad {
   id: string;
@@ -34,6 +36,12 @@ const TRAINING_TYPE_LABELS: { [key: string]: { label: string; variant: 'default'
   tactical: { label: 'Taktik', variant: 'secondary' },
 };
 
+// RPE Load reference for 60 min (from useTrainingLoads)
+const RPE_LOAD_REFERENCE: { [key: number]: number } = {
+  1: 20, 2: 30, 3: 40, 4: 50, 5: 60,
+  6: 70, 7: 80, 8: 100, 9: 120, 10: 140,
+};
+
 export function TrainingLoadHistory({ loads, loading, onDelete }: TrainingLoadHistoryProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -58,6 +66,10 @@ export function TrainingLoadHistory({ loads, loading, onDelete }: TrainingLoadHi
   // Get last 14 days of data
   const recentLoads = loads.slice(-14).reverse();
 
+  // Calculate total stats
+  const totalLoad = recentLoads.reduce((sum, load) => sum + (load.session_load || 0), 0);
+  const avgLoad = recentLoads.length > 0 ? Math.round(totalLoad / recentLoads.length) : 0;
+
   return (
     <Card>
       <CardHeader>
@@ -65,8 +77,23 @@ export function TrainingLoadHistory({ loads, loading, onDelete }: TrainingLoadHi
           <History className="w-5 h-5" />
           Riwayat Training Load
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="flex items-center gap-2">
           14 sesi terakhir yang tercatat
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="w-3 h-3" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium mb-1">Kalkulasi Load (TSS):</p>
+                <p className="text-xs">Load = (Durasi / 60) × Base RPE</p>
+                <p className="text-xs mt-1">Base RPE untuk 60 menit:</p>
+                <p className="text-xs">RPE 1-5: 20-60 AU</p>
+                <p className="text-xs">RPE 6-7: 70-80 AU</p>
+                <p className="text-xs">RPE 8-10: 100-140 AU</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -81,59 +108,110 @@ export function TrainingLoadHistory({ loads, loading, onDelete }: TrainingLoadHi
             <p className="text-sm mt-1">Mulai input data sesi latihan Anda</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Jenis</TableHead>
-                  <TableHead className="text-center">Durasi</TableHead>
-                  <TableHead className="text-center">RPE</TableHead>
-                  <TableHead className="text-center">Load</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentLoads.map((load) => (
-                  <TableRow key={load.id}>
-                    <TableCell className="font-medium">
-                      {format(new Date(load.session_date), 'dd MMM yyyy', { locale: idLocale })}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={TRAINING_TYPE_LABELS[load.training_type]?.variant || 'default'}>
-                        {TRAINING_TYPE_LABELS[load.training_type]?.label || load.training_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {load.duration_minutes} min
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRpeColor(load.rpe)}`}>
-                        {load.rpe}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center font-bold">
-                      {load.session_load} AU
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={deletingId === load.id}
-                        onClick={() => handleDelete(load.id)}
-                      >
-                        {deletingId === load.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        )}
-                      </Button>
-                    </TableCell>
+          <>
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 bg-primary/10 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground">Total Load</p>
+                <p className="text-lg font-bold text-primary">{totalLoad} AU</p>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground">Rata-rata/Sesi</p>
+                <p className="text-lg font-bold">{avgLoad} AU</p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Jenis</TableHead>
+                    <TableHead className="text-center">Durasi</TableHead>
+                    <TableHead className="text-center">RPE</TableHead>
+                    <TableHead className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        Load
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="w-3 h-3" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Load = (Durasi/60) × Base RPE</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {recentLoads.map((load) => {
+                    const calculatedLoad = calculateSessionLoad(load.duration_minutes, load.rpe);
+                    const baseRpe = RPE_LOAD_REFERENCE[load.rpe] || 60;
+                    
+                    return (
+                      <TableRow key={load.id}>
+                        <TableCell className="font-medium">
+                          {format(new Date(load.session_date), 'dd MMM yyyy', { locale: idLocale })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={TRAINING_TYPE_LABELS[load.training_type]?.variant || 'default'}>
+                            {TRAINING_TYPE_LABELS[load.training_type]?.label || load.training_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {load.duration_minutes} min
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRpeColor(load.rpe)}`}>
+                                  {load.rpe}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Base: {baseRpe} AU (60 min)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <span className="font-bold">{load.session_load || calculatedLoad} AU</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">({load.duration_minutes}/60) × {baseRpe} = {calculatedLoad} AU</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={deletingId === load.id}
+                            onClick={() => handleDelete(load.id)}
+                          >
+                            {deletingId === load.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
