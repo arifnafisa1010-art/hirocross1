@@ -3,34 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Diamond, Activity, TrendingUp, TrendingDown, Zap } from 'lucide-react';
+import { Loader2, ArrowLeft, Diamond, Activity, TrendingUp, TrendingDown, Zap, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
+import { useTrainingLoads } from '@/hooks/useTrainingLoads';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { FormSpeedometer } from '@/components/FormSpeedometer';
 import { ACWRGauge } from '@/components/ACWRGauge';
 import { PercentageSpeedometer } from '@/components/PercentageSpeedometer';
+import { TrainingLoadInput } from '@/components/TrainingLoadInput';
+import { TrainingLoadHistory } from '@/components/TrainingLoadHistory';
+import { PerformanceTrendChart } from '@/components/PerformanceTrendChart';
 import { toast } from 'sonner';
 
 export default function PremiumDashboard() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { hasPremium, loading: premiumLoading, pendingRequest, requestPremiumAccess } = usePremiumAccess();
+  const { 
+    loads, 
+    loading: loadsLoading, 
+    dailyMetrics, 
+    acwrData, 
+    currentMetrics,
+    addLoad,
+    deleteLoad,
+    refetch 
+  } = useTrainingLoads();
   const [requesting, setRequesting] = useState(false);
-
-  // Demo data - in real app, this would come from database
-  const demoData = {
-    fitness: 72,
-    fatigue: 45,
-    form: 27, // fitness - fatigue
-    acwr: 1.15,
-    weeklyLoad: [
-      { week: 'W1', load: 450 },
-      { week: 'W2', load: 520 },
-      { week: 'W3', load: 480 },
-      { week: 'W4', load: 580 },
-    ],
-  };
 
   const handleRequestAccess = async () => {
     setRequesting(true);
@@ -128,7 +128,7 @@ export default function PremiumDashboard() {
       <div className="min-h-screen bg-muted/30 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => navigate('/app')}>
                 <ArrowLeft className="w-5 h-5" />
@@ -141,6 +141,10 @@ export default function PremiumDashboard() {
                 <p className="text-sm text-muted-foreground">Load Monitoring & Performance Analysis</p>
               </div>
             </div>
+            <Button variant="outline" size="sm" onClick={refetch} disabled={loadsLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loadsLoading ? 'animate-spin' : ''}`} />
+              Refresh Data
+            </Button>
           </div>
 
           {/* Main Gauges */}
@@ -152,11 +156,15 @@ export default function PremiumDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-green-500" />
-                  Fitness
+                  Fitness (CTL)
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center">
-                <PercentageSpeedometer percentage={demoData.fitness} size={180} label="Fitness Level" />
+                <PercentageSpeedometer 
+                  percentage={currentMetrics.fitness} 
+                  size={180} 
+                  label="Chronic Training Load" 
+                />
               </CardContent>
             </Card>
 
@@ -167,11 +175,15 @@ export default function PremiumDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <TrendingDown className="w-4 h-4 text-red-500" />
-                  Fatigue
+                  Fatigue (ATL)
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center">
-                <PercentageSpeedometer percentage={demoData.fatigue} size={180} label="Fatigue Level" />
+                <PercentageSpeedometer 
+                  percentage={currentMetrics.fatigue} 
+                  size={180} 
+                  label="Acute Training Load" 
+                />
               </CardContent>
             </Card>
 
@@ -182,11 +194,15 @@ export default function PremiumDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Zap className="w-4 h-4 text-amber-500" />
-                  Form
+                  Form (TSB)
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center">
-                <FormSpeedometer value={demoData.form} size={180} label="Form (Fitness - Fatigue)" />
+                <FormSpeedometer 
+                  value={currentMetrics.form} 
+                  size={180} 
+                  label="Training Stress Balance" 
+                />
               </CardContent>
             </Card>
 
@@ -201,9 +217,59 @@ export default function PremiumDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center">
-                <ACWRGauge acwr={demoData.acwr} size={180} />
+                <ACWRGauge acwr={acwrData.acwr} size={180} />
               </CardContent>
             </Card>
+          </div>
+
+          {/* ACWR Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase">Beban Akut (7 Hari)</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{acwrData.acuteLoad} AU</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase">Beban Kronis (28 Hari)</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{acwrData.chronicLoad} AU</p>
+              </CardContent>
+            </Card>
+            <Card className={`border-2 ${
+              acwrData.riskZone === 'optimal' ? 'bg-green-50 dark:bg-green-950/20 border-green-500' :
+              acwrData.riskZone === 'warning' ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-500' :
+              acwrData.riskZone === 'danger' ? 'bg-red-50 dark:bg-red-950/20 border-red-500' :
+              'bg-blue-50 dark:bg-blue-950/20 border-blue-500'
+            }`}>
+              <CardContent className="p-4 text-center">
+                <p className="text-xs font-medium uppercase">Zona Risiko</p>
+                <p className={`text-lg font-bold ${
+                  acwrData.riskZone === 'optimal' ? 'text-green-600 dark:text-green-400' :
+                  acwrData.riskZone === 'warning' ? 'text-amber-600 dark:text-amber-400' :
+                  acwrData.riskZone === 'danger' ? 'text-red-600 dark:text-red-400' :
+                  'text-blue-600 dark:text-blue-400'
+                }`}>
+                  {acwrData.riskZone === 'optimal' && '✓ Sweet Spot'}
+                  {acwrData.riskZone === 'warning' && '⚠ Warning Zone'}
+                  {acwrData.riskZone === 'danger' && '🚨 Danger Zone'}
+                  {acwrData.riskZone === 'undertrained' && '📉 Undertrained'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Performance Trend Chart */}
+          <PerformanceTrendChart dailyMetrics={dailyMetrics} />
+
+          {/* Input and History */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TrainingLoadInput onSubmit={addLoad} />
+            <TrainingLoadHistory 
+              loads={loads} 
+              loading={loadsLoading} 
+              onDelete={deleteLoad} 
+            />
           </div>
 
           {/* Info Cards */}
@@ -228,12 +294,12 @@ export default function PremiumDashboard() {
                 <CardTitle className="text-base">Fitness-Fatigue Model</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
-                <p><strong>Form = Fitness - Fatigue</strong></p>
+                <p><strong>Form (TSB) = Fitness (CTL) - Fatigue (ATL)</strong></p>
                 <p>Model ini membantu memahami kesiapan atlet untuk berkompetisi:</p>
                 <ul className="list-disc pl-4 space-y-1">
-                  <li><strong>Fitness:</strong> Adaptasi positif dari latihan</li>
-                  <li><strong>Fatigue:</strong> Kelelahan akumulatif</li>
-                  <li><strong>Form:</strong> Kesiapan performa saat ini</li>
+                  <li><strong>Fitness (CTL):</strong> Chronic Training Load - adaptasi positif dari latihan (42 hari)</li>
+                  <li><strong>Fatigue (ATL):</strong> Acute Training Load - kelelahan akumulatif (7 hari)</li>
+                  <li><strong>Form (TSB):</strong> Training Stress Balance - kesiapan performa</li>
                 </ul>
               </CardContent>
             </Card>

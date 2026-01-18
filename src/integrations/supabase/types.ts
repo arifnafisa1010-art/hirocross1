@@ -287,6 +287,63 @@ export type Database = {
           },
         ]
       }
+      training_loads: {
+        Row: {
+          athlete_id: string | null
+          created_at: string
+          duration_minutes: number
+          id: string
+          notes: string | null
+          rpe: number
+          session_date: string
+          session_load: number | null
+          training_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          athlete_id?: string | null
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          rpe: number
+          session_date: string
+          session_load?: number | null
+          training_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          athlete_id?: string | null
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          rpe?: number
+          session_date?: string
+          session_load?: number | null
+          training_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_loads_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_loads_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes_pending_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_programs: {
         Row: {
           athlete_ids: string[] | null
