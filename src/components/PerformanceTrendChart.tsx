@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { TrendingUp, BarChart3 } from 'lucide-react';
+import { TrendingUp, BarChart3, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -33,21 +33,36 @@ interface PerformanceTrendChartProps {
 export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartProps) {
   const [animatedData, setAnimatedData] = useState<DailyMetric[]>([]);
 
+  // Generate baseline data if no metrics
+  const metricsToUse = useMemo(() => {
+    if (dailyMetrics.length > 0) return dailyMetrics;
+    
+    // Generate 28 days of baseline data (all zeros) to show empty graph structure
+    const baseline: DailyMetric[] = [];
+    const today = new Date();
+    for (let i = 27; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      baseline.push({
+        date: format(date, 'yyyy-MM-dd'),
+        load: 0,
+        fitness: 0,
+        fatigue: 0,
+        form: 0,
+      });
+    }
+    return baseline;
+  }, [dailyMetrics]);
+
   // Animation effect
   useEffect(() => {
-    if (dailyMetrics.length === 0) {
-      setAnimatedData([]);
-      return;
-    }
-
-    // Animate data points appearing
     setAnimatedData([]);
     const timer = setTimeout(() => {
-      setAnimatedData(dailyMetrics);
+      setAnimatedData(metricsToUse);
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [dailyMetrics]);
+  }, [metricsToUse]);
 
   // Get last 28 days for display
   const displayData = animatedData.slice(-28).map(d => ({
@@ -55,6 +70,8 @@ export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartPro
     displayDate: format(parseISO(d.date), 'dd/MM', { locale: idLocale }),
     fullDate: format(parseISO(d.date), 'dd MMMM yyyy', { locale: idLocale }),
   }));
+
+  const hasRealData = dailyMetrics.length > 0 && dailyMetrics.some(m => m.load > 0);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -74,26 +91,6 @@ export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartPro
     return null;
   };
 
-  if (dailyMetrics.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Trend Performa
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Belum ada data untuk ditampilkan</p>
-            <p className="text-sm mt-1">Input data training load untuk melihat tren</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -101,8 +98,14 @@ export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartPro
           <TrendingUp className="w-5 h-5" />
           Trend Performa (28 Hari Terakhir)
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="flex items-center gap-2">
           Monitoring Fitness, Fatigue, dan Form dari waktu ke waktu
+          {!hasRealData && (
+            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+              <Info className="w-3 h-3" />
+              <span className="text-xs">Menampilkan struktur grafik - input data untuk melihat tren</span>
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -230,7 +233,7 @@ export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartPro
               </ResponsiveContainer>
             </div>
             <div className="mt-4 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-              <p><strong>Training Load</strong> = Durasi (menit) × RPE</p>
+              <p><strong>Training Load</strong> berdasarkan RPE (skala proporsional dengan durasi)</p>
               <p>Satuan: AU (Arbitrary Units)</p>
             </div>
           </TabsContent>

@@ -14,6 +14,7 @@ import { PercentageSpeedometer } from '@/components/PercentageSpeedometer';
 import { PerformanceTrendChart } from '@/components/PerformanceTrendChart';
 import { TrainingRecommendation } from '@/components/TrainingRecommendation';
 import { TrainingLoadPDFExport } from '@/components/TrainingLoadPDFExport';
+import { PeriodComparison } from '@/components/PeriodComparison';
 import { toast } from 'sonner';
 
 export default function PremiumDashboard() {
@@ -283,6 +284,9 @@ export default function PremiumDashboard() {
 
           {/* Recommendations */}
           <TrainingRecommendation acwrData={acwrData} currentMetrics={currentMetrics} />
+
+          {/* Period Comparison */}
+          <PeriodComparison dailyMetrics={dailyMetrics} />
 
           {/* Performance Trend Chart */}
           <PerformanceTrendChart dailyMetrics={dailyMetrics} />
