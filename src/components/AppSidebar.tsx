@@ -1,4 +1,5 @@
-import { Settings, Calendar, CalendarDays, BarChart3, ClipboardList } from 'lucide-react';
+import { Settings, Calendar, CalendarDays, BarChart3, ClipboardList, Crown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { TabId } from '@/types/training';
 import {
@@ -13,6 +14,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { PremiumBadge } from '@/components/PremiumBadge';
 
 const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'setup', label: 'Setup', icon: Settings },
@@ -25,6 +27,7 @@ const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
 export function AppSidebar() {
   const { activeTab, setActiveTab } = useTrainingStore();
   const { state } = useSidebar();
+  const navigate = useNavigate();
   const isCollapsed = state === 'collapsed';
 
   return (
@@ -52,6 +55,32 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Premium Section */}
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
+            Premium
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate('/premium')}
+                  tooltip="Load Monitoring (Premium)"
+                  className="transition-all hover:bg-amber-500/10"
+                >
+                  <div className="relative">
+                    <Crown className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    Load Monitoring
+                    {!isCollapsed && <PremiumBadge size="sm" />}
+                  </span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
