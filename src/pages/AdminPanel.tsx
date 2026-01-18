@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremiumAccessAdmin } from '@/hooks/usePremiumAccess';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +38,10 @@ import {
   UserMinus,
   History,
   KeyRound,
-  UserCog
+  UserCog,
+  Crown,
+  Check,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -66,6 +70,15 @@ interface ActivityLog {
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
+  const { 
+    premiumUsers, 
+    pendingRequests, 
+    loading: premiumLoading, 
+    loadPremiumData, 
+    grantPremiumAccess,
+    revokePremiumAccess,
+    processRequest 
+  } = usePremiumAccessAdmin();
   
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
@@ -74,6 +87,7 @@ export default function AdminPanel() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
+  const [premiumActionLoading, setPremiumActionLoading] = useState<string | null>(null);
   
   // Password reset dialog state
   const [resetPasswordDialog, setResetPasswordDialog] = useState(false);
@@ -397,6 +411,10 @@ export default function AdminPanel() {
                 <Users className="w-4 h-4" />
                 Manajemen User
               </TabsTrigger>
+              <TabsTrigger value="premium" className="flex items-center gap-2">
+                <Crown className="w-4 h-4 text-amber-500" />
+                Premium
+              </TabsTrigger>
               <TabsTrigger value="logs" className="flex items-center gap-2">
                 <History className="w-4 h-4" />
                 Log Aktivitas
@@ -530,6 +548,299 @@ export default function AdminPanel() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Premium Management Tab */}
+            <TabsContent value="premium">
+              <div className="grid gap-6">
+                {/* Pending Requests */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Crown className="w-5 h-5 text-amber-500" />
+                          Request Premium Pending
+                        </CardTitle>
+                        <CardDescription>
+                          Daftar permintaan akses premium yang menunggu verifikasi
+                        </CardDescription>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => loadPremiumData()}
+                        disabled={premiumLoading}
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-1 ${premiumLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {premiumLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      </div>
+                    ) : pendingRequests.filter(r => r.status === 'pending').length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Crown className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>Tidak ada request pending</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>User ID</TableHead>
+                              <TableHead>Tanggal Request</TableHead>
+                              <TableHead>Catatan</TableHead>
+                              <TableHead className="text-right">Aksi</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {pendingRequests
+                              .filter(r => r.status === 'pending')
+                              .map((request) => {
+                                const userEmail = users.find(u => u.id === request.user_id)?.email || request.user_id;
+                                return (
+                                  <TableRow key={request.id}>
+                                    <TableCell className="font-medium">
+                                      {userEmail}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                      {format(new Date(request.request_date), 'dd MMM yyyy HH:mm', { locale: idLocale })}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                      {request.notes || '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          disabled={premiumActionLoading === request.id}
+                                          onClick={async () => {
+                                            setPremiumActionLoading(request.id);
+                                            const result = await processRequest(
+                                              request.id,
+                                              'approved',
+                                              user?.id || '',
+                                              request.user_id
+                                            );
+                                            if (result.success) {
+                                              toast.success('Akses premium berhasil diberikan!');
+                                              await logActivity('GRANT_PREMIUM', request.user_id, userEmail, 'Menyetujui request premium');
+                                            } else {
+                                              toast.error('Gagal memberikan akses: ' + result.error);
+                                            }
+                                            setPremiumActionLoading(null);
+                                          }}
+                                        >
+                                          {premiumActionLoading === request.id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <Check className="w-4 h-4" />
+                                          )}
+                                          <span className="ml-1">Setujui</span>
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="destructive"
+                                          disabled={premiumActionLoading === request.id}
+                                          onClick={async () => {
+                                            setPremiumActionLoading(request.id);
+                                            const result = await processRequest(
+                                              request.id,
+                                              'rejected',
+                                              user?.id || '',
+                                              request.user_id
+                                            );
+                                            if (result.success) {
+                                              toast.success('Request ditolak');
+                                              await logActivity('REJECT_PREMIUM', request.user_id, userEmail, 'Menolak request premium');
+                                            } else {
+                                              toast.error('Gagal menolak: ' + result.error);
+                                            }
+                                            setPremiumActionLoading(null);
+                                          }}
+                                        >
+                                          <X className="w-4 h-4" />
+                                          <span className="ml-1">Tolak</span>
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Active Premium Users */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-green-500" />
+                      User Premium Aktif
+                    </CardTitle>
+                    <CardDescription>
+                      Daftar user yang memiliki akses premium aktif
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {premiumLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      </div>
+                    ) : premiumUsers.filter(p => p.is_active).length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Crown className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>Belum ada user premium</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>User</TableHead>
+                              <TableHead>Diberikan Pada</TableHead>
+                              <TableHead>Berlaku Hingga</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Aksi</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {premiumUsers
+                              .filter(p => p.is_active)
+                              .map((premium) => {
+                                const userEmail = users.find(u => u.id === premium.user_id)?.email || premium.user_id;
+                                return (
+                                  <TableRow key={premium.id}>
+                                    <TableCell className="font-medium">
+                                      {userEmail}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                      {format(new Date(premium.granted_at), 'dd MMM yyyy', { locale: idLocale })}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                      {premium.expires_at 
+                                        ? format(new Date(premium.expires_at), 'dd MMM yyyy', { locale: idLocale })
+                                        : 'Selamanya'
+                                      }
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge className="bg-green-500">
+                                        <Check className="w-3 h-3 mr-1" />
+                                        Aktif
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        disabled={premiumActionLoading === premium.id}
+                                        onClick={async () => {
+                                          setPremiumActionLoading(premium.id);
+                                          const result = await revokePremiumAccess(premium.user_id);
+                                          if (result.success) {
+                                            toast.success('Akses premium dicabut');
+                                            await logActivity('REVOKE_PREMIUM', premium.user_id, userEmail, 'Mencabut akses premium');
+                                          } else {
+                                            toast.error('Gagal mencabut akses: ' + result.error);
+                                          }
+                                          setPremiumActionLoading(null);
+                                        }}
+                                      >
+                                        {premiumActionLoading === premium.id ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <X className="w-4 h-4" />
+                                        )}
+                                        <span className="ml-1">Cabut Akses</span>
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Grant Premium Manually */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserPlus className="w-5 h-5" />
+                      Berikan Akses Premium Manual
+                    </CardTitle>
+                    <CardDescription>
+                      Pilih user untuk memberikan akses premium secara langsung
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto max-h-[400px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Status Premium</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {users
+                            .filter(u => !premiumUsers.some(p => p.user_id === u.id && p.is_active))
+                            .map((u) => (
+                              <TableRow key={u.id}>
+                                <TableCell className="font-medium">{u.email}</TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary">Tidak Premium</Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={premiumActionLoading === u.id}
+                                    onClick={async () => {
+                                      setPremiumActionLoading(u.id);
+                                      const result = await grantPremiumAccess(
+                                        u.id,
+                                        user?.id || '',
+                                        undefined,
+                                        'Diberikan manual oleh admin'
+                                      );
+                                      if (result.success) {
+                                        toast.success(`Akses premium diberikan ke ${u.email}`);
+                                        await logActivity('GRANT_PREMIUM', u.id, u.email, 'Memberikan akses premium manual');
+                                      } else {
+                                        toast.error('Gagal memberikan akses: ' + result.error);
+                                      }
+                                      setPremiumActionLoading(null);
+                                    }}
+                                  >
+                                    {premiumActionLoading === u.id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Crown className="w-4 h-4 text-amber-500" />
+                                    )}
+                                    <span className="ml-1">Berikan Premium</span>
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="logs">
