@@ -48,6 +48,7 @@ import { id as idLocale } from 'date-fns/locale';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
 import { supabase } from '@/integrations/supabase/client';
 import { PremiumApprovalDialog, GrantPremiumDialog } from '@/components/PremiumApprovalDialog';
+import { PremiumStatsCard } from '@/components/PremiumStatsCard';
 
 interface UserWithRole {
   id: string;
@@ -99,7 +100,7 @@ export default function AdminPanel() {
 
   // Premium approval dialog state
   const [approvalDialog, setApprovalDialog] = useState(false);
-  const [approvalRequest, setApprovalRequest] = useState<{ requestId: string; userId: string; email: string; notes: string | null } | null>(null);
+  const [approvalRequest, setApprovalRequest] = useState<{ requestId: string; userId: string; email: string; notes: string | null; paymentProofUrl: string | null } | null>(null);
   const [grantDialog, setGrantDialog] = useState(false);
   const [grantUser, setGrantUser] = useState<{ id: string; email: string } | null>(null);
   const [dialogLoading, setDialogLoading] = useState(false);
@@ -561,6 +562,9 @@ export default function AdminPanel() {
             {/* Premium Management Tab */}
             <TabsContent value="premium">
               <div className="grid gap-6">
+                {/* Premium Stats */}
+                <PremiumStatsCard />
+
                 {/* Pending Requests */}
                 <Card>
                   <CardHeader>
@@ -600,8 +604,9 @@ export default function AdminPanel() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>User ID</TableHead>
-                              <TableHead>Tanggal Request</TableHead>
+                              <TableHead>User</TableHead>
+                              <TableHead>Tanggal</TableHead>
+                              <TableHead>Bukti</TableHead>
                               <TableHead>Catatan</TableHead>
                               <TableHead className="text-right">Aksi</TableHead>
                             </TableRow>
@@ -616,10 +621,20 @@ export default function AdminPanel() {
                                     <TableCell className="font-medium">
                                       {userEmail}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                      {format(new Date(request.request_date), 'dd MMM yyyy HH:mm', { locale: idLocale })}
+                                    <TableCell className="text-muted-foreground text-sm">
+                                      {format(new Date(request.request_date), 'dd MMM yyyy', { locale: idLocale })}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                                    <TableCell>
+                                      {request.payment_proof_url ? (
+                                        <Badge className="bg-green-500 text-xs">
+                                          <Check className="w-3 h-3 mr-1" />
+                                          Ada
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="secondary" className="text-xs">Tidak ada</Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground max-w-[150px] truncate text-sm">
                                       {request.notes || '-'}
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -633,7 +648,8 @@ export default function AdminPanel() {
                                               requestId: request.id,
                                               userId: request.user_id,
                                               email: userEmail,
-                                              notes: request.notes
+                                              notes: request.notes,
+                                              paymentProofUrl: request.payment_proof_url
                                             });
                                             setApprovalDialog(true);
                                           }}
@@ -977,6 +993,7 @@ export default function AdminPanel() {
           userEmail={approvalRequest.email}
           userId={approvalRequest.userId}
           requestNotes={approvalRequest.notes}
+          paymentProofUrl={approvalRequest.paymentProofUrl}
           loading={dialogLoading}
           onApprove={async (userId, expiresAt, notes) => {
             setDialogLoading(true);
