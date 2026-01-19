@@ -103,7 +103,7 @@ export default function MonitoringAtlet() {
               <div className="absolute inset-0 bg-gradient-to-br from-amber-400/10 via-transparent to-yellow-400/10 pointer-events-none" />
               <CardHeader className="text-center">
                 <Diamond className="w-16 h-16 mx-auto text-amber-500 mb-4" />
-                <CardTitle className="text-xl">Fitur Premium Monitoring Plan</CardTitle>
+                <CardTitle className="text-xl">Fitur Premium Monitoring Atlet</CardTitle>
                 <CardDescription className="text-base mt-2">
                   Akses fitur monitoring lanjutan untuk analisis performa atlet secara menyeluruh
                 </CardDescription>
@@ -178,7 +178,7 @@ export default function MonitoringAtlet() {
                 <BarChart3 className="w-4 h-4" />
                 Monitoring Plan
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/app')} className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate('/app?tab=monthly')} className="gap-2">
                 <CalendarDays className="w-4 h-4" />
                 Input di Bulanan
               </Button>
@@ -206,7 +206,7 @@ export default function MonitoringAtlet() {
                     Input data training load di halaman <strong>Bulanan</strong> untuk melihat analisis performa.
                   </p>
                 </div>
-                <Button onClick={() => navigate('/app')} variant="outline" size="sm">
+                <Button onClick={() => navigate('/app?tab=monthly')} variant="outline" size="sm">
                   Ke Halaman Bulanan
                 </Button>
               </CardContent>
