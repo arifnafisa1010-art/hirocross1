@@ -5,7 +5,6 @@ import { FloatingDock } from '@/components/FloatingDock';
 import { SetupSection } from '@/components/SetupSection';
 import { AnnualPlanSection } from '@/components/AnnualPlanSection';
 import { MonthlySection } from '@/components/MonthlySection';
-import { MonitoringSection } from '@/components/MonitoringSection';
 import { TestsSection } from '@/components/TestsSection';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -34,7 +33,6 @@ const Index = () => {
               {activeTab === 'setup' && <SetupSection />}
               {activeTab === 'annual' && <AnnualPlanSection />}
               {activeTab === 'monthly' && <MonthlySection />}
-              {activeTab === 'monitoring' && <MonitoringSection />}
               {activeTab === 'tests' && <TestsSection />}
             </main>
 
