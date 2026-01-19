@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PremiumBadge } from '@/components/PremiumBadge';
+import { Crown, Lock, Loader2, BarChart3, TrendingUp, PieChart as PieChartIcon, Activity } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -20,7 +24,9 @@ import {
 const COLORS = ['#fee2e2', '#fef9c3', '#dcfce7', '#f1f5f9'];
 
 export function MonitoringSection() {
+  const navigate = useNavigate();
   const { planData, sessions, setup } = useTrainingStore();
+  const { hasPremium, loading: premiumLoading } = usePremiumAccess();
 
   const stats = useMemo(() => {
     let planCount = 0;
@@ -179,6 +185,103 @@ export function MonitoringSection() {
       },
     ];
   }, [setup.targets, stats.totalReal]);
+
+  // Loading state for premium check
+  if (premiumLoading) {
+    return (
+      <div className="animate-fade-in flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Premium paywall
+  if (!hasPremium) {
+    return (
+      <div className="animate-fade-in space-y-6">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-extrabold">Dashboard Analisis & Efektivitas</h2>
+          <PremiumBadge size="sm" />
+        </div>
+
+        {/* Blurred Preview */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background z-10 flex items-center justify-center">
+            <Card className="bg-card/95 backdrop-blur-sm border-amber-300 shadow-xl max-w-md mx-4">
+              <CardContent className="p-6 text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto">
+                  <Crown className="w-8 h-8 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">Fitur Premium</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Akses Dashboard Analisis & Efektivitas untuk melihat statistik lengkap program latihan Anda
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-left text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    <span>Statistik Lengkap</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    <span>Tren Volume</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <PieChartIcon className="w-4 h-4 text-primary" />
+                    <span>Distribusi Intensitas</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Activity className="w-4 h-4 text-primary" />
+                    <span>Progres RPE</span>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => navigate('/monitoring')}
+                  className="w-full bg-amber-500 hover:bg-amber-600"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade ke Premium
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Blurred content preview */}
+          <div className="blur-sm opacity-50 pointer-events-none">
+            <div className="grid grid-cols-4 gap-5 mb-6">
+              <Card className="bg-primary/30">
+                <CardContent className="p-5 text-center">
+                  <div className="text-xs font-bold uppercase opacity-80">Total Minggu</div>
+                  <div className="text-3xl font-extrabold mt-1">--</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-accent/30">
+                <CardContent className="p-5 text-center">
+                  <div className="text-xs font-bold uppercase opacity-80">Program Plan</div>
+                  <div className="text-3xl font-extrabold mt-1">--</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-green-500/30">
+                <CardContent className="p-5 text-center">
+                  <div className="text-xs font-bold uppercase opacity-80">Sesi Realisasi</div>
+                  <div className="text-3xl font-extrabold mt-1">--</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-destructive/30">
+                <CardContent className="p-5 text-center">
+                  <div className="text-xs font-bold uppercase opacity-80">Index Kepatuhan</div>
+                  <div className="text-3xl font-extrabold mt-1">--%</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="h-64 bg-muted/30" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (planData.length === 0) {
     return (
