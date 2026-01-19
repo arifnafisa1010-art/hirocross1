@@ -1,5 +1,5 @@
-import { Settings, Calendar, CalendarDays, BarChart3, ClipboardList, Crown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { TabId } from '@/types/training';
 import {
@@ -23,10 +23,16 @@ const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'tests', label: 'Tes & Pengukuran', icon: ClipboardList },
 ];
 
+const premiumItems = [
+  { path: '/monitoring', label: 'Monitoring Plan', icon: Crown },
+  { path: '/monitoring-performa', label: 'Monitoring Performa Atlet', icon: Activity },
+];
+
 export function AppSidebar() {
   const { activeTab, setActiveTab } = useTrainingStore();
   const { state } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
   const isCollapsed = state === 'collapsed';
 
   return (
@@ -65,21 +71,27 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => navigate('/monitoring')}
-                  tooltip="Monitoring Plan (Premium)"
-                  className="transition-all hover:bg-amber-500/10"
-                >
-                  <div className="relative">
-                    <Crown className="h-4 w-4 text-amber-500" />
-                  </div>
-                  <span className="flex items-center gap-2">
-                    Monitoring Plan
-                    {!isCollapsed && <PremiumBadge size="sm" />}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {premiumItems.map((item) => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton
+                    onClick={() => navigate(item.path)}
+                    isActive={location.pathname === item.path}
+                    tooltip={`${item.label} (Premium)`}
+                    className={cn(
+                      "transition-all hover:bg-amber-500/10",
+                      location.pathname === item.path && "bg-amber-500/10 text-amber-600 font-medium"
+                    )}
+                  >
+                    <div className="relative">
+                      <item.icon className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <span className="flex items-center gap-2">
+                      {item.label}
+                      {!isCollapsed && <PremiumBadge size="sm" />}
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
