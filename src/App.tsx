@@ -12,6 +12,7 @@ import AthletePortal from "./pages/AthletePortal";
 import AdminPanel from "./pages/AdminPanel";
 import PremiumDashboard from "./pages/PremiumDashboard";
 import MonitoringPlan from "./pages/MonitoringPlan";
+import MonitoringPerforma from "./pages/MonitoringPerforma";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MonitoringPlan />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/monitoring-performa" 
+                element={
+                  <ProtectedRoute>
+                    <MonitoringPerforma />
                   </ProtectedRoute>
                 } 
               />
