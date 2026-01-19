@@ -347,6 +347,15 @@ export function MonthlySection() {
           const biomotorTargets = weekData ? calculateWeekBiomotorTargets(weekData.vol) : null;
           const recommendedIntensity = weekData ? getIntensityRecommendation(weekData.vol, weekData.int) : 'Rest';
           
+          // Calculate weekly internal load total
+          const weeklyInternalLoad = days.reduce((total, _, dayIndex) => {
+            const dayDate = getDateForDay(wk, dayIndex);
+            if (!dayDate) return total;
+            const dayDateStr = format(dayDate, 'yyyy-MM-dd');
+            const dayLoad = loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0);
+            return total + dayLoad;
+          }, 0);
+          
           return (
             <div key={wk} className="space-y-2">
               {/* Week Info Row with Biomotor Targets */}
@@ -369,6 +378,16 @@ export function MonthlySection() {
                   <div className="mt-2 text-[10px] text-muted-foreground">
                     Vol: {weekData?.vol}% | Int: {weekData?.int}%
                   </div>
+                  {/* Weekly Internal Load Total */}
+                  {weeklyInternalLoad > 0 && (
+                    <div className="mt-2 flex items-center gap-1 bg-primary/10 rounded px-1.5 py-1">
+                      <Activity className="w-3 h-3 text-primary" />
+                      <div className="text-[9px]">
+                        <span className="text-muted-foreground">Total:</span>
+                        <span className="font-bold text-primary ml-1">{weeklyInternalLoad} AU</span>
+                      </div>
+                    </div>
+                  )}
                   {/* Recommended Intensity */}
                   <div className="mt-2 flex items-center gap-1">
                     <TrendingUp className="w-3 h-3 text-accent" />
