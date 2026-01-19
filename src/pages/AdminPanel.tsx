@@ -99,9 +99,10 @@ export default function AdminPanel() {
 
   // Premium approval dialog state
   const [approvalDialog, setApprovalDialog] = useState(false);
-  const [approvalRequest, setApprovalRequest] = useState<{ id: string; userId: string; email: string; notes: string | null } | null>(null);
+  const [approvalRequest, setApprovalRequest] = useState<{ requestId: string; userId: string; email: string; notes: string | null } | null>(null);
   const [grantDialog, setGrantDialog] = useState(false);
   const [grantUser, setGrantUser] = useState<{ id: string; email: string } | null>(null);
+  const [dialogLoading, setDialogLoading] = useState(false);
 
   // Check admin status directly from database
   useEffect(() => {
@@ -618,7 +619,7 @@ export default function AdminPanel() {
                                     <TableCell className="text-muted-foreground">
                                       {format(new Date(request.request_date), 'dd MMM yyyy HH:mm', { locale: idLocale })}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground max-w-[200px] truncate">
                                       {request.notes || '-'}
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -627,29 +628,18 @@ export default function AdminPanel() {
                                           size="sm"
                                           variant="default"
                                           disabled={premiumActionLoading === request.id}
-                                          onClick={async () => {
-                                            setPremiumActionLoading(request.id);
-                                            const result = await processRequest(
-                                              request.id,
-                                              'approved',
-                                              user?.id || '',
-                                              request.user_id
-                                            );
-                                            if (result.success) {
-                                              toast.success('Akses premium berhasil diberikan!');
-                                              await logActivity('GRANT_PREMIUM', request.user_id, userEmail, 'Menyetujui request premium');
-                                            } else {
-                                              toast.error('Gagal memberikan akses: ' + result.error);
-                                            }
-                                            setPremiumActionLoading(null);
+                                          onClick={() => {
+                                            setApprovalRequest({
+                                              requestId: request.id,
+                                              userId: request.user_id,
+                                              email: userEmail,
+                                              notes: request.notes
+                                            });
+                                            setApprovalDialog(true);
                                           }}
                                         >
-                                          {premiumActionLoading === request.id ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                          ) : (
-                                            <Check className="w-4 h-4" />
-                                          )}
-                                          <span className="ml-1">Setujui</span>
+                                          <Check className="w-4 h-4" />
+                                          <span className="ml-1">Verifikasi</span>
                                         </Button>
                                         <Button
                                           size="sm"
@@ -672,7 +662,11 @@ export default function AdminPanel() {
                                             setPremiumActionLoading(null);
                                           }}
                                         >
-                                          <X className="w-4 h-4" />
+                                          {premiumActionLoading === request.id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <X className="w-4 h-4" />
+                                          )}
                                           <span className="ml-1">Tolak</span>
                                         </Button>
                                       </div>
@@ -814,29 +808,12 @@ export default function AdminPanel() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    disabled={premiumActionLoading === u.id}
-                                    onClick={async () => {
-                                      setPremiumActionLoading(u.id);
-                                      const result = await grantPremiumAccess(
-                                        u.id,
-                                        user?.id || '',
-                                        undefined,
-                                        'Diberikan manual oleh admin'
-                                      );
-                                      if (result.success) {
-                                        toast.success(`Akses premium diberikan ke ${u.email}`);
-                                        await logActivity('GRANT_PREMIUM', u.id, u.email, 'Memberikan akses premium manual');
-                                      } else {
-                                        toast.error('Gagal memberikan akses: ' + result.error);
-                                      }
-                                      setPremiumActionLoading(null);
+                                    onClick={() => {
+                                      setGrantUser({ id: u.id, email: u.email });
+                                      setGrantDialog(true);
                                     }}
                                   >
-                                    {premiumActionLoading === u.id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                      <Crown className="w-4 h-4 text-amber-500" />
-                                    )}
+                                    <Crown className="w-4 h-4 text-amber-500" />
                                     <span className="ml-1">Berikan Premium</span>
                                   </Button>
                                 </TableCell>
@@ -988,6 +965,99 @@ export default function AdminPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Premium Approval Dialog */}
+      {approvalRequest && (
+        <PremiumApprovalDialog
+          open={approvalDialog}
+          onOpenChange={(open) => {
+            setApprovalDialog(open);
+            if (!open) setApprovalRequest(null);
+          }}
+          userEmail={approvalRequest.email}
+          userId={approvalRequest.userId}
+          requestNotes={approvalRequest.notes}
+          loading={dialogLoading}
+          onApprove={async (userId, expiresAt, notes) => {
+            setDialogLoading(true);
+            try {
+              // Update request status first
+              const { error: updateError } = await supabase
+                .from('premium_requests')
+                .update({
+                  status: 'approved',
+                  processed_by: user?.id,
+                  processed_at: new Date().toISOString(),
+                })
+                .eq('id', approvalRequest.requestId);
+
+              if (updateError) throw updateError;
+
+              // Grant premium access with expiry
+              const result = await grantPremiumAccess(
+                userId,
+                user?.id || '',
+                expiresAt,
+                notes
+              );
+
+              if (result.success) {
+                toast.success(`Akses premium diberikan ke ${approvalRequest.email}`);
+                await logActivity('GRANT_PREMIUM', userId, approvalRequest.email, notes);
+                await loadPremiumData();
+              } else {
+                throw new Error(result.error);
+              }
+
+              setApprovalDialog(false);
+              setApprovalRequest(null);
+            } catch (error: any) {
+              toast.error('Gagal memberikan akses: ' + error.message);
+            } finally {
+              setDialogLoading(false);
+            }
+          }}
+        />
+      )}
+
+      {/* Grant Premium Dialog */}
+      {grantUser && (
+        <GrantPremiumDialog
+          open={grantDialog}
+          onOpenChange={(open) => {
+            setGrantDialog(open);
+            if (!open) setGrantUser(null);
+          }}
+          userEmail={grantUser.email}
+          userId={grantUser.id}
+          loading={dialogLoading}
+          onGrant={async (userId, expiresAt, notes) => {
+            setDialogLoading(true);
+            try {
+              const result = await grantPremiumAccess(
+                userId,
+                user?.id || '',
+                expiresAt,
+                notes
+              );
+
+              if (result.success) {
+                toast.success(`Akses premium diberikan ke ${grantUser.email}`);
+                await logActivity('GRANT_PREMIUM', userId, grantUser.email, notes);
+              } else {
+                throw new Error(result.error);
+              }
+
+              setGrantDialog(false);
+              setGrantUser(null);
+            } catch (error: any) {
+              toast.error('Gagal memberikan akses: ' + error.message);
+            } finally {
+              setDialogLoading(false);
+            }
+          }}
+        />
+      )}
     </>
   );
 }
