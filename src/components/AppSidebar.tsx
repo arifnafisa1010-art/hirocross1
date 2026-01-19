@@ -24,8 +24,8 @@ const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
 ];
 
 const premiumItems = [
-  { path: '/monitoring', label: 'Monitoring Plan', icon: Crown },
-  { path: '/monitoring-performa', label: 'Monitoring Performa Atlet', icon: Activity },
+  { path: '/monitoring-atlet', label: 'Monitoring Atlet', icon: Crown },
+  { path: '/monitoring-plan', label: 'Monitoring Plan', icon: Activity },
 ];
 
 export function AppSidebar() {

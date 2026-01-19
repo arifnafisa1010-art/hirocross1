@@ -11,8 +11,8 @@ import Auth from "./pages/Auth";
 import AthletePortal from "./pages/AthletePortal";
 import AdminPanel from "./pages/AdminPanel";
 import PremiumDashboard from "./pages/PremiumDashboard";
+import MonitoringAtlet from "./pages/MonitoringAtlet";
 import MonitoringPlan from "./pages/MonitoringPlan";
-import MonitoringPerforma from "./pages/MonitoringPerforma";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,18 +61,18 @@ function App() {
                 } 
               />
               <Route 
-                path="/monitoring" 
+                path="/monitoring-atlet" 
                 element={
                   <ProtectedRoute>
-                    <MonitoringPlan />
+                    <MonitoringAtlet />
                   </ProtectedRoute>
                 } 
               />
               <Route 
-                path="/monitoring-performa" 
+                path="/monitoring-plan" 
                 element={
                   <ProtectedRoute>
-                    <MonitoringPerforma />
+                    <MonitoringPlan />
                   </ProtectedRoute>
                 } 
               />
