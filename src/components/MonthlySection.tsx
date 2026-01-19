@@ -393,9 +393,15 @@ export function MonthlySection() {
                   const isDone = session?.isDone;
                   const intensity = session?.int || 'Rest';
                   const dayDate = getDateForDay(wk, dayIndex);
+                  const dayDateStr = dayDate ? format(dayDate, 'yyyy-MM-dd') : null;
 
                   // Calculate total load from completed exercises
                   const totalLoad = session?.exercises?.reduce((sum, ex) => sum + (ex.load * ex.set * ex.rep), 0) || 0;
+
+                  // Get internal load (TSS) from training_loads table for this day
+                  const dayInternalLoad = dayDateStr 
+                    ? loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0)
+                    : 0;
 
                   return (
                     <Card
@@ -439,6 +445,18 @@ export function MonthlySection() {
                       {isDone && totalLoad > 0 && (
                         <div className="mt-1 text-[8px] text-accent font-bold">
                           Total: {totalLoad.toLocaleString()} kg
+                        </div>
+                      )}
+
+                      {/* Internal Load (TSS) Display */}
+                      {dayInternalLoad > 0 && (
+                        <div className="absolute bottom-8 left-2 right-2">
+                          <div className="flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            <Activity className="w-3 h-3" />
+                            <span className="text-[9px] font-bold">
+                              Internal: {dayInternalLoad} AU
+                            </span>
+                          </div>
                         </div>
                       )}
 
