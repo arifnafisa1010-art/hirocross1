@@ -165,6 +165,12 @@ export function usePremiumAccessAdmin() {
     notes?: string
   ) => {
     try {
+      // First, deactivate any existing premium access for this user
+      await supabase
+        .from('premium_access')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+
       const { data, error } = await supabase
         .from('premium_access')
         .insert({
