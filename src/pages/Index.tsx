@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useSearchParams } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { Header } from '@/components/Header';
 import { FloatingDock } from '@/components/FloatingDock';
@@ -8,10 +10,21 @@ import { MonthlySection } from '@/components/MonthlySection';
 import { TestsSection } from '@/components/TestsSection';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { TabId } from '@/types/training';
 
 const Index = () => {
-  const { activeTab } = useTrainingStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { activeTab, setActiveTab } = useTrainingStore();
 
+  // Handle tab from URL query parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabId | null;
+    if (tabParam && ['setup', 'annual', 'monthly', 'tests'].includes(tabParam)) {
+      setActiveTab(tabParam);
+      // Clear the URL parameter after setting
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setActiveTab, setSearchParams]);
   return (
     <>
       <Helmet>
