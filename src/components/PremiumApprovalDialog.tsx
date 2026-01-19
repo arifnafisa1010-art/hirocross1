@@ -11,7 +11,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Loader2, Check } from 'lucide-react';
+import { Crown, Loader2, Check, Image, ExternalLink, X } from 'lucide-react';
 import { addMonths, format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -36,6 +36,7 @@ interface PremiumApprovalDialogProps {
   userEmail: string;
   userId: string;
   requestNotes?: string | null;
+  paymentProofUrl?: string | null;
   onApprove: (userId: string, expiresAt: string, notes: string) => Promise<void>;
   loading?: boolean;
 }
@@ -46,10 +47,12 @@ export function PremiumApprovalDialog({
   userEmail,
   userId,
   requestNotes,
+  paymentProofUrl,
   onApprove,
   loading = false,
 }: PremiumApprovalDialogProps) {
   const [selectedPackage, setSelectedPackage] = useState<string>('3-months');
+  const [showProofImage, setShowProofImage] = useState(false);
   
   const pkg = PACKAGES.find(p => p.id === selectedPackage) || PACKAGES[1];
   const expiresAt = addMonths(new Date(), pkg.duration);
@@ -59,9 +62,30 @@ export function PremiumApprovalDialog({
     await onApprove(userId, expiresAt.toISOString(), notes);
   };
 
+  // Try to detect package from request notes
+  const detectPackageFromNotes = () => {
+    if (!requestNotes) return;
+    const lowerNotes = requestNotes.toLowerCase();
+    
+    if (lowerNotes.includes('1 tahun') || lowerNotes.includes('12 bulan')) {
+      setSelectedPackage('1-year');
+    } else if (lowerNotes.includes('6 bulan')) {
+      setSelectedPackage('6-months');
+    } else if (lowerNotes.includes('3 bulan')) {
+      setSelectedPackage('3-months');
+    } else if (lowerNotes.includes('1 bulan')) {
+      setSelectedPackage('1-month');
+    }
+  };
+
+  // Detect on open
+  useState(() => {
+    detectPackageFromNotes();
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Crown className="w-5 h-5 text-amber-500" />
@@ -78,6 +102,44 @@ export function PremiumApprovalDialog({
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-xs font-medium text-muted-foreground mb-1">Catatan dari user:</p>
               <p className="text-sm">{requestNotes}</p>
+            </div>
+          )}
+
+          {/* Payment Proof */}
+          {paymentProofUrl && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                Bukti Pembayaran
+              </Label>
+              <div className="relative rounded-lg border overflow-hidden bg-muted">
+                <img 
+                  src={paymentProofUrl} 
+                  alt="Bukti pembayaran" 
+                  className="w-full max-h-48 object-contain cursor-pointer"
+                  onClick={() => setShowProofImage(true)}
+                />
+                <div className="absolute bottom-2 right-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 text-xs"
+                    onClick={() => window.open(paymentProofUrl, '_blank')}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Buka
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!paymentProofUrl && (
+            <div className="p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900">
+              <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                Tidak ada bukti pembayaran diupload
+              </p>
             </div>
           )}
 
@@ -143,6 +205,29 @@ export function PremiumApprovalDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Full Image View */}
+      <Dialog open={showProofImage} onOpenChange={setShowProofImage}>
+        <DialogContent className="sm:max-w-4xl p-0">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 z-10 bg-background/80"
+              onClick={() => setShowProofImage(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            {paymentProofUrl && (
+              <img 
+                src={paymentProofUrl} 
+                alt="Bukti pembayaran" 
+                className="w-full h-auto max-h-[80vh] object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
