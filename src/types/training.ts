@@ -69,4 +69,4 @@ export interface TestResult {
   notes: string;
 }
 
-export type TabId = 'setup' | 'annual' | 'monthly' | 'monitoring' | 'tests';
+export type TabId = 'setup' | 'annual' | 'monthly' | 'tests';

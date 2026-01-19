@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Diamond, Activity, TrendingUp, TrendingDown, Zap, RefreshCw, CalendarDays } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, ArrowLeft, Diamond, Activity, TrendingUp, TrendingDown, Zap, RefreshCw, CalendarDays, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useAthleteTrainingLoads } from '@/hooks/useAthleteTrainingLoads';
@@ -18,6 +19,7 @@ import { PeriodComparison } from '@/components/PeriodComparison';
 import { WeeklyLoadTarget } from '@/components/WeeklyLoadTarget';
 import { AthleteMonitoringSelector } from '@/components/AthleteMonitoringSelector';
 import { PremiumPricingPackages } from '@/components/PremiumPricingPackages';
+import { ProgramMonitoringSection } from '@/components/ProgramMonitoringSection';
 import { Athlete } from '@/hooks/useAthletes';
 
 export default function MonitoringPlan() {
@@ -185,199 +187,219 @@ export default function MonitoringPlan() {
             </div>
           </div>
 
-          {/* Athlete Selector */}
-          <AthleteMonitoringSelector 
-            selectedAthleteId={selectedAthleteId}
-            onSelectAthlete={handleSelectAthlete}
-          />
+          {/* Tabs for Load Monitoring and Program Analysis */}
+          <Tabs defaultValue="load-monitoring" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="load-monitoring" className="flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Load Monitoring
+              </TabsTrigger>
+              <TabsTrigger value="program-analysis" className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Analisis Program
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Notice about input location */}
-          {loads.length === 0 && (
-            <Card className="border-dashed border-amber-400 bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/10 dark:to-yellow-950/10">
-              <CardContent className="p-4 flex items-center gap-4">
-                <CalendarDays className="w-8 h-8 text-amber-500 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="font-medium">Belum ada data training load untuk {selectedAthleteName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Input data training load di halaman <strong>Bulanan</strong> untuk melihat analisis performa.
-                  </p>
-                </div>
-                <Button onClick={() => navigate('/app')} variant="outline" size="sm">
-                  Ke Halaman Bulanan
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+            <TabsContent value="load-monitoring" className="space-y-6">
+              {/* Athlete Selector */}
+              <AthleteMonitoringSelector 
+                selectedAthleteId={selectedAthleteId}
+                onSelectAthlete={handleSelectAthlete}
+              />
 
-          {/* Main Gauges */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
+              {/* Notice about input location */}
+              {loads.length === 0 && (
+                <Card className="border-dashed border-amber-400 bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/10 dark:to-yellow-950/10">
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <CalendarDays className="w-8 h-8 text-amber-500 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium">Belum ada data training load untuk {selectedAthleteName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Input data training load di halaman <strong>Bulanan</strong> untuk melihat analisis performa.
+                      </p>
+                    </div>
+                    <Button onClick={() => navigate('/app')} variant="outline" size="sm">
+                      Ke Halaman Bulanan
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Main Gauges */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="relative overflow-hidden">
+                  <div className="absolute top-2 right-2">
+                    <PremiumBadge size="sm" />
+                  </div>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-500" />
+                      Fitness (CTL)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex justify-center">
+                    <PercentageSpeedometer 
+                      percentage={currentMetrics.fitness} 
+                      size={180} 
+                      label="Chronic Training Load" 
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="relative overflow-hidden">
+                  <div className="absolute top-2 right-2">
+                    <PremiumBadge size="sm" />
+                  </div>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <TrendingDown className="w-4 h-4 text-red-500" />
+                      Fatigue (ATL)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex justify-center">
+                    <PercentageSpeedometer 
+                      percentage={currentMetrics.fatigue} 
+                      size={180} 
+                      label="Acute Training Load" 
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="relative overflow-hidden">
+                  <div className="absolute top-2 right-2">
+                    <PremiumBadge size="sm" />
+                  </div>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      Form (TSB)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex justify-center">
+                    <FormSpeedometer 
+                      value={currentMetrics.form} 
+                      size={180} 
+                      label="Training Stress Balance" 
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="relative overflow-hidden">
+                  <div className="absolute top-2 right-2">
+                    <PremiumBadge size="sm" />
+                  </div>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-blue-500" />
+                      ACWR
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex justify-center">
+                    <ACWRGauge acwr={acwrData.acwr} size={180} />
+                  </CardContent>
+                </Card>
               </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                  Fitness (CTL)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <PercentageSpeedometer 
-                  percentage={currentMetrics.fitness} 
-                  size={180} 
-                  label="Chronic Training Load" 
-                />
-              </CardContent>
-            </Card>
 
-            <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
-              </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingDown className="w-4 h-4 text-red-500" />
-                  Fatigue (ATL)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <PercentageSpeedometer 
-                  percentage={currentMetrics.fatigue} 
-                  size={180} 
-                  label="Acute Training Load" 
-                />
-              </CardContent>
-            </Card>
-
-            <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
-              </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  Form (TSB)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <FormSpeedometer 
-                  value={currentMetrics.form} 
-                  size={180} 
-                  label="Training Stress Balance" 
-                />
-              </CardContent>
-            </Card>
-
-            <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
-              </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-blue-500" />
-                  ACWR
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <ACWRGauge acwr={acwrData.acwr} size={180} />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* ACWR Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase">Beban Akut (7 Hari)</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{acwrData.acuteLoad} AU</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase">Beban Kronis (28 Hari)</p>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{acwrData.chronicLoad} AU</p>
-              </CardContent>
-            </Card>
-            <Card className={`border-2 ${
-              acwrData.riskZone === 'optimal' ? 'bg-green-50 dark:bg-green-950/20 border-green-500' :
-              acwrData.riskZone === 'warning' ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-500' :
-              acwrData.riskZone === 'danger' ? 'bg-red-50 dark:bg-red-950/20 border-red-500' :
-              'bg-blue-50 dark:bg-blue-950/20 border-blue-500'
-            }`}>
-              <CardContent className="p-4 text-center">
-                <p className="text-xs font-medium uppercase">Zona Risiko</p>
-                <p className={`text-lg font-bold ${
-                  acwrData.riskZone === 'optimal' ? 'text-green-600 dark:text-green-400' :
-                  acwrData.riskZone === 'warning' ? 'text-amber-600 dark:text-amber-400' :
-                  acwrData.riskZone === 'danger' ? 'text-red-600 dark:text-red-400' :
-                  'text-blue-600 dark:text-blue-400'
+              {/* ACWR Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase">Beban Akut (7 Hari)</p>
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{acwrData.acuteLoad} AU</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase">Beban Kronis (28 Hari)</p>
+                    <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{acwrData.chronicLoad} AU</p>
+                  </CardContent>
+                </Card>
+                <Card className={`border-2 ${
+                  acwrData.riskZone === 'optimal' ? 'bg-green-50 dark:bg-green-950/20 border-green-500' :
+                  acwrData.riskZone === 'warning' ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-500' :
+                  acwrData.riskZone === 'danger' ? 'bg-red-50 dark:bg-red-950/20 border-red-500' :
+                  'bg-blue-50 dark:bg-blue-950/20 border-blue-500'
                 }`}>
-                  {acwrData.riskZone === 'optimal' && '✓ Sweet Spot'}
-                  {acwrData.riskZone === 'warning' && '⚠ Warning Zone'}
-                  {acwrData.riskZone === 'danger' && '🚨 Danger Zone'}
-                  {acwrData.riskZone === 'undertrained' && '📉 Undertrained'}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs font-medium uppercase">Zona Risiko</p>
+                    <p className={`text-lg font-bold ${
+                      acwrData.riskZone === 'optimal' ? 'text-green-600 dark:text-green-400' :
+                      acwrData.riskZone === 'warning' ? 'text-amber-600 dark:text-amber-400' :
+                      acwrData.riskZone === 'danger' ? 'text-red-600 dark:text-red-400' :
+                      'text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {acwrData.riskZone === 'optimal' && '✓ Sweet Spot'}
+                      {acwrData.riskZone === 'warning' && '⚠ Warning Zone'}
+                      {acwrData.riskZone === 'danger' && '🚨 Danger Zone'}
+                      {acwrData.riskZone === 'undertrained' && '📉 Undertrained'}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Recommendations */}
-          <TrainingRecommendation acwrData={acwrData} currentMetrics={currentMetrics} />
+              {/* Recommendations */}
+              <TrainingRecommendation acwrData={acwrData} currentMetrics={currentMetrics} />
 
-          {/* Period Comparison */}
-          <PeriodComparison dailyMetrics={dailyMetrics} />
+              {/* Period Comparison */}
+              <PeriodComparison dailyMetrics={dailyMetrics} />
 
-          {/* Weekly Target */}
-          <WeeklyLoadTarget 
-            loads={loads} 
-            weeklyTarget={weeklyTarget} 
-            onTargetChange={handleTargetChange} 
-          />
+              {/* Weekly Target */}
+              <WeeklyLoadTarget 
+                loads={loads} 
+                weeklyTarget={weeklyTarget} 
+                onTargetChange={handleTargetChange} 
+              />
 
-          {/* Performance Trend Chart */}
-          <PerformanceTrendChart dailyMetrics={dailyMetrics} />
+              {/* Performance Trend Chart */}
+              <PerformanceTrendChart dailyMetrics={dailyMetrics} />
 
-          {/* PDF Export */}
-          <TrainingLoadPDFExport 
-            loads={loads}
-            dailyMetrics={dailyMetrics}
-            acwrData={acwrData}
-            currentMetrics={currentMetrics}
-            userName={selectedAthleteName}
-          />
+              {/* PDF Export */}
+              <TrainingLoadPDFExport 
+                loads={loads}
+                dailyMetrics={dailyMetrics}
+                acwrData={acwrData}
+                currentMetrics={currentMetrics}
+                userName={selectedAthleteName}
+              />
 
-          {/* Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Apa itu ACWR?</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-2">
-                <p><strong>Acute:Chronic Workload Ratio (ACWR)</strong> adalah rasio antara beban latihan akut (1 minggu) dengan beban latihan kronis (rata-rata 4 minggu).</p>
-                <ul className="list-disc pl-4 space-y-1">
-                  <li><span className="text-blue-500 font-medium">&lt; 0.8:</span> Undertrained - beban terlalu rendah</li>
-                  <li><span className="text-green-500 font-medium">0.8 - 1.3:</span> Sweet Spot - zona optimal</li>
-                  <li><span className="text-amber-500 font-medium">1.3 - 1.5:</span> Warning - risiko meningkat</li>
-                  <li><span className="text-red-500 font-medium">&gt; 1.5:</span> Danger Zone - risiko tinggi</li>
-                </ul>
-              </CardContent>
-            </Card>
+              {/* Info Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Apa itu ACWR?</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground space-y-2">
+                    <p><strong>Acute:Chronic Workload Ratio (ACWR)</strong> adalah rasio antara beban latihan akut (1 minggu) dengan beban latihan kronis (rata-rata 4 minggu).</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li><span className="text-blue-500 font-medium">&lt; 0.8:</span> Undertrained - beban terlalu rendah</li>
+                      <li><span className="text-green-500 font-medium">0.8 - 1.3:</span> Sweet Spot - zona optimal</li>
+                      <li><span className="text-amber-500 font-medium">1.3 - 1.5:</span> Warning - risiko meningkat</li>
+                      <li><span className="text-red-500 font-medium">&gt; 1.5:</span> Danger Zone - risiko tinggi</li>
+                    </ul>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Fitness-Fatigue Model</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-2">
-                <p><strong>Form (TSB) = Fitness (CTL) - Fatigue (ATL)</strong></p>
-                <p>Model ini membantu memahami kesiapan atlet untuk berkompetisi:</p>
-                <ul className="list-disc pl-4 space-y-1">
-                  <li><strong>Fitness (CTL):</strong> Chronic Training Load - adaptasi positif dari latihan (42 hari)</li>
-                  <li><strong>Fatigue (ATL):</strong> Acute Training Load - kelelahan akumulatif (7 hari)</li>
-                  <li><strong>Form (TSB):</strong> Training Stress Balance - kesiapan performa</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Fitness-Fatigue Model</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground space-y-2">
+                    <p><strong>Form (TSB) = Fitness (CTL) - Fatigue (ATL)</strong></p>
+                    <p>Model ini membantu memahami kesiapan atlet untuk berkompetisi:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li><strong>Fitness (CTL):</strong> Chronic Training Load - adaptasi positif dari latihan (42 hari)</li>
+                      <li><strong>Fatigue (ATL):</strong> Acute Training Load - kelelahan akumulatif (7 hari)</li>
+                      <li><strong>Form (TSB):</strong> Training Stress Balance - kesiapan performa</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="program-analysis" className="space-y-6">
+              <ProgramMonitoringSection />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </>

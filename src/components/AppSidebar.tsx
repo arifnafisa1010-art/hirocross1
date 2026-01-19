@@ -16,11 +16,10 @@ import {
 import { cn } from '@/lib/utils';
 import { PremiumBadge } from '@/components/PremiumBadge';
 
-const menuItems: { id: TabId; label: string; icon: React.ElementType; premium?: boolean }[] = [
+const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'setup', label: 'Setup', icon: Settings },
   { id: 'annual', label: 'Annual Plan', icon: Calendar },
   { id: 'monthly', label: 'Bulanan', icon: CalendarDays },
-  { id: 'monitoring', label: 'Monitoring', icon: BarChart3, premium: true },
   { id: 'tests', label: 'Tes & Pengukuran', icon: ClipboardList },
 ];
 
@@ -51,10 +50,7 @@ export function AppSidebar() {
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex items-center gap-2">
-                      {item.label}
-                      {item.premium && !isCollapsed && <PremiumBadge size="sm" />}
-                    </span>
+                    <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
