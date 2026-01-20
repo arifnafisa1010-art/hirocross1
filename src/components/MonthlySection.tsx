@@ -417,9 +417,26 @@ export function MonthlySection() {
                   // Calculate total load from completed exercises
                   const totalLoad = session?.exercises?.reduce((sum, ex) => sum + (ex.load * ex.set * ex.rep), 0) || 0;
 
+                  // Calculate load from session exercises by category (speed in m, endurance in km)
+                  const exerciseLoadByCategory = session?.exercises?.reduce((acc, ex) => {
+                    const totalReps = ex.set * ex.rep;
+                    if (ex.cat === 'speed') {
+                      acc.speed += ex.load * totalReps; // Load in meters
+                    } else if (ex.cat === 'endurance') {
+                      acc.endurance += (ex.load * totalReps) / 1000; // Convert to km
+                    }
+                    return acc;
+                  }, { speed: 0, endurance: 0 }) || { speed: 0, endurance: 0 };
+
                   // Get internal load (TSS) from training_loads table for this day
                   const dayInternalLoad = dayDateStr 
                     ? loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0)
+                    : 0;
+
+                  // Calculate TSS from RPE and Duration (session-based calculation)
+                  // Formula: TSS = Duration * RPE * 2 (simple approximation)
+                  const calculatedTSS = session?.rpe && session?.duration 
+                    ? Math.round(session.duration * session.rpe * 2)
                     : 0;
 
                   return (
@@ -460,20 +477,36 @@ export function MonthlySection() {
                         </div>
                       )}
 
-                      {/* Show total load if session is done */}
+                      {/* Show speed and endurance loads by category */}
+                      {(exerciseLoadByCategory.speed > 0 || exerciseLoadByCategory.endurance > 0) && (
+                        <div className="mt-1 space-y-0.5">
+                          {exerciseLoadByCategory.speed > 0 && (
+                            <div className="text-[8px] text-orange-600 dark:text-orange-400 font-bold">
+                              Kecepatan: {exerciseLoadByCategory.speed.toLocaleString()} m
+                            </div>
+                          )}
+                          {exerciseLoadByCategory.endurance > 0 && (
+                            <div className="text-[8px] text-blue-600 dark:text-blue-400 font-bold">
+                              Daya Tahan: {exerciseLoadByCategory.endurance.toFixed(2)} km
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Show total load if session is done (for strength) */}
                       {isDone && totalLoad > 0 && (
                         <div className="mt-1 text-[8px] text-accent font-bold">
                           Total: {totalLoad.toLocaleString()} kg
                         </div>
                       )}
 
-                      {/* Internal Load (TSS) Display */}
-                      {dayInternalLoad > 0 && (
+                      {/* TSS/Load Display - calculated from RPE and Duration */}
+                      {(calculatedTSS > 0 || dayInternalLoad > 0) && (
                         <div className="absolute bottom-8 left-2 right-2">
                           <div className="flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                             <Activity className="w-3 h-3" />
                             <span className="text-[9px] font-bold">
-                              Internal: {dayInternalLoad} AU
+                              TSS: {dayInternalLoad > 0 ? dayInternalLoad : calculatedTSS} AU
                             </span>
                           </div>
                         </div>
