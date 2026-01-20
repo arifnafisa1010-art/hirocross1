@@ -19,6 +19,7 @@ import { WeeklyLoadTarget } from '@/components/WeeklyLoadTarget';
 import { WeeklyTSSChart } from '@/components/WeeklyTSSChart';
 import { DailyLoadAccumulation } from '@/components/DailyLoadAccumulation';
 import { AthleteMonitoringSelector } from '@/components/AthleteMonitoringSelector';
+import { MultiAthleteComparison } from '@/components/MultiAthleteComparison';
 import { PremiumPricingPackages } from '@/components/PremiumPricingPackages';
 import { Athlete } from '@/hooks/useAthletes';
 
@@ -338,6 +339,9 @@ export default function MonitoringAtlet() {
 
           {/* Period Comparison */}
           <PeriodComparison dailyMetrics={dailyMetrics} />
+
+          {/* Multi-Athlete Comparison - NEW */}
+          <MultiAthleteComparison />
 
           {/* Weekly Target */}
           <WeeklyLoadTarget 
