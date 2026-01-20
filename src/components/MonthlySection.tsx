@@ -347,15 +347,31 @@ export function MonthlySection() {
           const biomotorTargets = weekData ? calculateWeekBiomotorTargets(weekData.vol) : null;
           const recommendedIntensity = weekData ? getIntensityRecommendation(weekData.vol, weekData.int) : 'Rest';
           
-          // Calculate weekly internal load total
-          const weeklyInternalLoad = days.reduce((total, _, dayIndex) => {
-            const dayDate = getDateForDay(wk, dayIndex);
-            if (!dayDate) return total;
-            const dayDateStr = format(dayDate, 'yyyy-MM-dd');
-            const dayLoad = loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0);
-            return total + dayLoad;
-          }, 0);
-          
+                  // RPE-based Load Map for calculating TSS from session data
+                  const RPE_LOAD_MAP_WEEKLY: Record<number, number> = {
+                    1: 20, 2: 30, 3: 40, 4: 50, 5: 60,
+                    6: 70, 7: 80, 8: 100, 9: 120, 10: 140,
+                  };
+
+                  // Calculate weekly internal load total (from database and calculated TSS)
+                  const weeklyInternalLoad = days.reduce((total, day, dayIndex) => {
+                    const dayDate = getDateForDay(wk, dayIndex);
+                    if (!dayDate) return total;
+                    const dayDateStr = format(dayDate, 'yyyy-MM-dd');
+                    
+                    // Get load from database
+                    const dayDbLoad = loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0);
+                    
+                    // Calculate from session RPE/Duration if no database load
+                    const sessionKey = getSessionKey(wk, day);
+                    const sessionData = sessions[sessionKey];
+                    const sessionTSS = sessionData?.rpe && sessionData?.duration 
+                      ? Math.round((sessionData.duration / 60) * (RPE_LOAD_MAP_WEEKLY[Math.min(10, Math.max(1, Math.round(sessionData.rpe)))] || 60))
+                      : 0;
+                    
+                    return total + (dayDbLoad > 0 ? dayDbLoad : sessionTSS);
+                  }, 0);
+                  
           return (
             <div key={wk} className="space-y-2">
               {/* Week Info Row with Biomotor Targets */}
@@ -453,16 +469,32 @@ export function MonthlySection() {
                     ? Math.round((session.duration / 60) * (RPE_LOAD_MAP[Math.min(10, Math.max(1, Math.round(session.rpe)))] || 60))
                     : 0;
 
+                  // Get TSS value for color gradient
+                  const tssValue = dayInternalLoad > 0 ? dayInternalLoad : calculatedTSS;
+                  
+                  // Determine TSS color gradient: green=low (<50), yellow=medium (50-100), red=high (>100)
+                  const getTSSColorClass = (tss: number) => {
+                    if (tss === 0) return '';
+                    if (tss < 50) return 'bg-gradient-to-br from-green-500/20 to-green-600/30 border-green-500/50';
+                    if (tss < 100) return 'bg-gradient-to-br from-yellow-500/20 to-amber-600/30 border-yellow-500/50';
+                    return 'bg-gradient-to-br from-red-500/20 to-red-600/30 border-red-500/50';
+                  };
+                  
+                  const tssColorClass = getTSSColorClass(tssValue);
+
                   return (
                     <Card
                       key={day}
                       onClick={() => handleDayClick(wk, day)}
                       className={cn(
                         "p-3 min-h-28 cursor-pointer border-border shadow-card transition-all hover:-translate-y-1 hover:shadow-lg relative",
-                        intensity === 'High' && 'intensity-high',
-                        intensity === 'Med' && 'intensity-med',
-                        intensity === 'Low' && 'intensity-low',
-                        intensity === 'Rest' && 'intensity-rest',
+                        // TSS-based color gradient (takes priority if TSS exists)
+                        tssValue > 0 && tssColorClass,
+                        // Fallback to intensity colors when no TSS
+                        tssValue === 0 && intensity === 'High' && 'intensity-high',
+                        tssValue === 0 && intensity === 'Med' && 'intensity-med',
+                        tssValue === 0 && intensity === 'Low' && 'intensity-low',
+                        tssValue === 0 && intensity === 'Rest' && 'intensity-rest',
                       )}
                     >
                       <div className="absolute top-2 right-2 text-right">
@@ -549,6 +581,39 @@ export function MonthlySection() {
                   );
                 })}
               </div>
+
+              {/* Weekly TSS Summary Row */}
+              {weeklyInternalLoad > 0 && (
+                <div className="flex items-center justify-center gap-3 p-3 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg border border-primary/20">
+                  <Activity className="w-5 h-5 text-primary" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-muted-foreground">Total Internal Load Minggu {wk}:</span>
+                    <span className={cn(
+                      "text-lg font-extrabold px-3 py-1 rounded-lg",
+                      weeklyInternalLoad < 300 ? "bg-green-500/20 text-green-700 dark:text-green-400" :
+                      weeklyInternalLoad < 500 ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400" :
+                      "bg-red-500/20 text-red-700 dark:text-red-400"
+                    )}>
+                      {weeklyInternalLoad} AU
+                    </span>
+                  </div>
+                  {/* Weekly target comparison */}
+                  {weeklyTarget > 0 && (
+                    <div className="flex items-center gap-2 ml-4 pl-4 border-l border-primary/20">
+                      <span className="text-xs text-muted-foreground">Target:</span>
+                      <span className="text-sm font-bold text-primary">{weeklyTarget} AU</span>
+                      <span className={cn(
+                        "text-xs font-bold px-2 py-0.5 rounded",
+                        weeklyInternalLoad >= weeklyTarget 
+                          ? "bg-success/20 text-success" 
+                          : "bg-warning/20 text-warning"
+                      )}>
+                        {weeklyInternalLoad >= weeklyTarget ? '✓ Tercapai' : `${Math.round((weeklyInternalLoad / weeklyTarget) * 100)}%`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Biomotor Targets Row */}
               {biomotorTargets && (() => {
