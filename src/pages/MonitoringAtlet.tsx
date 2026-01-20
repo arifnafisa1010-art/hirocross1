@@ -16,6 +16,8 @@ import { TrainingRecommendation } from '@/components/TrainingRecommendation';
 import { TrainingLoadPDFExport } from '@/components/TrainingLoadPDFExport';
 import { PeriodComparison } from '@/components/PeriodComparison';
 import { WeeklyLoadTarget } from '@/components/WeeklyLoadTarget';
+import { WeeklyTSSChart } from '@/components/WeeklyTSSChart';
+import { DailyLoadAccumulation } from '@/components/DailyLoadAccumulation';
 import { AthleteMonitoringSelector } from '@/components/AthleteMonitoringSelector';
 import { PremiumPricingPackages } from '@/components/PremiumPricingPackages';
 import { Athlete } from '@/hooks/useAthletes';
@@ -327,6 +329,12 @@ export default function MonitoringAtlet() {
 
           {/* Recommendations */}
           <TrainingRecommendation acwrData={acwrData} currentMetrics={currentMetrics} />
+
+          {/* Daily Load Accumulation - NEW: Shows every day's load aggressively */}
+          <DailyLoadAccumulation dailyMetrics={dailyMetrics} daysToShow={14} />
+
+          {/* Weekly TSS Trend Chart - NEW */}
+          <WeeklyTSSChart dailyMetrics={dailyMetrics} weeklyTarget={weeklyTarget} />
 
           {/* Period Comparison */}
           <PeriodComparison dailyMetrics={dailyMetrics} />
