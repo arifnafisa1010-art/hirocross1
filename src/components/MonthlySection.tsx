@@ -433,10 +433,24 @@ export function MonthlySection() {
                     ? loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0)
                     : 0;
 
-                  // Calculate TSS from RPE and Duration (session-based calculation)
-                  // Formula: TSS = Duration * RPE * 2 (simple approximation)
+                  // RPE-based Load Map: Base load for 60 minutes at each RPE level
+                  const RPE_LOAD_MAP: Record<number, number> = {
+                    1: 20,   // Very light
+                    2: 30,   // Light
+                    3: 40,   // Light-moderate
+                    4: 50,   // Moderate
+                    5: 60,   // Moderate
+                    6: 70,   // Moderate-hard
+                    7: 80,   // Hard
+                    8: 100,  // Very hard
+                    9: 120,  // Very very hard
+                    10: 140, // Maximum
+                  };
+
+                  // Calculate TSS from RPE and Duration using proper formula
+                  // Base load is for 60 min, scale by actual duration
                   const calculatedTSS = session?.rpe && session?.duration 
-                    ? Math.round(session.duration * session.rpe * 2)
+                    ? Math.round((session.duration / 60) * (RPE_LOAD_MAP[Math.min(10, Math.max(1, Math.round(session.rpe)))] || 60))
                     : 0;
 
                   return (
