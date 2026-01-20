@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays, parseISO, startOfWeek, subWeeks, endOfWeek, isWithinInterval } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { FileDown, Loader2, Calendar } from 'lucide-react';
+import { FileDown, Loader2, Calendar, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -60,6 +62,41 @@ export function TrainingLoadPDFExport({
 }: TrainingLoadPDFExportProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30');
+  const [includeWeeklyChart, setIncludeWeeklyChart] = useState(true);
+
+  // Calculate weekly TSS data for chart
+  const calculateWeeklyData = () => {
+    const today = new Date();
+    const weeks: { 
+      weekLabel: string; 
+      totalLoad: number; 
+      avgFitness: number;
+      avgForm: number;
+    }[] = [];
+
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+      
+      const weekDays = dailyMetrics.filter(d => {
+        const date = parseISO(d.date);
+        return isWithinInterval(date, { start: weekStart, end: weekEnd });
+      });
+
+      const totalLoad = weekDays.reduce((sum, d) => sum + d.load, 0);
+      const avgFitness = weekDays.length > 0 ? weekDays.reduce((sum, d) => sum + d.fitness, 0) / weekDays.length : 0;
+      const avgForm = weekDays.length > 0 ? weekDays.reduce((sum, d) => sum + d.form, 0) / weekDays.length : 0;
+
+      weeks.push({
+        weekLabel: format(weekStart, 'd MMM', { locale: idLocale }),
+        totalLoad: Math.round(totalLoad),
+        avgFitness: Math.round(avgFitness),
+        avgForm: Math.round(avgForm),
+      });
+    }
+
+    return weeks;
+  };
 
   const generatePDF = async () => {
     setIsGenerating(true);
@@ -139,6 +176,74 @@ export function TrainingLoadPDFExport({
 
       yPos += 20;
 
+      // Weekly TSS Chart Section
+      if (includeWeeklyChart) {
+        addText('TREN TSS MINGGUAN (8 Minggu)', margin, yPos, { fontSize: 12, fontStyle: 'bold' });
+        yPos += 10;
+
+        const weeklyData = calculateWeeklyData();
+        const chartWidth = pageWidth - 2 * margin;
+        const chartHeight = 50;
+        const barWidth = (chartWidth - 20) / weeklyData.length;
+        const maxLoad = Math.max(...weeklyData.map(w => w.totalLoad), 100);
+
+        // Chart background
+        doc.setFillColor(250, 250, 250);
+        doc.rect(margin, yPos, chartWidth, chartHeight, 'F');
+
+        // Draw bars
+        weeklyData.forEach((week, i) => {
+          const barHeight = (week.totalLoad / maxLoad) * (chartHeight - 15);
+          const barX = margin + 10 + (i * barWidth);
+          const barY = yPos + chartHeight - 10 - barHeight;
+
+          // Bar color based on load
+          if (week.totalLoad >= 400) {
+            doc.setFillColor(34, 197, 94); // Green
+          } else if (week.totalLoad >= 320) {
+            doc.setFillColor(234, 179, 8); // Yellow
+          } else if (week.totalLoad > 0) {
+            doc.setFillColor(239, 68, 68); // Red
+          } else {
+            doc.setFillColor(200, 200, 200); // Gray
+          }
+
+          doc.rect(barX, barY, barWidth - 4, barHeight, 'F');
+
+          // Week label
+          doc.setFontSize(7);
+          doc.setTextColor(100, 100, 100);
+          doc.text(week.weekLabel, barX + (barWidth - 4) / 2, yPos + chartHeight - 2, { align: 'center' });
+
+          // Load value on top of bar
+          if (week.totalLoad > 0) {
+            doc.setFontSize(6);
+            doc.setTextColor(0, 0, 0);
+            doc.text(week.totalLoad.toString(), barX + (barWidth - 4) / 2, barY - 2, { align: 'center' });
+          }
+        });
+
+        yPos += chartHeight + 10;
+
+        // Weekly stats summary
+        const nonZeroWeeks = weeklyData.filter(w => w.totalLoad > 0);
+        if (nonZeroWeeks.length > 0) {
+          const avgWeeklyLoad = Math.round(nonZeroWeeks.reduce((sum, w) => sum + w.totalLoad, 0) / nonZeroWeeks.length);
+          const maxWeeklyLoad = Math.max(...nonZeroWeeks.map(w => w.totalLoad));
+          const minWeeklyLoad = Math.min(...nonZeroWeeks.map(w => w.totalLoad));
+
+          doc.setFillColor(240, 248, 255);
+          doc.rect(margin, yPos, chartWidth, 20, 'F');
+          
+          yPos += 6;
+          addText(`Rata-rata Mingguan: ${avgWeeklyLoad} AU`, margin + 5, yPos);
+          addText(`Tertinggi: ${maxWeeklyLoad} AU`, margin + 70, yPos);
+          addText(`Terendah: ${minWeeklyLoad} AU`, margin + 120, yPos);
+          
+          yPos += 20;
+        }
+      }
+
       // Training Load Table
       addText('RIWAYAT TRAINING LOAD', margin, yPos, { fontSize: 12, fontStyle: 'bold' });
       yPos += 8;
@@ -146,7 +251,7 @@ export function TrainingLoadPDFExport({
       // Filter loads by period
       const periodLoads = loads.filter(l => {
         const loadDate = new Date(l.session_date);
-        const cutoffDate = subDays(new Date(), periodDays);
+        const cutoffDate = subDays(new Date(), parseInt(selectedPeriod));
         return loadDate >= cutoffDate;
       }).sort((a, b) => new Date(b.session_date).getTime() - new Date(a.session_date).getTime());
 
@@ -171,7 +276,7 @@ export function TrainingLoadPDFExport({
       doc.setFont('helvetica', 'normal');
 
       // Table Rows
-      const maxRows = Math.min(periodLoads.length, 25);
+      const maxRows = Math.min(periodLoads.length, 20);
       for (let i = 0; i < maxRows; i++) {
         const load = periodLoads[i];
         
@@ -276,8 +381,8 @@ export function TrainingLoadPDFExport({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex-1 min-w-[150px]">
             <label className="text-sm font-medium mb-2 block">Periode Laporan</label>
             <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
               <SelectTrigger>
@@ -291,6 +396,19 @@ export function TrainingLoadPDFExport({
               </SelectContent>
             </Select>
           </div>
+          
+          <div className="flex items-center gap-2 pt-6">
+            <Checkbox 
+              id="includeChart" 
+              checked={includeWeeklyChart}
+              onCheckedChange={(checked) => setIncludeWeeklyChart(checked as boolean)}
+            />
+            <Label htmlFor="includeChart" className="text-sm flex items-center gap-1 cursor-pointer">
+              <BarChart3 className="w-4 h-4" />
+              Sertakan Grafik TSS Mingguan
+            </Label>
+          </div>
+          
           <Button 
             onClick={generatePDF} 
             disabled={isGenerating || loads.length === 0}
