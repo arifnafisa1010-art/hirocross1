@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { SessionModal } from './SessionModal';
 import { TrainingLoadInput } from './TrainingLoadInput';
 import { TrainingLoadHistory } from './TrainingLoadHistory';
-import { WeeklyLoadTarget } from './WeeklyLoadTarget';
+import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarget';
 import { PremiumBadge } from './PremiumBadge';
 import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,15 +38,31 @@ export function MonthlySection() {
   const [resyncing, setResyncing] = useState(false);
   const [loadInputOpen, setLoadInputOpen] = useState(false);
   const [weeklyTarget, setWeeklyTarget] = useState<number | null>(() => {
-    // Load from localStorage or null for auto-calculation
     const saved = localStorage.getItem('weeklyLoadTarget');
     if (saved === 'null' || saved === '') return null;
-    return saved ? parseInt(saved) : null; // Default to null (auto)
+    return saved ? parseInt(saved) : null;
+  });
+  const [baseLoadPerPhase, setBaseLoadPerPhase] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('baseLoadPerPhase');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return DEFAULT_BASE_LOAD_PER_PHASE;
+      }
+    }
+    return DEFAULT_BASE_LOAD_PER_PHASE;
   });
 
   const handleTargetChange = (target: number | null) => {
     setWeeklyTarget(target);
     localStorage.setItem('weeklyLoadTarget', target === null ? 'null' : target.toString());
+  };
+
+  const handleBaseLoadChange = (newBaseLoads: Record<string, number>) => {
+    setBaseLoadPerPhase(newBaseLoads);
+    localStorage.setItem('baseLoadPerPhase', JSON.stringify(newBaseLoads));
+    toast.success('Base load per fase berhasil diperbarui');
   };
 
   // Get current week number based on start date
@@ -755,6 +771,8 @@ export function MonthlySection() {
                     fase: currentWeekPlan.fase,
                     meso: currentWeekPlan.meso,
                   } : null}
+                  baseLoadPerPhase={baseLoadPerPhase}
+                  onBaseLoadChange={handleBaseLoadChange}
                 />
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
