@@ -37,6 +37,7 @@ import { TestNormsTable } from './TestNormsTable';
 import { AthleteEvaluationReport } from './AthleteEvaluationReport';
 import { PeriodComparisonReport } from './PeriodComparisonReport';
 import { BiomotorDashboard } from './BiomotorDashboard';
+import { ScorePreviewCard } from './ScorePreviewCard';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
@@ -822,31 +823,20 @@ export function TestsSection() {
               )}
             </div>
 
-            {/* Auto-calculated Score Display */}
-            <div className="col-span-2">
-              <Label className="text-xs font-extrabold text-muted-foreground uppercase">
-                Skor Otomatis (Norma)
+            {/* Enhanced Score Preview Card */}
+            <div className="col-span-2 md:col-span-4 lg:col-span-6">
+              <Label className="text-xs font-extrabold text-muted-foreground uppercase mb-2 block">
+                Preview Skor & Detail Norma
               </Label>
-              <div className={`mt-1.5 p-3 rounded-lg border text-center font-bold ${
-                calculatedScore === null ? 'bg-secondary/50 text-muted-foreground' :
-                calculatedScore >= 4 ? 'bg-success/20 text-success border-success/50' :
-                calculatedScore >= 3 ? 'bg-amber-100 text-amber-700 border-amber-300' :
-                'bg-destructive/20 text-destructive border-destructive/50'
-              }`}>
-                {calculatedScore !== null ? (
-                  <span>
-                    {calculatedScore}/5 - {scoreLabels[calculatedScore]}
-                  </span>
-                ) : (
-                  <span>Masukkan nilai untuk melihat skor</span>
-                )}
-              </div>
-              {currentNorm && (
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Norma: {currentNorm.lower_is_better ? 'Lebih kecil lebih baik' : 'Lebih besar lebih baik'} 
-                  {' '}| Gender: {currentGender === 'M' ? 'Laki-laki' : 'Perempuan'}
-                </p>
-              )}
+              <ScorePreviewCard
+                value={form.value ? parseFloat(form.value) : null}
+                calculatedScore={calculatedScore}
+                norm={currentNorm}
+                item={form.item}
+                unit={form.unit}
+                athleteGender={currentGender}
+                athleteAge={currentAge}
+              />
             </div>
 
             <div className="col-span-2 lg:col-span-2">
