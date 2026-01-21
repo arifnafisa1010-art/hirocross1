@@ -37,16 +37,30 @@ export function MonthlySection() {
   const [saving, setSaving] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [loadInputOpen, setLoadInputOpen] = useState(false);
-  const [weeklyTarget, setWeeklyTarget] = useState<number>(() => {
-    // Load from localStorage or default to 400 AU
+  const [weeklyTarget, setWeeklyTarget] = useState<number | null>(() => {
+    // Load from localStorage or null for auto-calculation
     const saved = localStorage.getItem('weeklyLoadTarget');
-    return saved ? parseInt(saved) : 400;
+    if (saved === 'null' || saved === '') return null;
+    return saved ? parseInt(saved) : null; // Default to null (auto)
   });
 
-  const handleTargetChange = (target: number) => {
+  const handleTargetChange = (target: number | null) => {
     setWeeklyTarget(target);
-    localStorage.setItem('weeklyLoadTarget', target.toString());
+    localStorage.setItem('weeklyLoadTarget', target === null ? 'null' : target.toString());
   };
+
+  // Get current week number based on start date
+  const getCurrentWeekNumber = () => {
+    if (!setup.startDate) return 1;
+    const startDate = new Date(setup.startDate);
+    const today = new Date();
+    const diffTime = today.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(1, Math.floor(diffDays / 7) + 1);
+  };
+
+  const currentWeekNumber = getCurrentWeekNumber();
+  const currentWeekPlan = planData.find(p => p.wk === currentWeekNumber) || planData[0] || null;
   // Group weeks into months (4 weeks per month)
   const months = useMemo(() => {
     const result: { label: string; weeks: number[] }[] = [];
@@ -733,7 +747,14 @@ export function MonthlySection() {
                 <WeeklyLoadTarget 
                   loads={loads} 
                   weeklyTarget={weeklyTarget} 
-                  onTargetChange={handleTargetChange} 
+                  onTargetChange={handleTargetChange}
+                  currentWeekPlan={currentWeekPlan ? {
+                    wk: currentWeekPlan.wk,
+                    vol: currentWeekPlan.vol,
+                    int: currentWeekPlan.int,
+                    fase: currentWeekPlan.fase,
+                    meso: currentWeekPlan.meso,
+                  } : null}
                 />
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
