@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek, subWeeks, isWithinInterval, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Target, TrendingUp, TrendingDown, Minus, Edit2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, Minus, Edit2, Check, X, ChevronLeft, ChevronRight, Info, Sparkles, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface TrainingLoad {
@@ -19,10 +20,20 @@ interface TrainingLoad {
   notes: string | null;
 }
 
+interface WeekPlanData {
+  wk: number;
+  vol: number;
+  int: number;
+  fase: string;
+  meso: string;
+}
+
 interface WeeklyLoadTargetProps {
   loads: TrainingLoad[];
-  weeklyTarget: number;
-  onTargetChange: (target: number) => void;
+  weeklyTarget: number | null;
+  onTargetChange: (target: number | null) => void;
+  currentWeekPlan?: WeekPlanData | null;
+  baseLoadPerPhase?: Record<string, number>;
 }
 
 interface WeekData {
@@ -34,10 +45,95 @@ interface WeekData {
   avgRpe: number;
 }
 
-export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: WeeklyLoadTargetProps) {
+// Default base load targets per training phase (AU for 100% volume)
+const DEFAULT_BASE_LOAD_PER_PHASE: Record<string, number> = {
+  'Umum': 500,        // General phase - moderate volume
+  'Khusus': 600,      // Specific phase - higher volume
+  'Pra-Komp': 450,    // Pre-competition - reduced volume
+  'Kompetisi': 300,   // Competition - maintenance
+  'Transisi': 200,    // Transition - recovery
+};
+
+// Phase descriptions for guidance
+const PHASE_GUIDANCE: Record<string, { description: string; tips: string[] }> = {
+  'Umum': {
+    description: 'Fase pembangunan dasar fisik dan teknik',
+    tips: [
+      'Volume tinggi, intensitas moderat (60-75%)',
+      'Fokus pada adaptasi aerobik dan kekuatan dasar',
+      'Target 4-6 sesi per minggu',
+    ],
+  },
+  'Khusus': {
+    description: 'Fase pengembangan kemampuan spesifik olahraga',
+    tips: [
+      'Volume moderat-tinggi, intensitas meningkat (70-85%)',
+      'Fokus pada kecepatan dan power',
+      'Target 5-6 sesi per minggu',
+    ],
+  },
+  'Pra-Komp': {
+    description: 'Fase persiapan menjelang kompetisi',
+    tips: [
+      'Volume menurun, intensitas tinggi (80-90%)',
+      'Fokus pada sharpening dan taktik',
+      'Target 3-5 sesi per minggu',
+    ],
+  },
+  'Kompetisi': {
+    description: 'Fase mempertahankan performa puncak',
+    tips: [
+      'Volume rendah, intensitas optimal (85-95%)',
+      'Fokus pada recovery dan performa',
+      'Target 2-4 sesi per minggu',
+    ],
+  },
+  'Transisi': {
+    description: 'Fase pemulihan dan regenerasi',
+    tips: [
+      'Volume rendah, intensitas rendah (40-60%)',
+      'Fokus pada active recovery',
+      'Target 2-3 sesi per minggu',
+    ],
+  },
+};
+
+export function WeeklyLoadTarget({ 
+  loads, 
+  weeklyTarget, 
+  onTargetChange,
+  currentWeekPlan,
+  baseLoadPerPhase = DEFAULT_BASE_LOAD_PER_PHASE,
+}: WeeklyLoadTargetProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(weeklyTarget.toString());
-  const [weekOffset, setWeekOffset] = useState(0); // 0 = this week, -1 = last week, etc.
+  const [editValue, setEditValue] = useState(weeklyTarget?.toString() || '');
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [useAutoTarget, setUseAutoTarget] = useState(true);
+
+  // Calculate auto target based on phase and volume
+  const autoCalculatedTarget = useMemo(() => {
+    if (!currentWeekPlan) return null;
+    
+    const fase = currentWeekPlan.fase || 'Umum';
+    const baseLoad = baseLoadPerPhase[fase] || 500;
+    const volume = currentWeekPlan.vol || 100;
+    
+    // Calculate target: baseLoad * (volume / 100)
+    return Math.round(baseLoad * (volume / 100));
+  }, [currentWeekPlan, baseLoadPerPhase]);
+
+  // Effective target (auto or manual)
+  const effectiveTarget = useMemo(() => {
+    if (weeklyTarget !== null && !useAutoTarget) {
+      return weeklyTarget;
+    }
+    return autoCalculatedTarget;
+  }, [weeklyTarget, autoCalculatedTarget, useAutoTarget]);
+
+  // Sync edit value when target changes
+  useEffect(() => {
+    setEditValue(effectiveTarget?.toString() || '');
+  }, [effectiveTarget]);
 
   // Calculate weekly stats for the last 4 weeks
   const weeklyData = useMemo(() => {
@@ -46,8 +142,8 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
 
     for (let i = 0; i >= -3; i--) {
       const targetDate = subWeeks(today, -i);
-      const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 }); // Monday
-      const weekEnd = endOfWeek(targetDate, { weekStartsOn: 1 }); // Sunday
+      const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(targetDate, { weekStartsOn: 1 });
 
       const weekLoads = loads.filter(load => {
         const loadDate = parseISO(load.session_date);
@@ -75,8 +171,8 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
   const currentWeek = weeklyData[Math.abs(weekOffset)] || weeklyData[0];
   const previousWeek = weeklyData[Math.abs(weekOffset) + 1];
 
-  const progressPercentage = weeklyTarget > 0 
-    ? Math.min(100, Math.round((currentWeek.totalLoad / weeklyTarget) * 100))
+  const progressPercentage = effectiveTarget && effectiveTarget > 0 
+    ? Math.min(100, Math.round((currentWeek.totalLoad / effectiveTarget) * 100))
     : 0;
 
   const getProgressColor = (progress: number) => {
@@ -95,15 +191,22 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
   };
 
   const handleSaveTarget = () => {
-    const newTarget = parseInt(editValue) || 0;
-    if (newTarget >= 0) {
+    const newTarget = editValue === '' ? null : parseInt(editValue);
+    if (newTarget === null || newTarget >= 0) {
+      setUseAutoTarget(false);
       onTargetChange(newTarget);
       setIsEditing(false);
     }
   };
 
   const handleCancel = () => {
-    setEditValue(weeklyTarget.toString());
+    setEditValue(effectiveTarget?.toString() || '');
+    setIsEditing(false);
+  };
+
+  const handleResetToAuto = () => {
+    setUseAutoTarget(true);
+    onTargetChange(null);
     setIsEditing(false);
   };
 
@@ -116,6 +219,8 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
     : 0;
 
   const status = getProgressStatus(progressPercentage);
+  const currentPhase = currentWeekPlan?.fase || 'Umum';
+  const phaseGuidance = PHASE_GUIDANCE[currentPhase] || PHASE_GUIDANCE['Umum'];
 
   return (
     <Card>
@@ -126,8 +231,13 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
               <Target className="w-5 h-5 text-primary" />
               Target Load Mingguan
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="flex items-center gap-2">
               Tracking progress terhadap target beban latihan
+              {currentWeekPlan && (
+                <Badge variant="outline" className="text-[10px]">
+                  W{currentWeekPlan.wk} - {currentPhase}
+                </Badge>
+              )}
             </CardDescription>
           </div>
           
@@ -156,17 +266,76 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Phase Guidance Banner */}
+        {currentWeekPlan && (
+          <div className={cn(
+            "p-3 rounded-lg border",
+            currentPhase === 'Umum' && 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
+            currentPhase === 'Khusus' && 'bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800',
+            currentPhase === 'Pra-Komp' && 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
+            currentPhase === 'Kompetisi' && 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
+            currentPhase === 'Transisi' && 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800',
+          )}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className={cn(
+                    "text-xs",
+                    currentPhase === 'Umum' && 'bg-blue-500',
+                    currentPhase === 'Khusus' && 'bg-purple-500',
+                    currentPhase === 'Pra-Komp' && 'bg-amber-500',
+                    currentPhase === 'Kompetisi' && 'bg-red-500',
+                    currentPhase === 'Transisi' && 'bg-green-500',
+                  )}>
+                    Fase {currentPhase}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Vol: {currentWeekPlan.vol}% | Int: {currentWeekPlan.int}%
+                  </span>
+                </div>
+                <p className="text-sm font-medium">{phaseGuidance.description}</p>
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Info className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs">
+                    <p className="font-medium mb-2">Panduan Fase {currentPhase}:</p>
+                    <ul className="text-xs space-y-1">
+                      {phaseGuidance.tips.map((tip, i) => (
+                        <li key={i}>• {tip}</li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        )}
+
         {/* Target Setting */}
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div>
-            <p className="text-sm text-muted-foreground">Target Mingguan</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm text-muted-foreground">Target Mingguan</p>
+              {useAutoTarget && autoCalculatedTarget && (
+                <Badge variant="secondary" className="text-[9px] gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  Auto
+                </Badge>
+              )}
+            </div>
             {isEditing ? (
               <div className="flex items-center gap-2 mt-1">
                 <Input
                   type="number"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
-                  className="w-24 h-8 text-lg font-bold"
+                  placeholder="Kosongkan untuk auto"
+                  className="w-32 h-8 text-lg font-bold"
                   min="0"
                   step="50"
                 />
@@ -180,11 +349,32 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
               </div>
             ) : (
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-2xl font-bold">{weeklyTarget} AU</span>
+                <span className="text-2xl font-bold">
+                  {effectiveTarget !== null ? `${effectiveTarget} AU` : '- AU'}
+                </span>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsEditing(true)}>
                   <Edit2 className="w-4 h-4" />
                 </Button>
+                {!useAutoTarget && autoCalculatedTarget && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleResetToAuto}>
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Reset ke auto ({autoCalculatedTarget} AU)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
+            )}
+            {autoCalculatedTarget && useAutoTarget && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Kalkulasi: {baseLoadPerPhase[currentPhase] || 500} × {currentWeekPlan?.vol || 100}%
+              </p>
             )}
           </div>
           <div className="text-right">
@@ -194,20 +384,22 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
         </div>
 
         {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className={cn("font-medium", status.color)}>{status.text}</span>
-            <span className="font-bold">{progressPercentage}%</span>
+        {effectiveTarget !== null && effectiveTarget > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className={cn("font-medium", status.color)}>{status.text}</span>
+              <span className="font-bold">{progressPercentage}%</span>
+            </div>
+            <Progress 
+              value={progressPercentage} 
+              className="h-3"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>0 AU</span>
+              <span>{effectiveTarget} AU</span>
+            </div>
           </div>
-          <Progress 
-            value={progressPercentage} 
-            className="h-3"
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>0 AU</span>
-            <span>{weeklyTarget} AU</span>
-          </div>
-        </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-4">
@@ -244,8 +436,8 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
           <p className="text-sm font-medium">Riwayat 4 Minggu Terakhir</p>
           <div className="grid grid-cols-4 gap-2">
             {weeklyData.map((week, index) => {
-              const weekProgress = weeklyTarget > 0 
-                ? Math.min(100, Math.round((week.totalLoad / weeklyTarget) * 100))
+              const weekProgress = effectiveTarget && effectiveTarget > 0 
+                ? Math.min(100, Math.round((week.totalLoad / effectiveTarget) * 100))
                 : 0;
               const isCurrentView = index === Math.abs(weekOffset);
               
@@ -262,27 +454,42 @@ export function WeeklyLoadTarget({ loads, weeklyTarget, onTargetChange }: Weekly
                     {index === 0 ? 'Ini' : index === 1 ? 'Lalu' : `W-${index}`}
                   </p>
                   <p className="text-sm font-bold">{week.totalLoad}</p>
-                  <div className="h-1 bg-muted rounded-full mt-1 overflow-hidden">
-                    <div 
-                      className={cn("h-full rounded-full", getProgressColor(weekProgress))}
-                      style={{ width: `${weekProgress}%` }}
-                    />
-                  </div>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">{weekProgress}%</p>
+                  {effectiveTarget && effectiveTarget > 0 && (
+                    <>
+                      <div className="h-1 bg-muted rounded-full mt-1 overflow-hidden">
+                        <div 
+                          className={cn("h-full rounded-full", getProgressColor(weekProgress))}
+                          style={{ width: `${weekProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">{weekProgress}%</p>
+                    </>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Recommended Target Info */}
-        <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground">
-          <p className="font-medium text-foreground mb-1">💡 Tips Target Mingguan</p>
-          <ul className="space-y-1 list-disc pl-4">
-            <li>Target ideal: tingkatkan 5-10% per minggu</li>
-            <li>Jangan melebihi 150% dari rata-rata 4 minggu terakhir</li>
-            <li>Sesuaikan dengan fase latihan (Umum, Khusus, dll)</li>
-          </ul>
+        {/* Base Load Reference Table */}
+        <div className="p-3 bg-muted/30 rounded-lg">
+          <p className="font-medium text-sm mb-2 flex items-center gap-2">
+            📊 Target Base per Fase (100% Volume)
+          </p>
+          <div className="grid grid-cols-5 gap-1 text-center">
+            {Object.entries(baseLoadPerPhase).map(([fase, load]) => (
+              <div 
+                key={fase}
+                className={cn(
+                  "p-2 rounded text-xs",
+                  fase === currentPhase ? "bg-primary/20 ring-1 ring-primary" : "bg-muted/50"
+                )}
+              >
+                <p className="font-medium truncate">{fase}</p>
+                <p className="text-muted-foreground">{load} AU</p>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
