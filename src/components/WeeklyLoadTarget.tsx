@@ -1,13 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek, subWeeks, isWithinInterval, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Target, TrendingUp, TrendingDown, Minus, Edit2, Check, X, ChevronLeft, ChevronRight, Info, Sparkles, RotateCcw } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, Minus, Edit2, Check, X, ChevronLeft, ChevronRight, Info, Sparkles, RotateCcw, Settings2, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface TrainingLoad {
@@ -34,6 +37,7 @@ interface WeeklyLoadTargetProps {
   onTargetChange: (target: number | null) => void;
   currentWeekPlan?: WeekPlanData | null;
   baseLoadPerPhase?: Record<string, number>;
+  onBaseLoadChange?: (baseLoads: Record<string, number>) => void;
 }
 
 interface WeekData {
@@ -46,12 +50,40 @@ interface WeekData {
 }
 
 // Default base load targets per training phase (AU for 100% volume)
-const DEFAULT_BASE_LOAD_PER_PHASE: Record<string, number> = {
+export const DEFAULT_BASE_LOAD_PER_PHASE: Record<string, number> = {
   'Umum': 500,        // General phase - moderate volume
   'Khusus': 600,      // Specific phase - higher volume
   'Pra-Komp': 450,    // Pre-competition - reduced volume
   'Kompetisi': 300,   // Competition - maintenance
   'Transisi': 200,    // Transition - recovery
+};
+
+// Sport-specific presets
+export const SPORT_PRESETS: Record<string, { name: string; baseLoads: Record<string, number> }> = {
+  'default': {
+    name: 'Standar',
+    baseLoads: { 'Umum': 500, 'Khusus': 600, 'Pra-Komp': 450, 'Kompetisi': 300, 'Transisi': 200 },
+  },
+  'endurance': {
+    name: 'Daya Tahan (Lari, Renang, Sepeda)',
+    baseLoads: { 'Umum': 600, 'Khusus': 700, 'Pra-Komp': 500, 'Kompetisi': 350, 'Transisi': 200 },
+  },
+  'power': {
+    name: 'Power (Angkat Besi, Lompat)',
+    baseLoads: { 'Umum': 450, 'Khusus': 550, 'Pra-Komp': 400, 'Kompetisi': 250, 'Transisi': 150 },
+  },
+  'team': {
+    name: 'Tim (Sepakbola, Basket, Voli)',
+    baseLoads: { 'Umum': 550, 'Khusus': 650, 'Pra-Komp': 480, 'Kompetisi': 320, 'Transisi': 180 },
+  },
+  'combat': {
+    name: 'Beladiri (Silat, Taekwondo, Judo)',
+    baseLoads: { 'Umum': 500, 'Khusus': 600, 'Pra-Komp': 450, 'Kompetisi': 280, 'Transisi': 170 },
+  },
+  'racket': {
+    name: 'Raket (Badminton, Tenis)',
+    baseLoads: { 'Umum': 480, 'Khusus': 580, 'Pra-Komp': 420, 'Kompetisi': 300, 'Transisi': 180 },
+  },
 };
 
 // Phase descriptions for guidance
@@ -104,11 +136,15 @@ export function WeeklyLoadTarget({
   onTargetChange,
   currentWeekPlan,
   baseLoadPerPhase = DEFAULT_BASE_LOAD_PER_PHASE,
+  onBaseLoadChange,
 }: WeeklyLoadTargetProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(weeklyTarget?.toString() || '');
   const [weekOffset, setWeekOffset] = useState(0);
   const [useAutoTarget, setUseAutoTarget] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editingBaseLoads, setEditingBaseLoads] = useState<Record<string, number>>(baseLoadPerPhase);
+  const [selectedPreset, setSelectedPreset] = useState('custom');
 
   // Calculate auto target based on phase and volume
   const autoCalculatedTarget = useMemo(() => {
@@ -208,6 +244,25 @@ export function WeeklyLoadTarget({
     setUseAutoTarget(true);
     onTargetChange(null);
     setIsEditing(false);
+  };
+
+  // Handle preset change
+  const handlePresetChange = (presetId: string) => {
+    setSelectedPreset(presetId);
+    if (presetId !== 'custom') {
+      const preset = SPORT_PRESETS[presetId];
+      if (preset) {
+        setEditingBaseLoads(preset.baseLoads);
+      }
+    }
+  };
+
+  // Handle save base loads
+  const handleSaveBaseLoads = () => {
+    if (onBaseLoadChange) {
+      onBaseLoadChange(editingBaseLoads);
+    }
+    setSettingsOpen(false);
   };
 
   // Calculate change from previous week
@@ -473,9 +528,102 @@ export function WeeklyLoadTarget({
 
         {/* Base Load Reference Table */}
         <div className="p-3 bg-muted/30 rounded-lg">
-          <p className="font-medium text-sm mb-2 flex items-center gap-2">
-            📊 Target Base per Fase (100% Volume)
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-medium text-sm flex items-center gap-2">
+              📊 Target Base per Fase (100% Volume)
+            </p>
+            {onBaseLoadChange && (
+              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                    <Settings2 className="w-3 h-3" />
+                    Sesuaikan
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-background">
+                  <DialogHeader>
+                    <DialogTitle>Pengaturan Base Load per Fase</DialogTitle>
+                    <DialogDescription>
+                      Sesuaikan target base load (AU) untuk 100% volume setiap fase latihan berdasarkan kebutuhan cabang olahraga.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    {/* Sport Presets */}
+                    <div className="space-y-2">
+                      <Label>Preset Cabang Olahraga</Label>
+                      <Select value={selectedPreset} onValueChange={handlePresetChange}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Pilih preset..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="custom">Kustom</SelectItem>
+                          {Object.entries(SPORT_PRESETS).map(([id, preset]) => (
+                            <SelectItem key={id} value={id}>{preset.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Custom Values */}
+                    <div className="space-y-3">
+                      <Label>Nilai Base Load per Fase</Label>
+                      {Object.entries(editingBaseLoads).map(([fase, load]) => (
+                        <div key={fase} className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-24 text-sm font-medium px-2 py-1 rounded text-center",
+                            fase === 'Umum' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                            fase === 'Khusus' && 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                            fase === 'Pra-Komp' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                            fase === 'Kompetisi' && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                            fase === 'Transisi' && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                          )}>
+                            {fase}
+                          </div>
+                          <Input
+                            type="number"
+                            value={load}
+                            onChange={(e) => {
+                              setSelectedPreset('custom');
+                              setEditingBaseLoads(prev => ({
+                                ...prev,
+                                [fase]: parseInt(e.target.value) || 0
+                              }));
+                            }}
+                            className="w-24"
+                            min="0"
+                            step="50"
+                          />
+                          <span className="text-sm text-muted-foreground">AU</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                      <p className="font-medium text-foreground mb-1">💡 Panduan:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li><strong>Daya Tahan:</strong> Tinggi (600-700 AU) karena volume latihan besar</li>
+                        <li><strong>Power/Kekuatan:</strong> Moderat (450-550 AU) karena intensitas tinggi</li>
+                        <li><strong>Tim:</strong> Sedang (550-650 AU) kombinasi fisik dan taktik</li>
+                        <li><strong>Beladiri:</strong> Bervariasi (500-600 AU) sesuai fase sparring</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setSettingsOpen(false)}>
+                      Batal
+                    </Button>
+                    <Button onClick={handleSaveBaseLoads} className="gap-1">
+                      <Save className="w-4 h-4" />
+                      Simpan
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
           <div className="grid grid-cols-5 gap-1 text-center">
             {Object.entries(baseLoadPerPhase).map(([fase, load]) => (
               <div 
