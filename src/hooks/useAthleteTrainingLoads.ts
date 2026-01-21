@@ -58,10 +58,10 @@ export function useAthleteTrainingLoads(athleteId: string | null) {
       .order('session_date', { ascending: true });
 
     if (athleteId) {
-      // Fetch for specific athlete
+      // Fetch for specific athlete (coach viewing athlete's data)
       query = query.eq('athlete_id', athleteId);
     } else {
-      // Fetch coach's own data (no athlete_id, only user_id)
+      // Fetch coach's own data (no athlete_id, only user_id matches)
       query = query.eq('user_id', user.id).is('athlete_id', null);
     }
 

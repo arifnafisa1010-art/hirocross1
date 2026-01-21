@@ -203,18 +203,30 @@ export function useTrainingLoads(athleteId?: string) {
       // Calculate session load using RPE-based formula
       const sessionLoad = calculateSessionLoad(data.duration_minutes, data.rpe);
       
+      // Build insert object dynamically
+      const insertData: {
+        user_id: string;
+        athlete_id: string | null;
+        session_date: string;
+        duration_minutes: number;
+        rpe: number;
+        session_load: number;
+        training_type: string;
+        notes: string | null;
+      } = {
+        user_id: user.id,
+        athlete_id: data.athlete_id || athleteId || null,
+        session_date: data.session_date,
+        duration_minutes: data.duration_minutes,
+        rpe: data.rpe,
+        session_load: sessionLoad,
+        training_type: data.training_type,
+        notes: data.notes || null,
+      };
+
       const { data: insertedData, error } = await supabase
         .from('training_loads')
-        .insert({
-          user_id: user.id,
-          athlete_id: data.athlete_id || athleteId || null,
-          session_date: data.session_date,
-          duration_minutes: data.duration_minutes,
-          rpe: data.rpe,
-          session_load: sessionLoad,
-          training_type: data.training_type,
-          notes: data.notes || null,
-        })
+        .insert(insertData)
         .select()
         .single();
 
