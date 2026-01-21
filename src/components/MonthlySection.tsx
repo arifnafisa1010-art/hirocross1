@@ -13,16 +13,17 @@ import { SessionModal } from './SessionModal';
 import { TrainingLoadInput } from './TrainingLoadInput';
 import { TrainingLoadHistory } from './TrainingLoadHistory';
 import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarget';
+import { WeeklySyncSummary } from './WeeklySyncSummary';
 import { PremiumBadge } from './PremiumBadge';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { format, addDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-const dayOffsets = [0, 1, 2, 3, 4, 5, 6]; // Monday = 0, Sunday = 6
 
 export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
@@ -475,9 +476,14 @@ export function MonthlySection() {
                   }, { speed: 0, endurance: 0 }) || { speed: 0, endurance: 0 };
 
                   // Get internal load (TSS) from training_loads table for this day
-                  const dayInternalLoad = dayDateStr 
-                    ? loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0)
-                    : 0;
+                  const dayDbLoads = dayDateStr 
+                    ? loads.filter(l => l.session_date === dayDateStr)
+                    : [];
+                  const dayInternalLoad = dayDbLoads.reduce((sum, l) => sum + (l.session_load || 0), 0);
+                  
+                  // Check if this session is synced to training_loads
+                  const hasSessionData = isDone && session?.rpe && session?.duration;
+                  const isSyncedToDb = dayDbLoads.length > 0;
 
                   // RPE-based Load Map: Base load for 60 minutes at each RPE level
                   const RPE_LOAD_MAP: Record<number, number> = {
@@ -602,11 +608,42 @@ export function MonthlySection() {
                         )}
                       </div>
 
-                      {isDone && (
-                        <div className="absolute bottom-2 right-2 bg-success text-success-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">
-                          ✓
-                        </div>
-                      )}
+                      {/* Status indicators: Done + Sync */}
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                        {/* Sync status indicator */}
+                        {hasSessionData && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={cn(
+                                  "text-[9px] font-bold px-1 py-0.5 rounded flex items-center gap-0.5",
+                                  isSyncedToDb 
+                                    ? "bg-green-500/20 text-green-600" 
+                                    : "bg-amber-500/20 text-amber-600"
+                                )}>
+                                  {isSyncedToDb 
+                                    ? <Cloud className="w-2.5 h-2.5" />
+                                    : <CloudOff className="w-2.5 h-2.5" />
+                                  }
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {isSyncedToDb 
+                                  ? "Ter-sync ke Monitoring Performa" 
+                                  : "Belum sync - buka & simpan ulang sesi"
+                                }
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        
+                        {/* Done indicator */}
+                        {isDone && (
+                          <div className="bg-success text-success-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">
+                            ✓
+                          </div>
+                        )}
+                      </div>
                     </Card>
                   );
                 })}
@@ -730,6 +767,37 @@ export function MonthlySection() {
                   </Card>
                 );
               })()}
+              
+              {/* Weekly Sync Summary - Collapsible */}
+              {setup.startDate && (
+                <Collapsible>
+                  <Card className="border-primary/20 overflow-hidden">
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-between p-3 h-auto hover:bg-primary/5 rounded-none">
+                        <div className="flex items-center gap-2">
+                          <Cloud className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-bold">Detail Sync Monitoring</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          Klik untuk melihat
+                        </Badge>
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <WeeklySyncSummary
+                        weekNumber={wk}
+                        startDate={setup.startDate}
+                        sessions={sessions}
+                        loads={loads}
+                        weeklyTarget={weeklyTarget}
+                        phaseName={weekData?.fase || 'Umum'}
+                        volumePercent={weekData?.vol || 100}
+                        intensityPercent={weekData?.int || 100}
+                      />
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              )}
             </div>
           );
         })}
