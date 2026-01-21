@@ -31,14 +31,15 @@ export default function PremiumDashboard() {
     refetch 
   } = useTrainingLoads();
   const [requesting, setRequesting] = useState(false);
-  const [weeklyTarget, setWeeklyTarget] = useState<number>(() => {
+  const [weeklyTarget, setWeeklyTarget] = useState<number | null>(() => {
     const saved = localStorage.getItem('weeklyLoadTarget');
-    return saved ? parseInt(saved) : 400;
+    if (saved === 'null' || saved === '') return null;
+    return saved ? parseInt(saved) : null;
   });
 
-  const handleTargetChange = (target: number) => {
+  const handleTargetChange = (target: number | null) => {
     setWeeklyTarget(target);
-    localStorage.setItem('weeklyLoadTarget', target.toString());
+    localStorage.setItem('weeklyLoadTarget', target === null ? 'null' : target.toString());
   };
 
   const handleRequestAccess = async () => {
