@@ -108,11 +108,14 @@ export function PremiumPricingPackages({ onPackageSelect }: PremiumPricingPackag
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Use signed URL since bucket is now private for security
+      const { data: signedUrlData, error: signedError } = await supabase.storage
         .from('payment-proofs')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 7); // 7 days expiry
 
-      return publicUrl;
+      if (signedError) throw signedError;
+
+      return signedUrlData?.signedUrl || null;
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error('Gagal upload bukti pembayaran: ' + error.message);
