@@ -12,6 +12,7 @@ import { FormSpeedometer } from '@/components/FormSpeedometer';
 import { ACWRGauge } from '@/components/ACWRGauge';
 import { PercentageSpeedometer } from '@/components/PercentageSpeedometer';
 import { PerformanceTrendChart } from '@/components/PerformanceTrendChart';
+import { ACWRTrendChart } from '@/components/ACWRTrendChart';
 import { TrainingRecommendation } from '@/components/TrainingRecommendation';
 import { TrainingLoadPDFExport } from '@/components/TrainingLoadPDFExport';
 import { PeriodComparison } from '@/components/PeriodComparison';
@@ -358,6 +359,9 @@ export default function MonitoringAtlet() {
             weeklyTarget={weeklyTarget} 
             onTargetChange={handleTargetChange} 
           />
+
+          {/* ACWR Trend Chart */}
+          <ACWRTrendChart dailyMetrics={dailyMetrics} />
 
           {/* Performance Trend Chart */}
           <PerformanceTrendChart dailyMetrics={dailyMetrics} />
