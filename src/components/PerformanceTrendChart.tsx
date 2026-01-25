@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { TrendingUp, Info, Download, Image, FileText, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, Info, Download, Image, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Toggle } from '@/components/ui/toggle';
 import { 
   ComposedChart,
   Bar, 
@@ -28,11 +27,11 @@ import {
   Tooltip, 
   Legend, 
   ResponsiveContainer,
-  ReferenceLine
 } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
+import { FormTrendChart } from './FormTrendChart';
 
 interface DailyMetric {
   date: string;
@@ -51,10 +50,6 @@ type PeriodOption = '7' | '14' | '28' | '60';
 export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartProps) {
   const [animatedData, setAnimatedData] = useState<DailyMetric[]>([]);
   const [period, setPeriod] = useState<PeriodOption>('28');
-  const [showFitness, setShowFitness] = useState(true);
-  const [showFatigue, setShowFatigue] = useState(true);
-  const [showForm, setShowForm] = useState(true);
-  const [showLoad, setShowLoad] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -154,42 +149,27 @@ export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartPro
         <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm">
           <p className="font-medium mb-2">{data.fullDate}</p>
           <div className="space-y-1">
-            {showFitness && (
-              <div className="flex items-center justify-between gap-4">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[hsl(142,76%,36%)]" />
-                  Fitness (CTL):
-                </span>
-                <span className="font-medium">{data.fitness}</span>
-              </div>
-            )}
-            {showFatigue && (
-              <div className="flex items-center justify-between gap-4">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[hsl(0,84%,60%)]" />
-                  Fatigue (ATL):
-                </span>
-                <span className="font-medium">{data.fatigue}</span>
-              </div>
-            )}
-            {showForm && (
-              <div className="flex items-center justify-between gap-4">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[hsl(45,93%,47%)]" />
-                  Form (TSB):
-                </span>
-                <span className="font-medium">{data.form}</span>
-              </div>
-            )}
-            {showLoad && (
-              <div className="flex items-center justify-between gap-4 pt-1 border-t border-border">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-primary/70" />
-                  Load (AU):
-                </span>
-                <span className="font-medium">{data.load}</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded bg-amber-400" />
+                Daily Load:
+              </span>
+              <span className="font-medium">{data.load}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
+                Fitness (CTL):
+              </span>
+              <span className="font-medium">{data.fitness}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                Fatigue (ATL):
+              </span>
+              <span className="font-medium">{data.fatigue}</span>
+            </div>
           </div>
         </div>
       );
@@ -200,225 +180,163 @@ export function PerformanceTrendChart({ dailyMetrics }: PerformanceTrendChartPro
   const xAxisInterval = periodDays <= 7 ? 0 : periodDays <= 14 ? 1 : periodDays <= 28 ? 2 : 4;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Trend Performa ({period} Hari Terakhir)
-            </CardTitle>
-            <CardDescription className="flex items-center gap-2 mt-1">
-              Monitoring Fitness, Fatigue, Form & Training Load
-              {!hasRealData && (
-                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                  <Info className="w-3 h-3" />
-                  <span className="text-xs">Input data untuk melihat tren</span>
-                </span>
-              )}
-            </CardDescription>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Period Selector */}
-            <Select value={period} onValueChange={(v) => setPeriod(v as PeriodOption)}>
-              <SelectTrigger className="w-[100px] h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">7 Hari</SelectItem>
-                <SelectItem value="14">14 Hari</SelectItem>
-                <SelectItem value="28">28 Hari</SelectItem>
-                <SelectItem value="60">60 Hari</SelectItem>
-              </SelectContent>
-            </Select>
+    <div className="space-y-4">
+      {/* Load + Fitness + Fatigue Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                Training Load & Performance ({period} Hari Terakhir)
+              </CardTitle>
+              <CardDescription className="flex items-center gap-2 mt-1">
+                Monitoring Daily Load, Fitness (CTL) & Fatigue (ATL)
+                {!hasRealData && (
+                  <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <Info className="w-3 h-3" />
+                    <span className="text-xs">Input data untuk melihat tren</span>
+                  </span>
+                )}
+              </CardDescription>
+            </div>
             
-            {/* Export Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={isExporting}>
-                  <Download className="w-4 h-4 mr-1" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportPNG}>
-                  <Image className="w-4 h-4 mr-2" />
-                  Export PNG
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPDF}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Export PDF
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+              {/* Period Selector */}
+              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodOption)}>
+                <SelectTrigger className="w-[100px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 Hari</SelectItem>
+                  <SelectItem value="14">14 Hari</SelectItem>
+                  <SelectItem value="28">28 Hari</SelectItem>
+                  <SelectItem value="60">60 Hari</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Export Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={isExporting}>
+                    <Download className="w-4 h-4 mr-1" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportPNG}>
+                    <Image className="w-4 h-4 mr-2" />
+                    Export PNG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </div>
-        
-        {/* Metric Toggles */}
-        <div className="flex flex-wrap gap-2 mt-3">
-          <Toggle 
-            size="sm" 
-            pressed={showFitness} 
-            onPressedChange={setShowFitness}
-            className="data-[state=on]:bg-green-100 data-[state=on]:text-green-700 dark:data-[state=on]:bg-green-900/30 dark:data-[state=on]:text-green-400"
-          >
-            {showFitness ? <Eye className="w-3 h-3 mr-1" /> : <EyeOff className="w-3 h-3 mr-1" />}
-            Fitness
-          </Toggle>
-          <Toggle 
-            size="sm" 
-            pressed={showFatigue} 
-            onPressedChange={setShowFatigue}
-            className="data-[state=on]:bg-red-100 data-[state=on]:text-red-700 dark:data-[state=on]:bg-red-900/30 dark:data-[state=on]:text-red-400"
-          >
-            {showFatigue ? <Eye className="w-3 h-3 mr-1" /> : <EyeOff className="w-3 h-3 mr-1" />}
-            Fatigue
-          </Toggle>
-          <Toggle 
-            size="sm" 
-            pressed={showForm} 
-            onPressedChange={setShowForm}
-            className="data-[state=on]:bg-amber-100 data-[state=on]:text-amber-700 dark:data-[state=on]:bg-amber-900/30 dark:data-[state=on]:text-amber-400"
-          >
-            {showForm ? <Eye className="w-3 h-3 mr-1" /> : <EyeOff className="w-3 h-3 mr-1" />}
-            Form
-          </Toggle>
-          <Toggle 
-            size="sm" 
-            pressed={showLoad} 
-            onPressedChange={setShowLoad}
-            className="data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
-          >
-            {showLoad ? <Eye className="w-3 h-3 mr-1" /> : <EyeOff className="w-3 h-3 mr-1" />}
-            Load
-          </Toggle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div ref={chartRef} className="bg-background p-2 rounded-lg">
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={displayData}>
-                <defs>
-                  <linearGradient id="loadBarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" opacity={0.5} />
-                <XAxis 
-                  dataKey="displayDate" 
-                  tick={{ fontSize: 9 }} 
-                  interval={xAxisInterval}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <YAxis 
-                  yAxisId="left"
-                  tick={{ fontSize: 10 }} 
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                  label={{ value: 'CTL/ATL/TSB', angle: -90, position: 'insideLeft', fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <YAxis 
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fontSize: 10 }} 
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                  label={{ value: 'Load (AU)', angle: 90, position: 'insideRight', fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                  iconType="circle"
-                />
-                <ReferenceLine yAxisId="left" y={0} stroke="hsl(var(--border))" strokeWidth={1.5} />
-                
-                {/* Training Load as Bars */}
-                {showLoad && (
-                  <Bar
+        </CardHeader>
+        <CardContent>
+          <div ref={chartRef} className="bg-background p-2 rounded-lg">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={displayData}>
+                  <defs>
+                    <linearGradient id="loadBarGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(45, 93%, 58%)" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="hsl(45, 93%, 47%)" stopOpacity={0.6} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" opacity={0.5} />
+                  <XAxis 
+                    dataKey="displayDate" 
+                    tick={{ fontSize: 9 }} 
+                    interval={xAxisInterval}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    tick={{ fontSize: 10 }} 
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    label={{ value: 'Training load per day', angle: -90, position: 'insideLeft', fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis 
                     yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 10 }} 
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    label={{ value: 'CTL / ATL', angle: 90, position: 'insideRight', fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                    iconType="circle"
+                  />
+                  
+                  {/* Training Load as Bars */}
+                  <Bar
+                    yAxisId="left"
                     dataKey="load"
-                    name="Training Load"
+                    name="Daily Load"
                     fill="url(#loadBarGradient)"
                     radius={[2, 2, 0, 0]}
-                    opacity={0.7}
                     animationDuration={1500}
                     animationEasing="ease-out"
                   />
-                )}
-                
-                {/* Fitness Line */}
-                {showFitness && (
+                  
+                  {/* Fitness Line - Cyan like reference */}
                   <Line
-                    yAxisId="left"
+                    yAxisId="right"
                     type="monotone"
                     dataKey="fitness"
                     name="Fitness (CTL)"
-                    stroke="hsl(142, 76%, 36%)"
+                    stroke="hsl(187, 85%, 53%)"
                     strokeWidth={2.5}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 2 }}
                     animationDuration={1500}
                     animationEasing="ease-out"
                   />
-                )}
-                
-                {/* Fatigue Line */}
-                {showFatigue && (
+                  
+                  {/* Fatigue Line - Purple like reference */}
                   <Line
-                    yAxisId="left"
+                    yAxisId="right"
                     type="monotone"
                     dataKey="fatigue"
                     name="Fatigue (ATL)"
-                    stroke="hsl(0, 84%, 60%)"
+                    stroke="hsl(270, 70%, 60%)"
                     strokeWidth={2.5}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 2 }}
                     animationDuration={1500}
                     animationEasing="ease-out"
                   />
-                )}
-                
-                {/* Form Line */}
-                {showForm && (
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="form"
-                    name="Form (TSB)"
-                    stroke="hsl(45, 93%, 47%)"
-                    strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2 }}
-                    animationDuration={1500}
-                    animationEasing="ease-out"
-                  />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Legend Explanation */}
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-            <div className={`p-2 rounded-lg text-center transition-opacity ${showFitness ? 'bg-green-100 dark:bg-green-900/30' : 'opacity-40 bg-muted'}`}>
-              <span className="font-semibold text-green-600 dark:text-green-400">Fitness (CTL)</span>
-              <p className="text-muted-foreground">Rata-rata 42 hari</p>
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
-            <div className={`p-2 rounded-lg text-center transition-opacity ${showFatigue ? 'bg-red-100 dark:bg-red-900/30' : 'opacity-40 bg-muted'}`}>
-              <span className="font-semibold text-red-600 dark:text-red-400">Fatigue (ATL)</span>
-              <p className="text-muted-foreground">Rata-rata 7 hari</p>
-            </div>
-            <div className={`p-2 rounded-lg text-center transition-opacity ${showForm ? 'bg-amber-100 dark:bg-amber-900/30' : 'opacity-40 bg-muted'}`}>
-              <span className="font-semibold text-amber-600 dark:text-amber-400">Form (TSB)</span>
-              <p className="text-muted-foreground">Fitness - Fatigue</p>
-            </div>
-            <div className={`p-2 rounded-lg text-center transition-opacity ${showLoad ? 'bg-primary/10' : 'opacity-40 bg-muted'}`}>
-              <span className="font-semibold text-primary">Training Load</span>
-              <p className="text-muted-foreground">Beban harian (AU)</p>
+            
+            {/* Legend Explanation */}
+            <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+              <div className="p-2 rounded-lg text-center bg-amber-100 dark:bg-amber-900/30">
+                <span className="font-semibold text-amber-600 dark:text-amber-400">Daily Load</span>
+                <p className="text-muted-foreground">Beban harian (AU)</p>
+              </div>
+              <div className="p-2 rounded-lg text-center bg-cyan-100 dark:bg-cyan-900/30">
+                <span className="font-semibold text-cyan-600 dark:text-cyan-400">Fitness (CTL)</span>
+                <p className="text-muted-foreground">Rata-rata 42 hari</p>
+              </div>
+              <div className="p-2 rounded-lg text-center bg-purple-100 dark:bg-purple-900/30">
+                <span className="font-semibold text-purple-600 dark:text-purple-400">Fatigue (ATL)</span>
+                <p className="text-muted-foreground">Rata-rata 7 hari</p>
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Form Chart - Separate with gradient zones */}
+      <FormTrendChart dailyMetrics={dailyMetrics} period={periodDays} />
+    </div>
   );
 }
