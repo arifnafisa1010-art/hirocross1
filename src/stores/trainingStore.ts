@@ -25,6 +25,15 @@ export interface TrainingBlocks {
 
 export type BlockCategory = keyof TrainingBlocks;
 
+export type DayMarkerType = 'competition' | 'test' | 'recovery' | 'deload';
+
+export interface DayMarker {
+  id: string;
+  date: string;
+  type: DayMarkerType;
+  name: string;
+}
+
 interface TrainingStore {
   activeTab: TabId;
   setActiveTab: (tab: TabId) => void;
@@ -66,6 +75,10 @@ interface TrainingStore {
   
   scheduledEvents: ScheduledEvent[];
   setScheduledEvents: (events: ScheduledEvent[]) => void;
+  
+  dayMarkers: DayMarker[];
+  addDayMarker: (marker: Omit<DayMarker, 'id'>) => void;
+  removeDayMarker: (id: string) => void;
   
   generatePlan: () => void;
 }
@@ -155,6 +168,14 @@ export const useTrainingStore = create<TrainingStore>()(
       
       scheduledEvents: [],
       setScheduledEvents: (events) => set({ scheduledEvents: events }),
+      
+      dayMarkers: [],
+      addDayMarker: (marker) => set((state) => ({
+        dayMarkers: [...state.dayMarkers, { ...marker, id: crypto.randomUUID() }],
+      })),
+      removeDayMarker: (id) => set((state) => ({
+        dayMarkers: state.dayMarkers.filter((m) => m.id !== id),
+      })),
       
       generatePlan: () => {
         const state = get();
