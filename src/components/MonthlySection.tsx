@@ -15,7 +15,8 @@ import { TrainingLoadHistory } from './TrainingLoadHistory';
 import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarget';
 import { WeeklySyncSummary } from './WeeklySyncSummary';
 import { PremiumBadge } from './PremiumBadge';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff } from 'lucide-react';
+import { CompetitionDayMarker, DayMarkerBadge } from './CompetitionDayMarker';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -26,7 +27,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker } = useTrainingStore();
   const { athletes } = useAthletes();
   const { saveProgram, currentProgram, loading: programLoading, resyncSessions } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
@@ -38,6 +39,8 @@ export function MonthlySection() {
   const [saving, setSaving] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [loadInputOpen, setLoadInputOpen] = useState(false);
+  const [markerDialogOpen, setMarkerDialogOpen] = useState(false);
+  const [selectedMarkerDate, setSelectedMarkerDate] = useState<string>('');
   const [weeklyTarget, setWeeklyTarget] = useState<number | null>(() => {
     const saved = localStorage.getItem('weeklyLoadTarget');
     if (saved === 'null' || saved === '') return null;
@@ -170,6 +173,20 @@ export function MonthlySection() {
   const handleDayClick = (week: number, day: string) => {
     setSelectedDay({ week, day });
     setModalOpen(true);
+  };
+
+  const handleOpenMarkerDialog = (e: React.MouseEvent, dateStr: string) => {
+    e.stopPropagation();
+    setSelectedMarkerDate(dateStr);
+    setMarkerDialogOpen(true);
+  };
+
+  const handleAddMarker = (marker: Omit<typeof dayMarkers[0], 'id'>) => {
+    addDayMarker(marker);
+  };
+
+  const handleRemoveMarker = (id: string) => {
+    removeDayMarker(id);
   };
 
   const toggleAthleteSelection = (athleteId: string) => {
@@ -533,6 +550,30 @@ export function MonthlySection() {
                         tssValue === 0 && intensity === 'Rest' && 'intensity-rest',
                       )}
                     >
+                      {/* Marker button - top left */}
+                      {dayDateStr && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={(e) => handleOpenMarkerDialog(e, dayDateStr)}
+                                className={cn(
+                                  "absolute top-2 left-2 p-1 rounded hover:bg-yellow-500/20 transition-colors",
+                                  dayMarkers.some(m => m.date === dayDateStr) 
+                                    ? "text-yellow-500" 
+                                    : "text-muted-foreground/50 hover:text-yellow-500"
+                                )}
+                              >
+                                <Trophy className="w-3.5 h-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Tandai hari penting
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      
                       <div className="absolute top-2 right-2 text-right">
                         <div className="text-[10px] font-bold text-muted-foreground">
                           {day.slice(0, 3)}
@@ -543,6 +584,15 @@ export function MonthlySection() {
                           </div>
                         )}
                       </div>
+                      
+                      {/* Day markers badges */}
+                      {dayDateStr && dayMarkers.filter(m => m.date === dayDateStr).length > 0 && (
+                        <div className="mt-6 space-y-1">
+                          {dayMarkers.filter(m => m.date === dayDateStr).map((marker) => (
+                            <DayMarkerBadge key={marker.id} marker={marker} />
+                          ))}
+                        </div>
+                      )}
                       
                       {hasContent && (
                         <div className="mt-4 space-y-1">
@@ -886,6 +936,16 @@ export function MonthlySection() {
           day={selectedDay.day}
         />
       )}
+
+      {/* Competition Day Marker Dialog */}
+      <CompetitionDayMarker
+        open={markerDialogOpen}
+        onOpenChange={setMarkerDialogOpen}
+        date={selectedMarkerDate}
+        existingMarkers={dayMarkers}
+        onSave={handleAddMarker}
+        onDelete={handleRemoveMarker}
+      />
     </div>
   );
 }
