@@ -1,20 +1,30 @@
 import { Helmet } from 'react-helmet-async';
 import { useAthletePortal } from '@/hooks/useAthletePortal';
+import { useAthleteTrainingLoads } from '@/hooks/useAthleteTrainingLoads';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Target, Trophy, User, LogOut, Dumbbell, ClipboardCheck, BarChart3 } from 'lucide-react';
+import { Calendar, Target, Trophy, User, LogOut, Dumbbell, BarChart3, Activity } from 'lucide-react';
 import { format, parseISO, differenceInWeeks } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { AthleteCalendarView } from '@/components/AthleteCalendarView';
+import { AthletePerformanceDashboard } from '@/components/AthletePerformanceDashboard';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete } = useAthletePortal();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch training loads for the current athlete
+  const { 
+    dailyMetrics, 
+    acwrData, 
+    currentMetrics, 
+    loading: metricsLoading 
+  } = useAthleteTrainingLoads(athleteProfile?.id || null);
 
   const handleSignOut = async () => {
     await signOut();
@@ -67,16 +77,11 @@ const AthletePortal = () => {
     return currentPlan?.fase || '-';
   };
 
-  const getCompletedSessions = (program: any) => {
-    // This would need to be calculated from actual session data
-    return 0;
-  };
-
   return (
     <>
       <Helmet>
         <title>Portal Atlet - HiroCross</title>
-        <meta name="description" content="Portal atlet untuk melihat program latihan" />
+        <meta name="description" content="Portal atlet untuk melihat program latihan dan performa" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -99,6 +104,20 @@ const AthletePortal = () => {
 
         {/* Main Content */}
         <main className="container mx-auto px-4 py-6 space-y-6">
+          {/* Performance Dashboard */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Dashboard Performa
+            </h2>
+            <AthletePerformanceDashboard
+              dailyMetrics={dailyMetrics}
+              acwrData={acwrData}
+              currentMetrics={currentMetrics}
+              loading={metricsLoading}
+            />
+          </div>
+
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
@@ -122,7 +141,7 @@ const AthletePortal = () => {
             <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-green-600 mb-1">
-                  <ClipboardCheck className="h-4 w-4" />
+                  <Calendar className="h-4 w-4" />
                   <span className="text-xs font-medium uppercase">Program</span>
                 </div>
                 <p className="font-bold">{programs.length}</p>
@@ -232,6 +251,7 @@ const AthletePortal = () => {
                               startDate={program.start_date}
                               planData={program.plan_data || []}
                               competitions={program.competitions || []}
+                              athleteId={athleteProfile?.id}
                             />
                           </TabsContent>
 
