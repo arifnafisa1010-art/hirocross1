@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Target, Trophy, User, LogOut, Dumbbell, BarChart3, Activity } from 'lucide-react';
+import { Calendar, Target, Trophy, User, LogOut, Dumbbell, BarChart3, Activity, TrendingUp } from 'lucide-react';
 import { format, parseISO, differenceInWeeks } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { AthleteCalendarView } from '@/components/AthleteCalendarView';
 import { AthletePerformanceDashboard } from '@/components/AthletePerformanceDashboard';
+import { AthleteWeeklyTrendChart } from '@/components/AthleteWeeklyTrendChart';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete } = useAthletePortal();
@@ -114,6 +115,18 @@ const AthletePortal = () => {
               dailyMetrics={dailyMetrics}
               acwrData={acwrData}
               currentMetrics={currentMetrics}
+              loading={metricsLoading}
+            />
+          </div>
+
+          {/* Weekly Trend Chart */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Trend Perkembangan
+            </h2>
+            <AthleteWeeklyTrendChart
+              dailyMetrics={dailyMetrics}
               loading={metricsLoading}
             />
           </div>
