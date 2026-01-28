@@ -2,17 +2,19 @@ import { Helmet } from 'react-helmet-async';
 import { useAthletePortal } from '@/hooks/useAthletePortal';
 import { useAthleteTrainingLoads } from '@/hooks/useAthleteTrainingLoads';
 import { useAuth } from '@/hooks/useAuth';
+import { useCoachPremiumStatus } from '@/hooks/useCoachPremiumStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Target, Trophy, User, LogOut, Dumbbell, BarChart3, Activity, TrendingUp } from 'lucide-react';
+import { Calendar, Target, Trophy, User, LogOut, Dumbbell, BarChart3, Activity, TrendingUp, Crown } from 'lucide-react';
 import { format, parseISO, differenceInWeeks } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { AthleteCalendarView } from '@/components/AthleteCalendarView';
 import { AthletePerformanceDashboard } from '@/components/AthletePerformanceDashboard';
 import { AthleteWeeklyTrendChart } from '@/components/AthleteWeeklyTrendChart';
+import { PremiumLockedOverlay } from '@/components/PremiumLockedOverlay';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete } = useAthletePortal();
@@ -26,6 +28,12 @@ const AthletePortal = () => {
     currentMetrics, 
     loading: metricsLoading 
   } = useAthleteTrainingLoads(athleteProfile?.id || null);
+
+  // Check if the coach has premium access
+  const { 
+    coachHasPremium, 
+    loading: premiumLoading 
+  } = useCoachPremiumStatus(athleteProfile?.id || null);
 
   const handleSignOut = async () => {
     await signOut();
@@ -107,28 +115,60 @@ const AthletePortal = () => {
         <main className="container mx-auto px-4 py-6 space-y-6">
           {/* Performance Dashboard */}
           <div className="space-y-3">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              Dashboard Performa
-            </h2>
-            <AthletePerformanceDashboard
-              dailyMetrics={dailyMetrics}
-              acwrData={acwrData}
-              currentMetrics={currentMetrics}
-              loading={metricsLoading}
-            />
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                Dashboard Performa
+              </h2>
+              {coachHasPremium && (
+                <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] px-2">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Premium
+                </Badge>
+              )}
+            </div>
+            <div className="relative">
+              <AthletePerformanceDashboard
+                dailyMetrics={coachHasPremium ? dailyMetrics : []}
+                acwrData={coachHasPremium ? acwrData : { acwr: 0, acuteLoad: 0, chronicLoad: 0, riskZone: 'undertrained' as const }}
+                currentMetrics={coachHasPremium ? currentMetrics : { fitness: 0, fatigue: 0, form: 0 }}
+                loading={metricsLoading || premiumLoading}
+              />
+              {!premiumLoading && !coachHasPremium && (
+                <PremiumLockedOverlay 
+                  title="Dashboard Performa Terkunci"
+                  description="Fitur ini memerlukan langganan Premium dari pelatih Anda."
+                />
+              )}
+            </div>
           </div>
 
           {/* Weekly Trend Chart */}
           <div className="space-y-3">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Trend Perkembangan
-            </h2>
-            <AthleteWeeklyTrendChart
-              dailyMetrics={dailyMetrics}
-              loading={metricsLoading}
-            />
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Trend Perkembangan
+              </h2>
+              {coachHasPremium && (
+                <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] px-2">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Premium
+                </Badge>
+              )}
+            </div>
+            <div className="relative">
+              <AthleteWeeklyTrendChart
+                dailyMetrics={coachHasPremium ? dailyMetrics : []}
+                loading={metricsLoading || premiumLoading}
+              />
+              {!premiumLoading && !coachHasPremium && (
+                <PremiumLockedOverlay 
+                  title="Trend Perkembangan Terkunci"
+                  description="Fitur ini memerlukan langganan Premium dari pelatih Anda."
+                />
+              )}
+            </div>
           </div>
 
           {/* Quick Stats */}
