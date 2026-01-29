@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Target, Activity, ClipboardList, TrendingUp, Users, ChevronRight, Sparkles, Shield, Zap, Play } from 'lucide-react';
@@ -90,6 +91,17 @@ const itemVariants = {
 };
 
 export default function Home() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
       {/* Animated Background Elements */}
@@ -104,7 +116,11 @@ export default function Home() {
       </div>
 
       {/* Header */}
-      <header className="border-b border-white/10 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className={`border-b sticky top-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'border-white/10 bg-slate-950/95 backdrop-blur-xl shadow-lg shadow-black/20' 
+          : 'border-transparent bg-transparent'
+      }`}>
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           {/* Logo Left */}
           <motion.div
