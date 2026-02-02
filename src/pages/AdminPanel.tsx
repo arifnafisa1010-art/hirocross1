@@ -41,7 +41,8 @@ import {
   UserCog,
   Crown,
   Check,
-  X
+  X,
+  Image
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -626,10 +627,15 @@ export default function AdminPanel() {
                                     </TableCell>
                                     <TableCell>
                                       {request.payment_proof_url ? (
-                                        <Badge className="bg-green-500 text-xs">
-                                          <Check className="w-3 h-3 mr-1" />
-                                          Ada
-                                        </Badge>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-7 text-xs"
+                                          onClick={() => window.open(request.payment_proof_url!, '_blank')}
+                                        >
+                                          <Image className="w-3 h-3 mr-1" />
+                                          Lihat Bukti
+                                        </Button>
                                       ) : (
                                         <Badge variant="secondary" className="text-xs">Tidak ada</Badge>
                                       )}
