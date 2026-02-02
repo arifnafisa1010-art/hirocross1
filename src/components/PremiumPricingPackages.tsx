@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Check, Crown, Loader2, Upload, Image, X, CreditCard, Wallet } from 'lucide-react';
+import { Check, Crown, Loader2, Upload, Image, X, CreditCard, Wallet, MessageCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { supabase } from '@/integrations/supabase/client';
@@ -335,9 +335,27 @@ export function PremiumPricingPackages({ onPackageSelect }: PremiumPricingPackag
               />
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Upload bukti pembayaran mempercepat proses verifikasi
-            </p>
+            {/* Important Info */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900 p-4 space-y-3">
+              <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" />
+                Informasi Penting
+              </h4>
+              <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="font-bold">1.</span>
+                  <span>Setelah melakukan pembayaran, <strong>hubungi admin</strong> melalui WhatsApp: <strong>089515107100</strong></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold">2.</span>
+                  <span>Proses verifikasi maksimal <strong>1x24 jam</strong> setelah konfirmasi</span>
+                </li>
+              </ul>
+              <div className="flex items-center gap-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                <Clock className="w-4 h-4 text-blue-500" />
+                <span className="text-xs text-blue-500">Estimasi aktivasi: 1x24 jam kerja</span>
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
