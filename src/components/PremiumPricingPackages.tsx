@@ -36,9 +36,9 @@ const PACKAGES: PremiumPackage[] = [
 ];
 
 const PAYMENT_INFO = {
-  bank: 'BCA',
-  accountNumber: '1234567890',
-  accountName: 'HiroCross Plan',
+  bank: 'Bank Mandiri',
+  accountNumber: '1370020414021',
+  accountName: 'NAFISA ARIF PAMBUDI',
   ewallet: 'Dana/GoPay: 081234567890',
 };
 
