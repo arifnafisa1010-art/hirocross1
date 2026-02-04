@@ -1,25 +1,25 @@
+import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useAthletePortal } from '@/hooks/useAthletePortal';
 import { useAthleteTrainingLoads } from '@/hooks/useAthleteTrainingLoads';
 import { useAuth } from '@/hooks/useAuth';
 import { useCoachPremiumStatus } from '@/hooks/useCoachPremiumStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Target, Trophy, User, LogOut, Dumbbell, BarChart3, Activity, TrendingUp, Crown } from 'lucide-react';
-import { format, parseISO, differenceInWeeks } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { User, LogOut, Dumbbell, Activity, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AthleteCalendarView } from '@/components/AthleteCalendarView';
-import { AthletePerformanceDashboard } from '@/components/AthletePerformanceDashboard';
-import { AthleteWeeklyTrendChart } from '@/components/AthleteWeeklyTrendChart';
-import { PremiumLockedOverlay } from '@/components/PremiumLockedOverlay';
+import { cn } from '@/lib/utils';
+import { AthleteProfileSection } from '@/components/athlete-portal/AthleteProfileSection';
+import { AthletePerformanceSection } from '@/components/athlete-portal/AthletePerformanceSection';
+import { AthleteTrainingCalendar } from '@/components/athlete-portal/AthleteTrainingCalendar';
+
+type TabType = 'profil' | 'performa' | 'kalender';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete } = useAthletePortal();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabType>('profil');
 
   // Fetch training loads for the current athlete
   const { 
@@ -73,18 +73,11 @@ const AthletePortal = () => {
     );
   }
 
-  const getCurrentWeek = (program: any) => {
-    const startDate = parseISO(program.start_date);
-    const now = new Date();
-    return Math.max(1, differenceInWeeks(now, startDate) + 1);
-  };
-
-  const getCurrentPhase = (program: any) => {
-    const currentWeek = getCurrentWeek(program);
-    const planData = program.plan_data || [];
-    const currentPlan = planData.find((p: any) => p.wk === currentWeek);
-    return currentPlan?.fase || '-';
-  };
+  const tabs = [
+    { id: 'profil' as const, label: 'Profil', icon: User },
+    { id: 'performa' as const, label: 'Performa', icon: Activity },
+    { id: 'kalender' as const, label: 'Kalender', icon: Calendar },
+  ];
 
   return (
     <>
@@ -111,305 +104,61 @@ const AthletePortal = () => {
           </div>
         </header>
 
+        {/* Navigation Tabs */}
+        <div className="border-b bg-card sticky top-[73px] z-40">
+          <div className="container mx-auto px-4">
+            <nav className="flex gap-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
+                      activeTab === tab.id
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-6 space-y-6">
-          {/* Performance Dashboard */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
-                Dashboard Performa
-              </h2>
-              {coachHasPremium && (
-                <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] px-2">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Premium
-                </Badge>
-              )}
-            </div>
-            <div className="relative">
-              <AthletePerformanceDashboard
-                dailyMetrics={coachHasPremium ? dailyMetrics : []}
-                acwrData={coachHasPremium ? acwrData : { acwr: 0, acuteLoad: 0, chronicLoad: 0, riskZone: 'undertrained' as const }}
-                currentMetrics={coachHasPremium ? currentMetrics : { fitness: 0, fatigue: 0, form: 0 }}
-                loading={metricsLoading || premiumLoading}
-              />
-              {!premiumLoading && !coachHasPremium && (
-                <PremiumLockedOverlay 
-                  title="Dashboard Performa Terkunci"
-                  description="Fitur ini memerlukan langganan Premium dari pelatih Anda."
-                />
-              )}
-            </div>
-          </div>
+        <main className="container mx-auto px-4 py-6">
+          {/* Profile Tab */}
+          {activeTab === 'profil' && athleteProfile && (
+            <AthleteProfileSection
+              athleteId={athleteProfile.id}
+              athleteData={athleteProfile}
+            />
+          )}
 
-          {/* Weekly Trend Chart */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Trend Perkembangan
-              </h2>
-              {coachHasPremium && (
-                <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] px-2">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Premium
-                </Badge>
-              )}
-            </div>
-            <div className="relative">
-              <AthleteWeeklyTrendChart
-                dailyMetrics={coachHasPremium ? dailyMetrics : []}
-                loading={metricsLoading || premiumLoading}
-              />
-              {!premiumLoading && !coachHasPremium && (
-                <PremiumLockedOverlay 
-                  title="Trend Perkembangan Terkunci"
-                  description="Fitur ini memerlukan langganan Premium dari pelatih Anda."
-                />
-              )}
-            </div>
-          </div>
+          {/* Performance Tab */}
+          {activeTab === 'performa' && (
+            <AthletePerformanceSection
+              dailyMetrics={dailyMetrics}
+              acwrData={acwrData}
+              currentMetrics={currentMetrics}
+              loading={metricsLoading}
+              coachHasPremium={coachHasPremium}
+              premiumLoading={premiumLoading}
+            />
+          )}
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-primary mb-1">
-                  <User className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase">Nama</span>
-                </div>
-                <p className="font-bold">{athleteProfile?.name}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-blue-600 mb-1">
-                  <Target className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase">Cabor</span>
-                </div>
-                <p className="font-bold">{athleteProfile?.sport || '-'}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-green-600 mb-1">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase">Program</span>
-                </div>
-                <p className="font-bold">{programs.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-orange-600 mb-1">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase">Posisi</span>
-                </div>
-                <p className="font-bold">{athleteProfile?.position || '-'}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Programs */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Program Latihan Saya
-            </h2>
-
-            {programs.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Dumbbell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    Belum ada program latihan yang di-assign ke Anda.
-                  </p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    Hubungi pelatih untuk mendapatkan program latihan.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {programs.map((program) => {
-                  const currentWeek = getCurrentWeek(program);
-                  const currentPhase = getCurrentPhase(program);
-                  const totalWeeks = program.plan_data?.length || 0;
-                  const remainingWeeks = Math.max(0, totalWeeks - currentWeek + 1);
-
-                  return (
-                    <Card key={program.id} className="overflow-hidden">
-                      {/* Program Header */}
-                      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 border-b">
-                        <div className="flex items-start justify-between flex-wrap gap-3">
-                          <div>
-                            <h3 className="font-bold text-lg">{program.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {format(parseISO(program.start_date), 'd MMM yyyy', { locale: id })} - {format(parseISO(program.match_date), 'd MMM yyyy', { locale: id })}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="font-bold">
-                              Minggu {currentWeek}
-                            </Badge>
-                            <Badge variant="outline" className="border-primary text-primary">
-                              {currentPhase}
-                            </Badge>
-                          </div>
-                        </div>
-
-                        {/* Quick stats row */}
-                        <div className="grid grid-cols-4 gap-3 mt-4">
-                          <div className="bg-background/80 rounded-lg p-2 text-center">
-                            <p className="text-xs text-muted-foreground">Total Minggu</p>
-                            <p className="font-bold text-primary">{totalWeeks}</p>
-                          </div>
-                          <div className="bg-background/80 rounded-lg p-2 text-center">
-                            <p className="text-xs text-muted-foreground">Minggu ke-</p>
-                            <p className="font-bold text-primary">{currentWeek}</p>
-                          </div>
-                          <div className="bg-background/80 rounded-lg p-2 text-center">
-                            <p className="text-xs text-muted-foreground">Sisa Minggu</p>
-                            <p className="font-bold text-primary">{remainingWeeks}</p>
-                          </div>
-                          <div className="bg-background/80 rounded-lg p-2 text-center">
-                            <p className="text-xs text-muted-foreground">Kompetisi</p>
-                            <p className="font-bold text-primary">{program.competitions?.length || 0}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <CardContent className="p-4">
-                        <Tabs defaultValue="calendar" className="w-full">
-                          <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="calendar" className="gap-1">
-                              <Calendar className="h-4 w-4" />
-                              <span className="hidden sm:inline">Kalender</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="schedule" className="gap-1">
-                              <BarChart3 className="h-4 w-4" />
-                              <span className="hidden sm:inline">Jadwal</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="competitions" className="gap-1">
-                              <Trophy className="h-4 w-4" />
-                              <span className="hidden sm:inline">Kompetisi</span>
-                            </TabsTrigger>
-                          </TabsList>
-
-                          <TabsContent value="calendar" className="mt-4">
-                            <AthleteCalendarView 
-                              programId={program.id}
-                              programName={program.name}
-                              startDate={program.start_date}
-                              planData={program.plan_data || []}
-                              competitions={program.competitions || []}
-                              athleteId={athleteProfile?.id}
-                            />
-                          </TabsContent>
-
-                          <TabsContent value="schedule" className="mt-4">
-                            <div className="rounded-lg border overflow-hidden">
-                              <div className="max-h-80 overflow-y-auto">
-                                <table className="w-full text-sm">
-                                  <thead className="sticky top-0 bg-muted">
-                                    <tr>
-                                      <th className="text-left p-3 font-semibold">Minggu</th>
-                                      <th className="text-left p-3 font-semibold">Meso</th>
-                                      <th className="text-left p-3 font-semibold">Fase</th>
-                                      <th className="text-left p-3 font-semibold">Vol</th>
-                                      <th className="text-left p-3 font-semibold">Int</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {(program.plan_data || []).map((week: any) => {
-                                      const isCurrentWeek = week.wk === currentWeek;
-                                      return (
-                                        <tr 
-                                          key={week.wk} 
-                                          className={`border-t ${isCurrentWeek ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
-                                        >
-                                          <td className="p-3">
-                                            <div className="flex items-center gap-2">
-                                              <span className="font-medium">W{week.wk}</span>
-                                              {isCurrentWeek && (
-                                                <Badge variant="default" className="text-[10px] px-1.5">
-                                                  Sekarang
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          </td>
-                                          <td className="p-3 text-muted-foreground">{week.meso}</td>
-                                          <td className="p-3">
-                                            <Badge variant="outline" className="text-xs">
-                                              {week.fase}
-                                            </Badge>
-                                          </td>
-                                          <td className="p-3">{week.vol}%</td>
-                                          <td className="p-3">{week.int}%</td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="competitions" className="mt-4">
-                            {(program.competitions || []).length === 0 ? (
-                              <div className="text-center py-8">
-                                <Trophy className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                                <p className="text-muted-foreground">
-                                  Tidak ada kompetisi terjadwal
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                {(program.competitions || []).map((comp: any, idx: number) => {
-                                  const compDate = parseISO(comp.date);
-                                  const isPast = compDate < new Date();
-                                  
-                                  return (
-                                    <div 
-                                      key={idx} 
-                                      className={`flex items-center gap-4 p-4 rounded-lg border ${
-                                        isPast ? 'bg-muted/50 opacity-60' : 'bg-gradient-to-r from-yellow-500/10 to-transparent'
-                                      }`}
-                                    >
-                                      <div className={`p-2 rounded-full ${isPast ? 'bg-muted' : 'bg-yellow-500/20'}`}>
-                                        <Trophy className={`h-5 w-5 ${isPast ? 'text-muted-foreground' : 'text-yellow-500'}`} />
-                                      </div>
-                                      <div className="flex-1">
-                                        <p className="font-semibold">{comp.name}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                          {format(compDate, 'EEEE, d MMMM yyyy', { locale: id })}
-                                        </p>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        {comp.isPrimary && (
-                                          <Badge variant="default" className="bg-yellow-500 text-yellow-950">
-                                            Utama
-                                          </Badge>
-                                        )}
-                                        {isPast && (
-                                          <Badge variant="outline">Selesai</Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </TabsContent>
-                        </Tabs>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {/* Calendar Tab */}
+          {activeTab === 'kalender' && (
+            <AthleteTrainingCalendar
+              programs={programs}
+              athleteId={athleteProfile?.id}
+            />
+          )}
         </main>
       </div>
     </>

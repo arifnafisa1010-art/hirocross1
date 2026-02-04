@@ -18,6 +18,12 @@ interface AthleteProfile {
   name: string;
   sport: string | null;
   position: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  height: number | null;
+  weight: number | null;
+  resting_hr: number | null;
+  photo_url: string | null;
 }
 
 export function useAthletePortal() {
@@ -41,7 +47,7 @@ export function useAthletePortal() {
     // Check if user is linked as an athlete
     const { data: athleteData, error: athleteError } = await supabase
       .from('athletes')
-      .select('id, name, sport, position')
+      .select('id, name, sport, position, birth_date, gender, height, weight, resting_hr, photo_url')
       .eq('linked_user_id', user.id)
       .maybeSingle();
 
