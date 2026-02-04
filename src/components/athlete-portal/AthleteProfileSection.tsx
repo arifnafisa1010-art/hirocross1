@@ -320,10 +320,9 @@ export function AthleteProfileSection({
                     Hasil tes dari pelatih akan tampil di sini
                   </p>
                 </div>
-                </div>
               ) : (
                 <div className="h-[300px]">
-                  <AnimatedRadarChart data={radarData} />
+                  <SimpleRadarChart data={radarData} />
                 </div>
               )}
             </CardContent>
