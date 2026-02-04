@@ -18,6 +18,12 @@ interface AthleteProfile {
   name: string;
   sport: string | null;
   position: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  height: number | null;
+  weight: number | null;
+  resting_hr: number | null;
+  photo_url: string | null;
 }
 
 export function useAthletePortal() {
