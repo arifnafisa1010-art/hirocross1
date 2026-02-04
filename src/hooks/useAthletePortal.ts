@@ -47,7 +47,7 @@ export function useAthletePortal() {
     // Check if user is linked as an athlete
     const { data: athleteData, error: athleteError } = await supabase
       .from('athletes')
-      .select('id, name, sport, position')
+      .select('id, name, sport, position, birth_date, gender, height, weight, resting_hr, photo_url')
       .eq('linked_user_id', user.id)
       .maybeSingle();
 
