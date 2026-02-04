@@ -7,12 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { 
-  User, Calendar, Ruler, Weight, Heart, Target, Trophy,
-  Activity, Zap, Clock, TrendingUp, AlertCircle
+  Ruler, Weight, Heart, Target,
+  Activity, AlertCircle
 } from 'lucide-react';
-import { format, parseISO, differenceInYears } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
-import { AnimatedRadarChart } from '@/components/AnimatedRadarChart';
+import { parseISO, differenceInYears } from 'date-fns';
+import { SimpleRadarChart } from './SimpleRadarChart';
 
 interface AthleteData {
   id: string;
