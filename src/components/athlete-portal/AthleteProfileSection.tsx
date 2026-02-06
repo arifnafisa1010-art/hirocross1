@@ -46,7 +46,41 @@ interface AthleteProfileSectionProps {
   onProfileUpdate?: () => void;
 }
 
-// HR Zones calculation based on Karvonen formula
+// RPE to HR Zone mapping with Karvonen formula
+const calculateRPEZones = (age: number, restingHR: number) => {
+  const maxHR = 220 - age;
+  const hrReserve = maxHR - restingHR;
+  
+  // RPE 1-10 mapped to intensity percentages
+  const rpeZones = [
+    { rpe: 1, intensity: 0.50, name: 'Sangat Ringan', description: 'Pemulihan aktif, stretching', color: 'bg-slate-400' },
+    { rpe: 2, intensity: 0.55, name: 'Ringan', description: 'Jogging ringan, pemanasan', color: 'bg-blue-400' },
+    { rpe: 3, intensity: 0.60, name: 'Ringan-Sedang', description: 'Aerobik ringan', color: 'bg-cyan-400' },
+    { rpe: 4, intensity: 0.65, name: 'Sedang', description: 'Latihan aerobik dasar', color: 'bg-green-400' },
+    { rpe: 5, intensity: 0.70, name: 'Sedang-Berat', description: 'Tempo run, circuit training', color: 'bg-lime-500' },
+    { rpe: 6, intensity: 0.75, name: 'Agak Berat', description: 'Threshold training', color: 'bg-yellow-500' },
+    { rpe: 7, intensity: 0.80, name: 'Berat', description: 'Interval training', color: 'bg-amber-500' },
+    { rpe: 8, intensity: 0.85, name: 'Sangat Berat', description: 'HIIT, speed work', color: 'bg-orange-500' },
+    { rpe: 9, intensity: 0.90, name: 'Hampir Maksimal', description: 'Sprint intervals', color: 'bg-red-500' },
+    { rpe: 10, intensity: 0.95, name: 'Maksimal', description: 'All-out effort, competition', color: 'bg-red-700' },
+  ];
+
+  return rpeZones.map((zone, index) => {
+    const targetHR = Math.round(restingHR + (zone.intensity * hrReserve));
+    const nextIntensity = index < rpeZones.length - 1 ? rpeZones[index + 1].intensity : 1.0;
+    const nextHR = Math.round(restingHR + (nextIntensity * hrReserve));
+    
+    return {
+      ...zone,
+      hrMin: targetHR,
+      hrMax: nextHR - 1,
+      hrRange: `${targetHR} - ${nextHR - 1} bpm`,
+      intensityPercent: `${Math.round(zone.intensity * 100)}%`,
+    };
+  });
+};
+
+// HR Zones calculation based on Karvonen formula (5 zones)
 const calculateHRZones = (age: number, restingHR: number) => {
   const maxHR = 220 - age;
   const hrReserve = maxHR - restingHR;
