@@ -362,25 +362,93 @@ export function AthleteProfileSection({
         {/* Quick Stats */}
         <CardContent className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <Ruler className="h-4 w-4 mx-auto text-blue-500 mb-1" />
-              <p className="text-lg font-bold">{athleteData.height || '-'} <span className="text-xs font-normal">cm</span></p>
+            {/* Height */}
+            <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
+              <Ruler className="h-4 w-4 mx-auto text-primary mb-1" />
+              {editingField === 'height' ? (
+                <div className="flex items-center justify-center gap-1">
+                  <Input
+                    type="number"
+                    value={heightInput}
+                    onChange={(e) => setHeightInput(e.target.value)}
+                    className="h-7 text-center text-sm w-16"
+                    min={100}
+                    max={250}
+                    placeholder="170"
+                  />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveField('height')} disabled={saving}>
+                    <Save className="h-3 w-3 text-primary" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancelEdit} disabled={saving}>
+                    <X className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg font-bold">{athleteData.height || '-'} <span className="text-xs font-normal">cm</span></p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setEditingField('height')}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
               <p className="text-xs text-muted-foreground">Tinggi</p>
             </div>
-            <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <Weight className="h-4 w-4 mx-auto text-green-500 mb-1" />
-              <p className="text-lg font-bold">{athleteData.weight || '-'} <span className="text-xs font-normal">kg</span></p>
+            
+            {/* Weight */}
+            <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
+              <Weight className="h-4 w-4 mx-auto text-primary mb-1" />
+              {editingField === 'weight' ? (
+                <div className="flex items-center justify-center gap-1">
+                  <Input
+                    type="number"
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    className="h-7 text-center text-sm w-16"
+                    min={30}
+                    max={200}
+                    placeholder="70"
+                    step="0.1"
+                  />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveField('weight')} disabled={saving}>
+                    <Save className="h-3 w-3 text-primary" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancelEdit} disabled={saving}>
+                    <X className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg font-bold">{athleteData.weight || '-'} <span className="text-xs font-normal">kg</span></p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setEditingField('weight')}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
               <p className="text-xs text-muted-foreground">Berat</p>
             </div>
+            
+            {/* BMI */}
             <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <Activity className="h-4 w-4 mx-auto text-orange-500 mb-1" />
+              <Activity className="h-4 w-4 mx-auto text-primary mb-1" />
               <p className="text-lg font-bold">{bmi || '-'}</p>
               <p className="text-xs text-muted-foreground">BMI</p>
             </div>
+            
+            {/* Resting HR */}
             <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
-              <Heart className="h-4 w-4 mx-auto text-red-500 mb-1" />
-              {isEditingHR ? (
-                <div className="flex items-center gap-1">
+              <Heart className="h-4 w-4 mx-auto text-destructive mb-1" />
+              {editingField === 'hr' ? (
+                <div className="flex items-center justify-center gap-1">
                   <Input
                     type="number"
                     value={restingHRInput}
@@ -390,23 +458,11 @@ export function AthleteProfileSection({
                     max={120}
                     placeholder="60"
                   />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={handleSaveRestingHR}
-                    disabled={savingHR}
-                  >
-                    <Save className="h-3 w-3 text-green-600" />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveField('hr')} disabled={saving}>
+                    <Save className="h-3 w-3 text-primary" />
                   </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={handleCancelEdit}
-                    disabled={savingHR}
-                  >
-                    <X className="h-3 w-3 text-red-600" />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancelEdit} disabled={saving}>
+                    <X className="h-3 w-3 text-destructive" />
                   </Button>
                 </div>
               ) : (
@@ -416,7 +472,7 @@ export function AthleteProfileSection({
                     size="icon"
                     variant="ghost"
                     className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setIsEditingHR(true)}
+                    onClick={() => setEditingField('hr')}
                   >
                     <Edit2 className="h-3 w-3" />
                   </Button>
