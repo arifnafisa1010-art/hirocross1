@@ -43,6 +43,7 @@ interface AthleteProfileSectionProps {
   athleteId: string;
   athleteData: AthleteData;
   loading?: boolean;
+  onProfileUpdate?: () => void;
 }
 
 // HR Zones calculation based on Karvonen formula
