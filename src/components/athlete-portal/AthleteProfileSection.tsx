@@ -119,10 +119,52 @@ const BIOMOTOR_CATEGORIES = [
 export function AthleteProfileSection({ 
   athleteId, 
   athleteData,
-  loading = false 
+  loading = false,
+  onProfileUpdate
 }: AthleteProfileSectionProps) {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [loadingTests, setLoadingTests] = useState(true);
+  
+  // HR Edit state
+  const [isEditingHR, setIsEditingHR] = useState(false);
+  const [restingHRInput, setRestingHRInput] = useState<string>(
+    athleteData.resting_hr?.toString() || ''
+  );
+  const [savingHR, setSavingHR] = useState(false);
+
+  // Update input when athleteData changes
+  useEffect(() => {
+    setRestingHRInput(athleteData.resting_hr?.toString() || '');
+  }, [athleteData.resting_hr]);
+
+  const handleSaveRestingHR = async () => {
+    const hrValue = parseInt(restingHRInput);
+    if (isNaN(hrValue) || hrValue < 30 || hrValue > 120) {
+      toast.error('HR istirahat harus antara 30-120 bpm');
+      return;
+    }
+
+    setSavingHR(true);
+    const { error } = await supabase
+      .from('athletes')
+      .update({ resting_hr: hrValue })
+      .eq('id', athleteId);
+
+    if (error) {
+      console.error('Error updating resting HR:', error);
+      toast.error('Gagal menyimpan HR istirahat');
+    } else {
+      toast.success('HR istirahat berhasil diperbarui');
+      setIsEditingHR(false);
+      onProfileUpdate?.();
+    }
+    setSavingHR(false);
+  };
+
+  const handleCancelEdit = () => {
+    setRestingHRInput(athleteData.resting_hr?.toString() || '');
+    setIsEditingHR(false);
+  };
 
   // Fetch test results for this athlete
   useEffect(() => {
