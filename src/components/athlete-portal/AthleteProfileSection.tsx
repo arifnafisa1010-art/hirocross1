@@ -5,13 +5,16 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { 
   Ruler, Weight, Heart, Target,
-  Activity, AlertCircle
+  Activity, AlertCircle, Edit2, Save, X
 } from 'lucide-react';
 import { parseISO, differenceInYears } from 'date-fns';
 import { SimpleRadarChart } from './SimpleRadarChart';
+import { toast } from 'sonner';
 
 interface AthleteData {
   id: string;
