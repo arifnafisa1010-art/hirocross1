@@ -46,7 +46,41 @@ interface AthleteProfileSectionProps {
   onProfileUpdate?: () => void;
 }
 
-// HR Zones calculation based on Karvonen formula
+// RPE to HR Zone mapping with Karvonen formula
+const calculateRPEZones = (age: number, restingHR: number) => {
+  const maxHR = 220 - age;
+  const hrReserve = maxHR - restingHR;
+  
+  // RPE 1-10 mapped to intensity percentages
+  const rpeZones = [
+    { rpe: 1, intensity: 0.50, name: 'Sangat Ringan', description: 'Pemulihan aktif, stretching', color: 'bg-slate-400' },
+    { rpe: 2, intensity: 0.55, name: 'Ringan', description: 'Jogging ringan, pemanasan', color: 'bg-blue-400' },
+    { rpe: 3, intensity: 0.60, name: 'Ringan-Sedang', description: 'Aerobik ringan', color: 'bg-cyan-400' },
+    { rpe: 4, intensity: 0.65, name: 'Sedang', description: 'Latihan aerobik dasar', color: 'bg-green-400' },
+    { rpe: 5, intensity: 0.70, name: 'Sedang-Berat', description: 'Tempo run, circuit training', color: 'bg-lime-500' },
+    { rpe: 6, intensity: 0.75, name: 'Agak Berat', description: 'Threshold training', color: 'bg-yellow-500' },
+    { rpe: 7, intensity: 0.80, name: 'Berat', description: 'Interval training', color: 'bg-amber-500' },
+    { rpe: 8, intensity: 0.85, name: 'Sangat Berat', description: 'HIIT, speed work', color: 'bg-orange-500' },
+    { rpe: 9, intensity: 0.90, name: 'Hampir Maksimal', description: 'Sprint intervals', color: 'bg-red-500' },
+    { rpe: 10, intensity: 0.95, name: 'Maksimal', description: 'All-out effort, competition', color: 'bg-red-700' },
+  ];
+
+  return rpeZones.map((zone, index) => {
+    const targetHR = Math.round(restingHR + (zone.intensity * hrReserve));
+    const nextIntensity = index < rpeZones.length - 1 ? rpeZones[index + 1].intensity : 1.0;
+    const nextHR = Math.round(restingHR + (nextIntensity * hrReserve));
+    
+    return {
+      ...zone,
+      hrMin: targetHR,
+      hrMax: nextHR - 1,
+      hrRange: `${targetHR} - ${nextHR - 1} bpm`,
+      intensityPercent: `${Math.round(zone.intensity * 100)}%`,
+    };
+  });
+};
+
+// HR Zones calculation based on Karvonen formula (5 zones)
 const calculateHRZones = (age: number, restingHR: number) => {
   const maxHR = 220 - age;
   const hrReserve = maxHR - restingHR;
@@ -125,45 +159,68 @@ export function AthleteProfileSection({
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [loadingTests, setLoadingTests] = useState(true);
   
-  // HR Edit state
-  const [isEditingHR, setIsEditingHR] = useState(false);
-  const [restingHRInput, setRestingHRInput] = useState<string>(
-    athleteData.resting_hr?.toString() || ''
-  );
-  const [savingHR, setSavingHR] = useState(false);
+  // Edit states
+  const [editingField, setEditingField] = useState<'height' | 'weight' | 'hr' | null>(null);
+  const [heightInput, setHeightInput] = useState<string>(athleteData.height?.toString() || '');
+  const [weightInput, setWeightInput] = useState<string>(athleteData.weight?.toString() || '');
+  const [restingHRInput, setRestingHRInput] = useState<string>(athleteData.resting_hr?.toString() || '');
+  const [saving, setSaving] = useState(false);
 
-  // Update input when athleteData changes
+  // Update inputs when athleteData changes
   useEffect(() => {
+    setHeightInput(athleteData.height?.toString() || '');
+    setWeightInput(athleteData.weight?.toString() || '');
     setRestingHRInput(athleteData.resting_hr?.toString() || '');
-  }, [athleteData.resting_hr]);
+  }, [athleteData.height, athleteData.weight, athleteData.resting_hr]);
 
-  const handleSaveRestingHR = async () => {
-    const hrValue = parseInt(restingHRInput);
-    if (isNaN(hrValue) || hrValue < 30 || hrValue > 120) {
-      toast.error('HR istirahat harus antara 30-120 bpm');
-      return;
+  const handleSaveField = async (field: 'height' | 'weight' | 'hr') => {
+    let updateData: Record<string, number> = {};
+    
+    if (field === 'height') {
+      const value = parseFloat(heightInput);
+      if (isNaN(value) || value < 100 || value > 250) {
+        toast.error('Tinggi harus antara 100-250 cm');
+        return;
+      }
+      updateData = { height: value };
+    } else if (field === 'weight') {
+      const value = parseFloat(weightInput);
+      if (isNaN(value) || value < 30 || value > 200) {
+        toast.error('Berat harus antara 30-200 kg');
+        return;
+      }
+      updateData = { weight: value };
+    } else if (field === 'hr') {
+      const value = parseInt(restingHRInput);
+      if (isNaN(value) || value < 30 || value > 120) {
+        toast.error('HR istirahat harus antara 30-120 bpm');
+        return;
+      }
+      updateData = { resting_hr: value };
     }
 
-    setSavingHR(true);
+    setSaving(true);
     const { error } = await supabase
       .from('athletes')
-      .update({ resting_hr: hrValue })
+      .update(updateData)
       .eq('id', athleteId);
 
     if (error) {
-      console.error('Error updating resting HR:', error);
-      toast.error('Gagal menyimpan HR istirahat');
+      console.error('Error updating profile:', error);
+      toast.error('Gagal menyimpan data');
     } else {
-      toast.success('HR istirahat berhasil diperbarui');
-      setIsEditingHR(false);
+      toast.success('Data berhasil diperbarui');
+      setEditingField(null);
       onProfileUpdate?.();
     }
-    setSavingHR(false);
+    setSaving(false);
   };
 
   const handleCancelEdit = () => {
+    setHeightInput(athleteData.height?.toString() || '');
+    setWeightInput(athleteData.weight?.toString() || '');
     setRestingHRInput(athleteData.resting_hr?.toString() || '');
-    setIsEditingHR(false);
+    setEditingField(null);
   };
 
   // Fetch test results for this athlete
@@ -201,10 +258,16 @@ export function AthleteProfileSection({
     return (athleteData.weight / (heightInM * heightInM)).toFixed(1);
   }, [athleteData.height, athleteData.weight]);
 
-  // HR Zones
+  // HR Zones (5 zones)
   const hrZones = useMemo(() => {
     if (!age || !athleteData.resting_hr) return null;
     return calculateHRZones(age, athleteData.resting_hr);
+  }, [age, athleteData.resting_hr]);
+
+  // RPE Zones (10 zones with HR)
+  const rpeZones = useMemo(() => {
+    if (!age || !athleteData.resting_hr) return null;
+    return calculateRPEZones(age, athleteData.resting_hr);
   }, [age, athleteData.resting_hr]);
 
   // Max HR
@@ -305,25 +368,93 @@ export function AthleteProfileSection({
         {/* Quick Stats */}
         <CardContent className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <Ruler className="h-4 w-4 mx-auto text-blue-500 mb-1" />
-              <p className="text-lg font-bold">{athleteData.height || '-'} <span className="text-xs font-normal">cm</span></p>
+            {/* Height */}
+            <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
+              <Ruler className="h-4 w-4 mx-auto text-primary mb-1" />
+              {editingField === 'height' ? (
+                <div className="flex items-center justify-center gap-1">
+                  <Input
+                    type="number"
+                    value={heightInput}
+                    onChange={(e) => setHeightInput(e.target.value)}
+                    className="h-7 text-center text-sm w-16"
+                    min={100}
+                    max={250}
+                    placeholder="170"
+                  />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveField('height')} disabled={saving}>
+                    <Save className="h-3 w-3 text-primary" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancelEdit} disabled={saving}>
+                    <X className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg font-bold">{athleteData.height || '-'} <span className="text-xs font-normal">cm</span></p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setEditingField('height')}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
               <p className="text-xs text-muted-foreground">Tinggi</p>
             </div>
-            <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <Weight className="h-4 w-4 mx-auto text-green-500 mb-1" />
-              <p className="text-lg font-bold">{athleteData.weight || '-'} <span className="text-xs font-normal">kg</span></p>
+            
+            {/* Weight */}
+            <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
+              <Weight className="h-4 w-4 mx-auto text-primary mb-1" />
+              {editingField === 'weight' ? (
+                <div className="flex items-center justify-center gap-1">
+                  <Input
+                    type="number"
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    className="h-7 text-center text-sm w-16"
+                    min={30}
+                    max={200}
+                    placeholder="70"
+                    step="0.1"
+                  />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveField('weight')} disabled={saving}>
+                    <Save className="h-3 w-3 text-primary" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancelEdit} disabled={saving}>
+                    <X className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg font-bold">{athleteData.weight || '-'} <span className="text-xs font-normal">kg</span></p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setEditingField('weight')}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
               <p className="text-xs text-muted-foreground">Berat</p>
             </div>
+            
+            {/* BMI */}
             <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <Activity className="h-4 w-4 mx-auto text-orange-500 mb-1" />
+              <Activity className="h-4 w-4 mx-auto text-primary mb-1" />
               <p className="text-lg font-bold">{bmi || '-'}</p>
               <p className="text-xs text-muted-foreground">BMI</p>
             </div>
+            
+            {/* Resting HR */}
             <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
-              <Heart className="h-4 w-4 mx-auto text-red-500 mb-1" />
-              {isEditingHR ? (
-                <div className="flex items-center gap-1">
+              <Heart className="h-4 w-4 mx-auto text-destructive mb-1" />
+              {editingField === 'hr' ? (
+                <div className="flex items-center justify-center gap-1">
                   <Input
                     type="number"
                     value={restingHRInput}
@@ -333,23 +464,11 @@ export function AthleteProfileSection({
                     max={120}
                     placeholder="60"
                   />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={handleSaveRestingHR}
-                    disabled={savingHR}
-                  >
-                    <Save className="h-3 w-3 text-green-600" />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveField('hr')} disabled={saving}>
+                    <Save className="h-3 w-3 text-primary" />
                   </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={handleCancelEdit}
-                    disabled={savingHR}
-                  >
-                    <X className="h-3 w-3 text-red-600" />
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancelEdit} disabled={saving}>
+                    <X className="h-3 w-3 text-destructive" />
                   </Button>
                 </div>
               ) : (
@@ -359,7 +478,7 @@ export function AthleteProfileSection({
                     size="icon"
                     variant="ghost"
                     className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setIsEditingHR(true)}
+                    onClick={() => setEditingField('hr')}
                   >
                     <Edit2 className="h-3 w-3" />
                   </Button>
@@ -450,16 +569,17 @@ export function AthleteProfileSection({
           )}
         </TabsContent>
 
-        <TabsContent value="zones" className="mt-4">
+        <TabsContent value="zones" className="mt-4 space-y-4">
+          {/* RPE with HR Zones - Main Focus */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Heart className="h-4 w-4 text-red-500" />
-                Zona Latihan Berdasarkan Heart Rate
+                <Activity className="h-4 w-4 text-primary" />
+                Panduan RPE & Heart Rate untuk Latihan
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!hrZones ? (
+              {!rpeZones ? (
                 <div className="text-center py-8">
                   <AlertCircle className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-muted-foreground">Data tidak lengkap</p>
@@ -471,57 +591,68 @@ export function AthleteProfileSection({
                 <div className="space-y-4">
                   {/* HR Summary */}
                   <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
-                      <p className="text-xs text-blue-600 dark:text-blue-400">HR Istirahat</p>
-                      <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    <div className="p-3 bg-primary/10 rounded-lg text-center">
+                      <p className="text-xs text-primary">HR Istirahat</p>
+                      <p className="text-xl font-bold text-primary">
                         {athleteData.resting_hr} <span className="text-xs font-normal">bpm</span>
                       </p>
                     </div>
-                    <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
-                      <p className="text-xs text-red-600 dark:text-red-400">HR Maksimal</p>
-                      <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                    <div className="p-3 bg-destructive/10 rounded-lg text-center">
+                      <p className="text-xs text-destructive">HR Maksimal</p>
+                      <p className="text-xl font-bold text-destructive">
                         {maxHR} <span className="text-xs font-normal">bpm</span>
                       </p>
                     </div>
-                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-center">
-                      <p className="text-xs text-purple-600 dark:text-purple-400">HR Reserve</p>
-                      <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                    <div className="p-3 bg-secondary rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">HR Reserve</p>
+                      <p className="text-xl font-bold">
                         {maxHR! - athleteData.resting_hr!} <span className="text-xs font-normal">bpm</span>
                       </p>
                     </div>
                   </div>
 
-                  {/* HR Zones */}
-                  <div className="space-y-2">
-                    {hrZones.map(zone => (
-                      <div key={zone.zone} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                        <div className={cn("w-3 h-full min-h-[48px] rounded-full", zone.color)} />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold">Zona {zone.zone}</span>
-                              <Badge variant="outline" className="text-[10px]">{zone.name}</Badge>
+                  {/* RPE Zones Table */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-3 py-2 grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground">
+                      <div className="col-span-1 text-center">RPE</div>
+                      <div className="col-span-3">Intensitas</div>
+                      <div className="col-span-4">Deskripsi</div>
+                      <div className="col-span-2 text-center">%HR</div>
+                      <div className="col-span-2 text-right">Target HR</div>
+                    </div>
+                    <div className="divide-y">
+                      {rpeZones.map(zone => (
+                        <div key={zone.rpe} className="px-3 py-2.5 grid grid-cols-12 gap-2 items-center text-sm hover:bg-muted/30 transition-colors">
+                          <div className="col-span-1 flex justify-center">
+                            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-white", zone.color)}>
+                              {zone.rpe}
                             </div>
-                            <span className="text-sm font-mono font-bold">{zone.range}</span>
                           </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <p className="text-xs text-muted-foreground">{zone.description}</p>
-                            <Badge variant="secondary" className="text-[10px]">{zone.intensity}</Badge>
+                          <div className="col-span-3 font-medium">{zone.name}</div>
+                          <div className="col-span-4 text-xs text-muted-foreground">{zone.description}</div>
+                          <div className="col-span-2 text-center">
+                            <Badge variant="outline" className="text-[10px]">{zone.intensityPercent}</Badge>
+                          </div>
+                          <div className="col-span-2 text-right font-mono text-xs font-semibold">
+                            {zone.hrMin}-{zone.hrMax}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Info Note */}
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900 mt-4">
+                  {/* Usage Guide */}
+                  <div className="p-3 bg-muted/50 rounded-lg border mt-4">
                     <div className="flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
-                      <div className="text-xs text-amber-700 dark:text-amber-300">
-                        <p className="font-semibold">Metode Karvonen</p>
-                        <p className="mt-1">
-                          Zona HR dihitung menggunakan formula Karvonen: Target HR = HR Istirahat + (Intensitas × HR Reserve)
-                        </p>
+                      <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div className="text-xs text-muted-foreground">
+                        <p className="font-semibold mb-1">Cara Menggunakan</p>
+                        <ul className="space-y-1">
+                          <li>• <strong>RPE 1-3:</strong> Untuk pemanasan dan pemulihan aktif</li>
+                          <li>• <strong>RPE 4-6:</strong> Untuk latihan aerobik dan tempo</li>
+                          <li>• <strong>RPE 7-8:</strong> Untuk interval training dan HIIT</li>
+                          <li>• <strong>RPE 9-10:</strong> Untuk sprint dan performa maksimal</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
@@ -529,6 +660,40 @@ export function AthleteProfileSection({
               )}
             </CardContent>
           </Card>
+
+          {/* Classic 5 HR Zones */}
+          {hrZones && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-destructive" />
+                  5 Zona Latihan Klasik (Karvonen)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {hrZones.map(zone => (
+                    <div key={zone.zone} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className={cn("w-3 h-full min-h-[48px] rounded-full", zone.color)} />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold">Zona {zone.zone}</span>
+                            <Badge variant="outline" className="text-[10px]">{zone.name}</Badge>
+                          </div>
+                          <span className="text-sm font-mono font-bold">{zone.range}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-muted-foreground">{zone.description}</p>
+                          <Badge variant="secondary" className="text-[10px]">{zone.intensity}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
