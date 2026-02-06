@@ -137,6 +137,7 @@ const AthletePortal = () => {
             <AthleteProfileSection
               athleteId={athleteProfile.id}
               athleteData={athleteProfile}
+              onProfileUpdate={refetch}
             />
           )}
 
