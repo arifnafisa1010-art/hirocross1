@@ -125,45 +125,68 @@ export function AthleteProfileSection({
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [loadingTests, setLoadingTests] = useState(true);
   
-  // HR Edit state
-  const [isEditingHR, setIsEditingHR] = useState(false);
-  const [restingHRInput, setRestingHRInput] = useState<string>(
-    athleteData.resting_hr?.toString() || ''
-  );
-  const [savingHR, setSavingHR] = useState(false);
+  // Edit states
+  const [editingField, setEditingField] = useState<'height' | 'weight' | 'hr' | null>(null);
+  const [heightInput, setHeightInput] = useState<string>(athleteData.height?.toString() || '');
+  const [weightInput, setWeightInput] = useState<string>(athleteData.weight?.toString() || '');
+  const [restingHRInput, setRestingHRInput] = useState<string>(athleteData.resting_hr?.toString() || '');
+  const [saving, setSaving] = useState(false);
 
-  // Update input when athleteData changes
+  // Update inputs when athleteData changes
   useEffect(() => {
+    setHeightInput(athleteData.height?.toString() || '');
+    setWeightInput(athleteData.weight?.toString() || '');
     setRestingHRInput(athleteData.resting_hr?.toString() || '');
-  }, [athleteData.resting_hr]);
+  }, [athleteData.height, athleteData.weight, athleteData.resting_hr]);
 
-  const handleSaveRestingHR = async () => {
-    const hrValue = parseInt(restingHRInput);
-    if (isNaN(hrValue) || hrValue < 30 || hrValue > 120) {
-      toast.error('HR istirahat harus antara 30-120 bpm');
-      return;
+  const handleSaveField = async (field: 'height' | 'weight' | 'hr') => {
+    let updateData: Record<string, number> = {};
+    
+    if (field === 'height') {
+      const value = parseFloat(heightInput);
+      if (isNaN(value) || value < 100 || value > 250) {
+        toast.error('Tinggi harus antara 100-250 cm');
+        return;
+      }
+      updateData = { height: value };
+    } else if (field === 'weight') {
+      const value = parseFloat(weightInput);
+      if (isNaN(value) || value < 30 || value > 200) {
+        toast.error('Berat harus antara 30-200 kg');
+        return;
+      }
+      updateData = { weight: value };
+    } else if (field === 'hr') {
+      const value = parseInt(restingHRInput);
+      if (isNaN(value) || value < 30 || value > 120) {
+        toast.error('HR istirahat harus antara 30-120 bpm');
+        return;
+      }
+      updateData = { resting_hr: value };
     }
 
-    setSavingHR(true);
+    setSaving(true);
     const { error } = await supabase
       .from('athletes')
-      .update({ resting_hr: hrValue })
+      .update(updateData)
       .eq('id', athleteId);
 
     if (error) {
-      console.error('Error updating resting HR:', error);
-      toast.error('Gagal menyimpan HR istirahat');
+      console.error('Error updating profile:', error);
+      toast.error('Gagal menyimpan data');
     } else {
-      toast.success('HR istirahat berhasil diperbarui');
-      setIsEditingHR(false);
+      toast.success('Data berhasil diperbarui');
+      setEditingField(null);
       onProfileUpdate?.();
     }
-    setSavingHR(false);
+    setSaving(false);
   };
 
   const handleCancelEdit = () => {
+    setHeightInput(athleteData.height?.toString() || '');
+    setWeightInput(athleteData.weight?.toString() || '');
     setRestingHRInput(athleteData.resting_hr?.toString() || '');
-    setIsEditingHR(false);
+    setEditingField(null);
   };
 
   // Fetch test results for this athlete
