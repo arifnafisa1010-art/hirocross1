@@ -16,7 +16,7 @@ import { AthleteTrainingCalendar } from '@/components/athlete-portal/AthleteTrai
 type TabType = 'profil' | 'performa' | 'kalender';
 
 const AthletePortal = () => {
-  const { athleteProfile, programs, loading, isAthlete } = useAthletePortal();
+  const { athleteProfile, programs, loading, isAthlete, refetch } = useAthletePortal();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profil');
