@@ -258,10 +258,16 @@ export function AthleteProfileSection({
     return (athleteData.weight / (heightInM * heightInM)).toFixed(1);
   }, [athleteData.height, athleteData.weight]);
 
-  // HR Zones
+  // HR Zones (5 zones)
   const hrZones = useMemo(() => {
     if (!age || !athleteData.resting_hr) return null;
     return calculateHRZones(age, athleteData.resting_hr);
+  }, [age, athleteData.resting_hr]);
+
+  // RPE Zones (10 zones with HR)
+  const rpeZones = useMemo(() => {
+    if (!age || !athleteData.resting_hr) return null;
+    return calculateRPEZones(age, athleteData.resting_hr);
   }, [age, athleteData.resting_hr]);
 
   // Max HR
