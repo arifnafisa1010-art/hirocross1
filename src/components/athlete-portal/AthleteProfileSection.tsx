@@ -569,16 +569,17 @@ export function AthleteProfileSection({
           )}
         </TabsContent>
 
-        <TabsContent value="zones" className="mt-4">
+        <TabsContent value="zones" className="mt-4 space-y-4">
+          {/* RPE with HR Zones - Main Focus */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Heart className="h-4 w-4 text-red-500" />
-                Zona Latihan Berdasarkan Heart Rate
+                <Activity className="h-4 w-4 text-primary" />
+                Panduan RPE & Heart Rate untuk Latihan
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!hrZones ? (
+              {!rpeZones ? (
                 <div className="text-center py-8">
                   <AlertCircle className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-muted-foreground">Data tidak lengkap</p>
@@ -590,57 +591,68 @@ export function AthleteProfileSection({
                 <div className="space-y-4">
                   {/* HR Summary */}
                   <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
-                      <p className="text-xs text-blue-600 dark:text-blue-400">HR Istirahat</p>
-                      <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    <div className="p-3 bg-primary/10 rounded-lg text-center">
+                      <p className="text-xs text-primary">HR Istirahat</p>
+                      <p className="text-xl font-bold text-primary">
                         {athleteData.resting_hr} <span className="text-xs font-normal">bpm</span>
                       </p>
                     </div>
-                    <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
-                      <p className="text-xs text-red-600 dark:text-red-400">HR Maksimal</p>
-                      <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                    <div className="p-3 bg-destructive/10 rounded-lg text-center">
+                      <p className="text-xs text-destructive">HR Maksimal</p>
+                      <p className="text-xl font-bold text-destructive">
                         {maxHR} <span className="text-xs font-normal">bpm</span>
                       </p>
                     </div>
-                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-center">
-                      <p className="text-xs text-purple-600 dark:text-purple-400">HR Reserve</p>
-                      <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                    <div className="p-3 bg-secondary rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">HR Reserve</p>
+                      <p className="text-xl font-bold">
                         {maxHR! - athleteData.resting_hr!} <span className="text-xs font-normal">bpm</span>
                       </p>
                     </div>
                   </div>
 
-                  {/* HR Zones */}
-                  <div className="space-y-2">
-                    {hrZones.map(zone => (
-                      <div key={zone.zone} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                        <div className={cn("w-3 h-full min-h-[48px] rounded-full", zone.color)} />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold">Zona {zone.zone}</span>
-                              <Badge variant="outline" className="text-[10px]">{zone.name}</Badge>
+                  {/* RPE Zones Table */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-3 py-2 grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground">
+                      <div className="col-span-1 text-center">RPE</div>
+                      <div className="col-span-3">Intensitas</div>
+                      <div className="col-span-4">Deskripsi</div>
+                      <div className="col-span-2 text-center">%HR</div>
+                      <div className="col-span-2 text-right">Target HR</div>
+                    </div>
+                    <div className="divide-y">
+                      {rpeZones.map(zone => (
+                        <div key={zone.rpe} className="px-3 py-2.5 grid grid-cols-12 gap-2 items-center text-sm hover:bg-muted/30 transition-colors">
+                          <div className="col-span-1 flex justify-center">
+                            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-white", zone.color)}>
+                              {zone.rpe}
                             </div>
-                            <span className="text-sm font-mono font-bold">{zone.range}</span>
                           </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <p className="text-xs text-muted-foreground">{zone.description}</p>
-                            <Badge variant="secondary" className="text-[10px]">{zone.intensity}</Badge>
+                          <div className="col-span-3 font-medium">{zone.name}</div>
+                          <div className="col-span-4 text-xs text-muted-foreground">{zone.description}</div>
+                          <div className="col-span-2 text-center">
+                            <Badge variant="outline" className="text-[10px]">{zone.intensityPercent}</Badge>
+                          </div>
+                          <div className="col-span-2 text-right font-mono text-xs font-semibold">
+                            {zone.hrMin}-{zone.hrMax}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Info Note */}
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900 mt-4">
+                  {/* Usage Guide */}
+                  <div className="p-3 bg-muted/50 rounded-lg border mt-4">
                     <div className="flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
-                      <div className="text-xs text-amber-700 dark:text-amber-300">
-                        <p className="font-semibold">Metode Karvonen</p>
-                        <p className="mt-1">
-                          Zona HR dihitung menggunakan formula Karvonen: Target HR = HR Istirahat + (Intensitas × HR Reserve)
-                        </p>
+                      <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div className="text-xs text-muted-foreground">
+                        <p className="font-semibold mb-1">Cara Menggunakan</p>
+                        <ul className="space-y-1">
+                          <li>• <strong>RPE 1-3:</strong> Untuk pemanasan dan pemulihan aktif</li>
+                          <li>• <strong>RPE 4-6:</strong> Untuk latihan aerobik dan tempo</li>
+                          <li>• <strong>RPE 7-8:</strong> Untuk interval training dan HIIT</li>
+                          <li>• <strong>RPE 9-10:</strong> Untuk sprint dan performa maksimal</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
@@ -648,6 +660,40 @@ export function AthleteProfileSection({
               )}
             </CardContent>
           </Card>
+
+          {/* Classic 5 HR Zones */}
+          {hrZones && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-destructive" />
+                  5 Zona Latihan Klasik (Karvonen)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {hrZones.map(zone => (
+                    <div key={zone.zone} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className={cn("w-3 h-full min-h-[48px] rounded-full", zone.color)} />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold">Zona {zone.zone}</span>
+                            <Badge variant="outline" className="text-[10px]">{zone.name}</Badge>
+                          </div>
+                          <span className="text-sm font-mono font-bold">{zone.range}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-muted-foreground">{zone.description}</p>
+                          <Badge variant="secondary" className="text-[10px]">{zone.intensity}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
