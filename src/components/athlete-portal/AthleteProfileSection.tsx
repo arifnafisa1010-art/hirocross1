@@ -320,9 +320,51 @@ export function AthleteProfileSection({
               <p className="text-lg font-bold">{bmi || '-'}</p>
               <p className="text-xs text-muted-foreground">BMI</p>
             </div>
-            <div className="p-3 bg-muted/50 rounded-lg text-center">
+            <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
               <Heart className="h-4 w-4 mx-auto text-red-500 mb-1" />
-              <p className="text-lg font-bold">{athleteData.resting_hr || '-'} <span className="text-xs font-normal">bpm</span></p>
+              {isEditingHR ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={restingHRInput}
+                    onChange={(e) => setRestingHRInput(e.target.value)}
+                    className="h-7 text-center text-sm w-16"
+                    min={30}
+                    max={120}
+                    placeholder="60"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={handleSaveRestingHR}
+                    disabled={savingHR}
+                  >
+                    <Save className="h-3 w-3 text-green-600" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={handleCancelEdit}
+                    disabled={savingHR}
+                  >
+                    <X className="h-3 w-3 text-red-600" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg font-bold">{athleteData.resting_hr || '-'} <span className="text-xs font-normal">bpm</span></p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setIsEditingHR(true)}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
               <p className="text-xs text-muted-foreground">HR Istirahat</p>
             </div>
           </div>
