@@ -5,13 +5,16 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { 
   Ruler, Weight, Heart, Target,
-  Activity, AlertCircle
+  Activity, AlertCircle, Edit2, Save, X
 } from 'lucide-react';
 import { parseISO, differenceInYears } from 'date-fns';
 import { SimpleRadarChart } from './SimpleRadarChart';
+import { toast } from 'sonner';
 
 interface AthleteData {
   id: string;
@@ -40,6 +43,7 @@ interface AthleteProfileSectionProps {
   athleteId: string;
   athleteData: AthleteData;
   loading?: boolean;
+  onProfileUpdate?: () => void;
 }
 
 // HR Zones calculation based on Karvonen formula
@@ -115,10 +119,52 @@ const BIOMOTOR_CATEGORIES = [
 export function AthleteProfileSection({ 
   athleteId, 
   athleteData,
-  loading = false 
+  loading = false,
+  onProfileUpdate
 }: AthleteProfileSectionProps) {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [loadingTests, setLoadingTests] = useState(true);
+  
+  // HR Edit state
+  const [isEditingHR, setIsEditingHR] = useState(false);
+  const [restingHRInput, setRestingHRInput] = useState<string>(
+    athleteData.resting_hr?.toString() || ''
+  );
+  const [savingHR, setSavingHR] = useState(false);
+
+  // Update input when athleteData changes
+  useEffect(() => {
+    setRestingHRInput(athleteData.resting_hr?.toString() || '');
+  }, [athleteData.resting_hr]);
+
+  const handleSaveRestingHR = async () => {
+    const hrValue = parseInt(restingHRInput);
+    if (isNaN(hrValue) || hrValue < 30 || hrValue > 120) {
+      toast.error('HR istirahat harus antara 30-120 bpm');
+      return;
+    }
+
+    setSavingHR(true);
+    const { error } = await supabase
+      .from('athletes')
+      .update({ resting_hr: hrValue })
+      .eq('id', athleteId);
+
+    if (error) {
+      console.error('Error updating resting HR:', error);
+      toast.error('Gagal menyimpan HR istirahat');
+    } else {
+      toast.success('HR istirahat berhasil diperbarui');
+      setIsEditingHR(false);
+      onProfileUpdate?.();
+    }
+    setSavingHR(false);
+  };
+
+  const handleCancelEdit = () => {
+    setRestingHRInput(athleteData.resting_hr?.toString() || '');
+    setIsEditingHR(false);
+  };
 
   // Fetch test results for this athlete
   useEffect(() => {
@@ -274,9 +320,51 @@ export function AthleteProfileSection({
               <p className="text-lg font-bold">{bmi || '-'}</p>
               <p className="text-xs text-muted-foreground">BMI</p>
             </div>
-            <div className="p-3 bg-muted/50 rounded-lg text-center">
+            <div className="p-3 bg-muted/50 rounded-lg text-center relative group">
               <Heart className="h-4 w-4 mx-auto text-red-500 mb-1" />
-              <p className="text-lg font-bold">{athleteData.resting_hr || '-'} <span className="text-xs font-normal">bpm</span></p>
+              {isEditingHR ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={restingHRInput}
+                    onChange={(e) => setRestingHRInput(e.target.value)}
+                    className="h-7 text-center text-sm w-16"
+                    min={30}
+                    max={120}
+                    placeholder="60"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={handleSaveRestingHR}
+                    disabled={savingHR}
+                  >
+                    <Save className="h-3 w-3 text-green-600" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={handleCancelEdit}
+                    disabled={savingHR}
+                  >
+                    <X className="h-3 w-3 text-red-600" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg font-bold">{athleteData.resting_hr || '-'} <span className="text-xs font-normal">bpm</span></p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setIsEditingHR(true)}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
               <p className="text-xs text-muted-foreground">HR Istirahat</p>
             </div>
           </div>
