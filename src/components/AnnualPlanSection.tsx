@@ -98,7 +98,7 @@ export function AnnualPlanSection() {
   const [editVolIntValue, setEditVolIntValue] = useState<number>(0);
   const [inlineEditingBlock, setInlineEditingBlock] = useState<{ category: BlockCategory; startWeek: number } | null>(null);
   const [inlineBlockText, setInlineBlockText] = useState('');
-  const [editingPhaseWeek, setEditingPhaseWeek] = useState<number | null>(null);
+  const [selectedPhaseWeeks, setSelectedPhaseWeeks] = useState<number[]>([]);
   const [editingEventWeek, setEditingEventWeek] = useState<number | null>(null);
   const [editEventName, setEditEventName] = useState('');
   const [editEventType, setEditEventType] = useState<'test' | 'competition'>('test');
@@ -768,51 +768,110 @@ export function AnnualPlanSection() {
                     ));
                   })()}
                 </tr>
-                {/* Fase Row */}
+                {/* Fase Row - Block Selection */}
                 <tr className="bg-secondary/70">
                   <td className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-border bg-secondary/70">
                     Fase
+                    {selectedPhaseWeeks.length > 0 && (
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        <span className="text-[6px] text-muted-foreground normal-case font-normal">{selectedPhaseWeeks.length} minggu</span>
+                      </div>
+                    )}
                   </td>
-                  {planData.map((d, idx) => {
-                    const isEditing = editingPhaseWeek === d.wk;
-                    return (
-                      <td 
-                        key={d.wk} 
-                        className={cn(
-                          "p-0.5 text-center text-[7px] font-extrabold uppercase border-r border-border last:border-r-0 cursor-pointer transition-all",
-                          phaseClasses[d.fase],
-                          isEditing && "ring-2 ring-accent"
-                        )}
-                        onClick={() => {
-                          if (!isEditing) {
-                            setEditingPhaseWeek(d.wk);
-                          }
-                        }}
-                      >
-                        {isEditing ? (
-                          <select
-                            value={d.fase}
-                            onChange={(e) => {
-                              updatePlanWeek(idx, { fase: e.target.value as any });
-                              setEditingPhaseWeek(null);
-                            }}
-                            onBlur={() => setEditingPhaseWeek(null)}
-                            autoFocus
-                            className="w-full h-5 text-[6px] font-bold bg-transparent border-none outline-none cursor-pointer text-center"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <option value="Umum">Umum</option>
-                            <option value="Khusus">Khusus</option>
-                            <option value="Pra-Komp">Pra-Komp</option>
-                            <option value="Kompetisi">Kompetisi</option>
-                          </select>
-                        ) : (
-                          <span title="Klik untuk edit fase">{d.fase.substring(0, 3)}</span>
-                        )}
-                      </td>
-                    );
-                  })}
+                  {(() => {
+                    // Group consecutive weeks with same phase for display
+                    const groups: { fase: string; weeks: number[]; indices: number[] }[] = [];
+                    let currentFaseLocal = '';
+                    let currentGroup: { fase: string; weeks: number[]; indices: number[] } | null = null;
+
+                    planData.forEach((d, idx) => {
+                      if (d.fase !== currentFaseLocal) {
+                        if (currentGroup) groups.push(currentGroup);
+                        currentFaseLocal = d.fase;
+                        currentGroup = { fase: d.fase, weeks: [d.wk], indices: [idx] };
+                      } else {
+                        currentGroup?.weeks.push(d.wk);
+                        currentGroup?.indices.push(idx);
+                      }
+                    });
+                    if (currentGroup) groups.push(currentGroup);
+
+                    return groups.map((group, i) => {
+                      const isAnySelected = group.weeks.some(w => selectedPhaseWeeks.includes(w));
+                      const allSelected = group.weeks.every(w => selectedPhaseWeeks.includes(w));
+                      return (
+                        <td 
+                          key={i} 
+                          colSpan={group.weeks.length}
+                          className={cn(
+                            "p-0.5 text-center text-[7px] font-extrabold uppercase border-r border-border last:border-r-0 cursor-pointer transition-all",
+                            phaseClasses[group.fase],
+                            allSelected && "ring-2 ring-accent ring-inset",
+                            isAnySelected && !allSelected && "ring-1 ring-accent/50 ring-inset"
+                          )}
+                          onClick={() => {
+                            if (allSelected) {
+                              // Deselect all weeks in this group
+                              setSelectedPhaseWeeks(prev => prev.filter(w => !group.weeks.includes(w)));
+                            } else {
+                              // Select all weeks in this group
+                              setSelectedPhaseWeeks(prev => [...new Set([...prev, ...group.weeks])].sort((a, b) => a - b));
+                            }
+                          }}
+                        >
+                          {group.fase}
+                        </td>
+                      );
+                    });
+                  })()}
                 </tr>
+                {/* Phase Assignment Toolbar - shown when weeks are selected */}
+                {selectedPhaseWeeks.length > 0 && (
+                  <tr className="bg-muted/80 border-t border-accent">
+                    <td className="p-1 text-left text-[7px] font-bold border-r border-border bg-muted" colSpan={1}>
+                      Pilih Fase:
+                    </td>
+                    <td colSpan={planData.length} className="p-1">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {(['Umum', 'Khusus', 'Pra-Komp', 'Kompetisi'] as const).map((fase) => (
+                          <button
+                            key={fase}
+                            className={cn(
+                              "px-2 py-0.5 rounded text-[8px] font-bold border transition-colors",
+                              phaseClasses[fase],
+                              "hover:opacity-80"
+                            )}
+                            onClick={() => {
+                              const newPlanData = [...planData];
+                              selectedPhaseWeeks.forEach(wk => {
+                                const idx = newPlanData.findIndex(d => d.wk === wk);
+                                if (idx !== -1) {
+                                  newPlanData[idx] = { ...newPlanData[idx], fase };
+                                }
+                              });
+                              setPlanData(newPlanData);
+                              setSelectedPhaseWeeks([]);
+                            }}
+                          >
+                            {fase}
+                          </button>
+                        ))}
+                        <button
+                          className="px-2 py-0.5 rounded text-[8px] font-bold border border-border text-muted-foreground hover:bg-secondary ml-1"
+                          onClick={() => setSelectedPhaseWeeks([])}
+                        >
+                          Batal
+                        </button>
+                        <button
+                          className="px-2 py-0.5 rounded text-[8px] font-bold border border-accent text-accent hover:bg-accent/10 ml-1"
+                          onClick={() => setSelectedPhaseWeeks(planData.map(d => d.wk))}
+                        >
+                          Pilih Semua
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {/* Tes & Kompetisi Row */}
                 <tr className="bg-card border-t border-border">
                   <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-secondary/50">
