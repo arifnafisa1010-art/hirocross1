@@ -290,13 +290,15 @@ export function AthleteProfileSection({
     return grouped;
   }, [testResults]);
 
-  // Radar chart data
+  // Radar chart data - only include categories that have test results
   const radarData = useMemo(() => {
-    return BIOMOTOR_CATEGORIES.map(cat => ({
-      category: cat,
-      value: latestTestsByCategory[cat]?.score || 0,
-      fullMark: 5
-    }));
+    return BIOMOTOR_CATEGORIES
+      .filter(cat => latestTestsByCategory[cat] && latestTestsByCategory[cat].score > 0)
+      .map(cat => ({
+        category: cat,
+        value: latestTestsByCategory[cat].score,
+        fullMark: 5
+      }));
   }, [latestTestsByCategory]);
 
   // Overall score
