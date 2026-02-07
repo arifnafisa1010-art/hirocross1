@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -98,6 +98,10 @@ export function AnnualPlanSection() {
   const [editVolIntValue, setEditVolIntValue] = useState<number>(0);
   const [inlineEditingBlock, setInlineEditingBlock] = useState<{ category: BlockCategory; startWeek: number } | null>(null);
   const [inlineBlockText, setInlineBlockText] = useState('');
+  const [editingPhaseWeek, setEditingPhaseWeek] = useState<number | null>(null);
+  const [editingEventWeek, setEditingEventWeek] = useState<number | null>(null);
+  const [editEventName, setEditEventName] = useState('');
+  const [editEventType, setEditEventType] = useState<'test' | 'competition'>('test');
   const [hoveredWeek, setHoveredWeek] = useState<{ week: number; vol: number; int: number; x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -769,35 +773,45 @@ export function AnnualPlanSection() {
                   <td className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-border bg-secondary/70">
                     Fase
                   </td>
-                  {(() => {
-                    const groups: { fase: string; weeks: number[] }[] = [];
-                    let currentFase = '';
-                    let currentGroup: { fase: string; weeks: number[] } | null = null;
-
-                    planData.forEach((d) => {
-                      if (d.fase !== currentFase) {
-                        if (currentGroup) groups.push(currentGroup);
-                        currentFase = d.fase;
-                        currentGroup = { fase: d.fase, weeks: [d.wk] };
-                      } else {
-                        currentGroup?.weeks.push(d.wk);
-                      }
-                    });
-                    if (currentGroup) groups.push(currentGroup);
-
-                    return groups.map((group, i) => (
+                  {planData.map((d, idx) => {
+                    const isEditing = editingPhaseWeek === d.wk;
+                    return (
                       <td 
-                        key={i} 
-                        colSpan={group.weeks.length}
+                        key={d.wk} 
                         className={cn(
-                          "p-0.5 text-center text-[7px] font-extrabold uppercase border-r border-border last:border-r-0",
-                          phaseClasses[group.fase]
+                          "p-0.5 text-center text-[7px] font-extrabold uppercase border-r border-border last:border-r-0 cursor-pointer transition-all",
+                          phaseClasses[d.fase],
+                          isEditing && "ring-2 ring-accent"
                         )}
+                        onClick={() => {
+                          if (!isEditing) {
+                            setEditingPhaseWeek(d.wk);
+                          }
+                        }}
                       >
-                        {group.fase}
+                        {isEditing ? (
+                          <select
+                            value={d.fase}
+                            onChange={(e) => {
+                              updatePlanWeek(idx, { fase: e.target.value as any });
+                              setEditingPhaseWeek(null);
+                            }}
+                            onBlur={() => setEditingPhaseWeek(null)}
+                            autoFocus
+                            className="w-full h-5 text-[6px] font-bold bg-transparent border-none outline-none cursor-pointer text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <option value="Umum">Umum</option>
+                            <option value="Khusus">Khusus</option>
+                            <option value="Pra-Komp">Pra-Komp</option>
+                            <option value="Kompetisi">Kompetisi</option>
+                          </select>
+                        ) : (
+                          <span title="Klik untuk edit fase">{d.fase.substring(0, 3)}</span>
+                        )}
                       </td>
-                    ));
-                  })()}
+                    );
+                  })}
                 </tr>
                 {/* Tes & Kompetisi Row */}
                 <tr className="bg-card border-t border-border">
@@ -806,25 +820,31 @@ export function AnnualPlanSection() {
                   </td>
                   {planData.map((d) => {
                     const event = getEventForWeek(d.wk);
+                    const isEditingThis = editingEventWeek === d.wk;
                     return (
                       <td 
                         key={d.wk} 
                         className={cn(
-                          "p-0.5 text-center border-r border-border/50 last:border-r-0 cursor-pointer transition-all",
+                          "p-0.5 text-center border-r border-border/50 last:border-r-0 cursor-pointer transition-all relative",
                           event?.type === 'test' && "bg-blue-500/30",
                           event?.type === 'competition' && "bg-red-500/30",
-                          !event && "hover:bg-secondary/50"
+                          !event && "hover:bg-secondary/50",
+                          isEditingThis && "ring-2 ring-accent z-10"
                         )}
                         onClick={() => {
+                          if (isEditingThis) return;
+                          setEditingEventWeek(d.wk);
                           if (event) {
-                            removeScheduledEvent(d.wk);
+                            setEditEventName(event.name);
+                            setEditEventType(event.type);
                           } else {
-                            setAddingEvent({ week: d.wk });
+                            setEditEventName('');
+                            setEditEventType('test');
                           }
                         }}
                       >
                         {event ? (
-                          <div className="flex flex-col items-center">
+                          <div className="flex flex-col items-center" title={event.name}>
                             {event.type === 'test' ? (
                               <FlaskConical className="w-2 h-2 text-blue-600" />
                             ) : (
@@ -832,7 +852,97 @@ export function AnnualPlanSection() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-[6px] text-muted-foreground">-</span>
+                          <span className="text-[6px] text-muted-foreground">+</span>
+                        )}
+                        {isEditingThis && (
+                          <div 
+                            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-3 w-48"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="space-y-2">
+                              <div className="text-[10px] font-bold text-foreground">Minggu {d.wk}</div>
+                              <div className="flex gap-1">
+                                <button
+                                  className={cn(
+                                    "flex-1 text-[9px] font-bold py-1 rounded border transition-colors",
+                                    editEventType === 'test' 
+                                      ? "bg-blue-500/30 border-blue-500 text-blue-700" 
+                                      : "border-border text-muted-foreground hover:border-blue-500/50"
+                                  )}
+                                  onClick={() => setEditEventType('test')}
+                                >
+                                  <FlaskConical className="w-3 h-3 mx-auto mb-0.5" />
+                                  Tes
+                                </button>
+                                <button
+                                  className={cn(
+                                    "flex-1 text-[9px] font-bold py-1 rounded border transition-colors",
+                                    editEventType === 'competition' 
+                                      ? "bg-red-500/30 border-red-500 text-red-700" 
+                                      : "border-border text-muted-foreground hover:border-red-500/50"
+                                  )}
+                                  onClick={() => setEditEventType('competition')}
+                                >
+                                  <Flag className="w-3 h-3 mx-auto mb-0.5" />
+                                  Komp
+                                </button>
+                              </div>
+                              <Input
+                                type="text"
+                                placeholder="Nama kegiatan..."
+                                value={editEventName}
+                                onChange={(e) => setEditEventName(e.target.value)}
+                                className="h-7 text-[10px]"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && editEventName.trim()) {
+                                    // Remove existing event first
+                                    const filtered = scheduledEvents.filter(ev => ev.week !== d.wk);
+                                    const { fullDate } = getWeekDateRange(d.wk);
+                                    setScheduledEvents([...filtered, { week: d.wk, type: editEventType, name: editEventName, date: fullDate }]);
+                                    setEditingEventWeek(null);
+                                  }
+                                  if (e.key === 'Escape') setEditingEventWeek(null);
+                                }}
+                              />
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 h-6 text-[9px]"
+                                  disabled={!editEventName.trim()}
+                                  onClick={() => {
+                                    const filtered = scheduledEvents.filter(ev => ev.week !== d.wk);
+                                    const { fullDate } = getWeekDateRange(d.wk);
+                                    setScheduledEvents([...filtered, { week: d.wk, type: editEventType, name: editEventName, date: fullDate }]);
+                                    setEditingEventWeek(null);
+                                  }}
+                                >
+                                  Simpan
+                                </Button>
+                                {event && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-6 text-[9px] px-2"
+                                    onClick={() => {
+                                      removeScheduledEvent(d.wk);
+                                      setEditingEventWeek(null);
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 text-[9px] px-2"
+                                  onClick={() => setEditingEventWeek(null)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </td>
                     );
@@ -1235,7 +1345,7 @@ export function AnnualPlanSection() {
           </div>
           
           <p className="text-[11px] text-muted-foreground mt-4 px-1">
-            💡 <span className="font-medium">Tips:</span> Klik beberapa minggu pada baris Tujuan Latihan untuk memilih dan buat blok. Klik blok yang sudah ada untuk mengedit.
+            💡 <span className="font-medium">Tips:</span> Klik pada baris <b>Fase</b> untuk mengubah fase per minggu. Klik pada baris <b>Tes/Komp</b> untuk menambah/edit kegiatan tes atau kompetisi. Klik beberapa minggu pada baris Tujuan Latihan untuk memilih dan buat blok.
           </p>
           
           {/* Biomotor Targets Section */}
