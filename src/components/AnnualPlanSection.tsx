@@ -770,7 +770,7 @@ export function AnnualPlanSection() {
                     ));
                   })()}
                 </tr>
-                {/* Fase Row - Per-week selection with visual grouping */}
+                {/* Fase Row - Per-week drag-select */}
                 <tr className="bg-secondary/70">
                   <td className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-border bg-secondary/70">
                     Fase
@@ -799,26 +799,37 @@ export function AnnualPlanSection() {
                       <td
                         key={d.wk}
                         className={cn(
-                          "p-0 text-center text-[6px] font-extrabold uppercase cursor-pointer transition-all relative",
+                          "p-0 text-center text-[6px] font-extrabold uppercase cursor-pointer transition-all relative select-none",
                           phaseClasses[d.fase],
                           isSelected && "ring-2 ring-accent ring-inset z-10",
                           !isBlockEnd && "border-r-0",
                           isBlockEnd && "border-r border-border",
                         )}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setIsDraggingPhase(true);
+                          setDragStartWeek(d.wk);
+                          setSelectedPhaseWeeks([d.wk]);
+                        }}
+                        onMouseEnter={() => {
+                          if (isDraggingPhase && dragStartWeek !== null) {
+                            const from = Math.min(dragStartWeek, d.wk);
+                            const to = Math.max(dragStartWeek, d.wk);
+                            const range = planData.filter(p => p.wk >= from && p.wk <= to).map(p => p.wk);
+                            setSelectedPhaseWeeks(range);
+                          }
+                        }}
+                        onMouseUp={() => {
+                          setIsDraggingPhase(false);
+                          setDragStartWeek(null);
+                        }}
                         onClick={(e) => {
                           if (e.shiftKey && selectedPhaseWeeks.length > 0) {
-                            // Shift+click: select range from last selected to this week
                             const lastSelected = selectedPhaseWeeks[selectedPhaseWeeks.length - 1];
                             const from = Math.min(lastSelected, d.wk);
                             const to = Math.max(lastSelected, d.wk);
                             const range = planData.filter(p => p.wk >= from && p.wk <= to).map(p => p.wk);
                             setSelectedPhaseWeeks(prev => [...new Set([...prev, ...range])].sort((a, b) => a - b));
-                          } else {
-                            if (isSelected) {
-                              setSelectedPhaseWeeks(prev => prev.filter(w => w !== d.wk));
-                            } else {
-                              setSelectedPhaseWeeks(prev => [...prev, d.wk].sort((a, b) => a - b));
-                            }
                           }
                         }}
                       >
