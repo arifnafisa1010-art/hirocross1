@@ -108,6 +108,18 @@ export function AnnualPlanSection() {
   const [exporting, setExporting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
+  // Global mouseup to end drag-select
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isDraggingPhase) {
+        setIsDraggingPhase(false);
+        setDragStartWeek(null);
+      }
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, [isDraggingPhase]);
+
   // Calculate biomotor targets based on volume percentage
   const calculateBiomotorTargets = (vol: number) => {
     const targets = setup.targets;
