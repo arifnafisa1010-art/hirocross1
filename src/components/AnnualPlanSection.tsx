@@ -768,7 +768,7 @@ export function AnnualPlanSection() {
                     ));
                   })()}
                 </tr>
-                {/* Fase Row - Block Selection */}
+                {/* Fase Row - Per-week selection with visual grouping */}
                 <tr className="bg-secondary/70">
                   <td className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-border bg-secondary/70">
                     Fase
@@ -778,52 +778,58 @@ export function AnnualPlanSection() {
                       </div>
                     )}
                   </td>
-                  {(() => {
-                    // Group consecutive weeks with same phase for display
-                    const groups: { fase: string; weeks: number[]; indices: number[] }[] = [];
-                    let currentFaseLocal = '';
-                    let currentGroup: { fase: string; weeks: number[]; indices: number[] } | null = null;
-
-                    planData.forEach((d, idx) => {
-                      if (d.fase !== currentFaseLocal) {
-                        if (currentGroup) groups.push(currentGroup);
-                        currentFaseLocal = d.fase;
-                        currentGroup = { fase: d.fase, weeks: [d.wk], indices: [idx] };
-                      } else {
-                        currentGroup?.weeks.push(d.wk);
-                        currentGroup?.indices.push(idx);
+                  {planData.map((d, idx) => {
+                    const isSelected = selectedPhaseWeeks.includes(d.wk);
+                    const prevFase = idx > 0 ? planData[idx - 1].fase : null;
+                    const nextFase = idx < planData.length - 1 ? planData[idx + 1].fase : null;
+                    const isBlockStart = d.fase !== prevFase;
+                    const isBlockEnd = d.fase !== nextFase;
+                    
+                    // Count consecutive weeks with same phase for label display
+                    let blockSize = 0;
+                    if (isBlockStart) {
+                      for (let j = idx; j < planData.length && planData[j].fase === d.fase; j++) {
+                        blockSize++;
                       }
-                    });
-                    if (currentGroup) groups.push(currentGroup);
-
-                    return groups.map((group, i) => {
-                      const isAnySelected = group.weeks.some(w => selectedPhaseWeeks.includes(w));
-                      const allSelected = group.weeks.every(w => selectedPhaseWeeks.includes(w));
-                      return (
-                        <td 
-                          key={i} 
-                          colSpan={group.weeks.length}
-                          className={cn(
-                            "p-0.5 text-center text-[7px] font-extrabold uppercase border-r border-border last:border-r-0 cursor-pointer transition-all",
-                            phaseClasses[group.fase],
-                            allSelected && "ring-2 ring-accent ring-inset",
-                            isAnySelected && !allSelected && "ring-1 ring-accent/50 ring-inset"
-                          )}
-                          onClick={() => {
-                            if (allSelected) {
-                              // Deselect all weeks in this group
-                              setSelectedPhaseWeeks(prev => prev.filter(w => !group.weeks.includes(w)));
+                    }
+                    
+                    return (
+                      <td
+                        key={d.wk}
+                        className={cn(
+                          "p-0 text-center text-[6px] font-extrabold uppercase cursor-pointer transition-all relative",
+                          phaseClasses[d.fase],
+                          isSelected && "ring-2 ring-accent ring-inset z-10",
+                          !isBlockEnd && "border-r-0",
+                          isBlockEnd && "border-r border-border",
+                        )}
+                        onClick={(e) => {
+                          if (e.shiftKey && selectedPhaseWeeks.length > 0) {
+                            // Shift+click: select range from last selected to this week
+                            const lastSelected = selectedPhaseWeeks[selectedPhaseWeeks.length - 1];
+                            const from = Math.min(lastSelected, d.wk);
+                            const to = Math.max(lastSelected, d.wk);
+                            const range = planData.filter(p => p.wk >= from && p.wk <= to).map(p => p.wk);
+                            setSelectedPhaseWeeks(prev => [...new Set([...prev, ...range])].sort((a, b) => a - b));
+                          } else {
+                            if (isSelected) {
+                              setSelectedPhaseWeeks(prev => prev.filter(w => w !== d.wk));
                             } else {
-                              // Select all weeks in this group
-                              setSelectedPhaseWeeks(prev => [...new Set([...prev, ...group.weeks])].sort((a, b) => a - b));
+                              setSelectedPhaseWeeks(prev => [...prev, d.wk].sort((a, b) => a - b));
                             }
-                          }}
-                        >
-                          {group.fase}
-                        </td>
-                      );
-                    });
-                  })()}
+                          }
+                        }}
+                      >
+                        <div className="py-1 min-h-[20px] flex items-center justify-center">
+                          {isBlockStart && blockSize >= 3 ? (
+                            <span className="text-[6px]">{d.fase.substring(0, 3)}</span>
+                          ) : isBlockStart && blockSize < 3 ? (
+                            <span className="text-[5px]">{d.fase.substring(0, 1)}</span>
+                          ) : null}
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
                 {/* Phase Assignment Toolbar - shown when weeks are selected */}
                 {selectedPhaseWeeks.length > 0 && (
