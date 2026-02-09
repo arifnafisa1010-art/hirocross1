@@ -102,9 +102,23 @@ export function AnnualPlanSection() {
   const [editingEventWeek, setEditingEventWeek] = useState<number | null>(null);
   const [editEventName, setEditEventName] = useState('');
   const [editEventType, setEditEventType] = useState<'test' | 'competition'>('test');
+  const [isDraggingPhase, setIsDraggingPhase] = useState(false);
+  const [dragStartWeek, setDragStartWeek] = useState<number | null>(null);
   const [hoveredWeek, setHoveredWeek] = useState<{ week: number; vol: number; int: number; x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Global mouseup to end drag-select
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isDraggingPhase) {
+        setIsDraggingPhase(false);
+        setDragStartWeek(null);
+      }
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, [isDraggingPhase]);
 
   // Calculate biomotor targets based on volume percentage
   const calculateBiomotorTargets = (vol: number) => {
@@ -768,7 +782,7 @@ export function AnnualPlanSection() {
                     ));
                   })()}
                 </tr>
-                {/* Fase Row - Per-week selection with visual grouping */}
+                {/* Fase Row - Per-week drag-select */}
                 <tr className="bg-secondary/70">
                   <td className="p-1 text-left text-[8px] font-extrabold uppercase border-r border-border bg-secondary/70">
                     Fase
@@ -797,26 +811,37 @@ export function AnnualPlanSection() {
                       <td
                         key={d.wk}
                         className={cn(
-                          "p-0 text-center text-[6px] font-extrabold uppercase cursor-pointer transition-all relative",
+                          "p-0 text-center text-[6px] font-extrabold uppercase cursor-pointer transition-all relative select-none",
                           phaseClasses[d.fase],
                           isSelected && "ring-2 ring-accent ring-inset z-10",
                           !isBlockEnd && "border-r-0",
                           isBlockEnd && "border-r border-border",
                         )}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setIsDraggingPhase(true);
+                          setDragStartWeek(d.wk);
+                          setSelectedPhaseWeeks([d.wk]);
+                        }}
+                        onMouseEnter={() => {
+                          if (isDraggingPhase && dragStartWeek !== null) {
+                            const from = Math.min(dragStartWeek, d.wk);
+                            const to = Math.max(dragStartWeek, d.wk);
+                            const range = planData.filter(p => p.wk >= from && p.wk <= to).map(p => p.wk);
+                            setSelectedPhaseWeeks(range);
+                          }
+                        }}
+                        onMouseUp={() => {
+                          setIsDraggingPhase(false);
+                          setDragStartWeek(null);
+                        }}
                         onClick={(e) => {
                           if (e.shiftKey && selectedPhaseWeeks.length > 0) {
-                            // Shift+click: select range from last selected to this week
                             const lastSelected = selectedPhaseWeeks[selectedPhaseWeeks.length - 1];
                             const from = Math.min(lastSelected, d.wk);
                             const to = Math.max(lastSelected, d.wk);
                             const range = planData.filter(p => p.wk >= from && p.wk <= to).map(p => p.wk);
                             setSelectedPhaseWeeks(prev => [...new Set([...prev, ...range])].sort((a, b) => a - b));
-                          } else {
-                            if (isSelected) {
-                              setSelectedPhaseWeeks(prev => prev.filter(w => w !== d.wk));
-                            } else {
-                              setSelectedPhaseWeeks(prev => [...prev, d.wk].sort((a, b) => a - b));
-                            }
                           }
                         }}
                       >
