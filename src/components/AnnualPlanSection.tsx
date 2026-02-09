@@ -679,6 +679,11 @@ export function AnnualPlanSection() {
                     placeholder="Nama blok (contoh: Adaptasi Anatomi)"
                     value={blockText}
                     onChange={(e) => setBlockText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && blockText.trim()) createBlock();
+                      if (e.key === 'Escape') setSelectedCells({ ...selectedCells, weeks: [] });
+                    }}
+                    autoFocus
                     className="w-64 h-8 text-xs"
                   />
                   <Button size="sm" onClick={createBlock} disabled={!blockText.trim()}>
