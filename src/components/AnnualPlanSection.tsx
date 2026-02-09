@@ -1159,13 +1159,16 @@ export function AnnualPlanSection() {
                           <td
                             key={week}
                             className={cn(
-                              "p-0.5 text-center cursor-pointer transition-all border border-border/30",
+                              "p-0.5 text-center cursor-pointer transition-all border border-border/30 min-h-[18px]",
                               isSelected && "bg-accent/30 ring-1 ring-accent",
                               !isSelected && "hover:bg-secondary/50"
                             )}
-                            onClick={() => handleCellClick(category, week)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCellClick(category, week);
+                            }}
                           >
-                            <span className="text-[6px] text-muted-foreground">-</span>
+                            <span className="text-[6px] text-muted-foreground select-none">+</span>
                           </td>
                         );
                       })}
