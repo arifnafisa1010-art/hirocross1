@@ -102,6 +102,8 @@ export function AnnualPlanSection() {
   const [editingEventWeek, setEditingEventWeek] = useState<number | null>(null);
   const [editEventName, setEditEventName] = useState('');
   const [editEventType, setEditEventType] = useState<'test' | 'competition'>('test');
+  const [isDraggingPhase, setIsDraggingPhase] = useState(false);
+  const [dragStartWeek, setDragStartWeek] = useState<number | null>(null);
   const [hoveredWeek, setHoveredWeek] = useState<{ week: number; vol: number; int: number; x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
