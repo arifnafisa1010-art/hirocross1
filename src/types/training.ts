@@ -13,7 +13,7 @@ export interface Competition {
 export interface PlanWeek {
   wk: number;
   meso: string;
-  fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi';
+  fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi' | 'Transisi';
   vol: number;
   int: number;
   competitionId?: string;
