@@ -44,6 +44,7 @@
     --phase-khusus: 120 73% 75%;
     --phase-prakomp: 39 100% 65%;
     --phase-kompetisi: 0 86% 60%;
+    --phase-transisi: 270 50% 80%;
 
     /* Intensity colors */
     --intensity-high: 0 93% 94%;
@@ -128,6 +129,9 @@
   .phase-kompetisi {
     background-color: hsl(var(--phase-kompetisi));
   }
+  .phase-transisi {
+    background-color: hsl(var(--phase-transisi));
+  }
   .intensity-high {
     background-color: hsl(var(--intensity-high));
   }
@@ -198,7 +202,9 @@
   .bg-phase-umum,
   .bg-phase-khusus,
   .bg-phase-prakomp,
-  .bg-phase-kompetisi {
+  .bg-phase-kompetisi,
+  .phase-transisi,
+  .bg-phase-transisi {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }

@@ -40,6 +40,7 @@ const phaseClasses: Record<string, string> = {
   'Khusus': 'phase-khusus',
   'Pra-Komp': 'phase-prakomp',
   'Kompetisi': 'phase-kompetisi',
+  'Transisi': 'phase-transisi',
 };
 
 interface PhaseSettings {
@@ -282,7 +283,7 @@ export function AnnualPlanSection() {
     const newPlanData = planData.map((week, index) => {
       const progress = (index + 1) / planData.length * 100;
       
-      let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi';
+      let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi' | 'Transisi';
       let vol: number;
       let int: number;
       
@@ -329,7 +330,7 @@ export function AnnualPlanSection() {
         if (wkCount > totalWks) break;
         const prog = wkCount / totalWks * 100;
 
-        let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi';
+        let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi' | 'Transisi';
         let vol: number;
         let int: number;
 
@@ -851,8 +852,17 @@ export function AnnualPlanSection() {
                         }}
                       >
                         <div className="py-1 min-h-[20px] flex items-center justify-center">
-                          {isBlockStart ? (
-                            <span className="text-[6px] font-extrabold text-center whitespace-normal break-words px-0.5">{d.fase}</span>
+                          {isBlockStart && blockSize > 0 ? (
+                            <span
+                              className="absolute text-[6px] font-extrabold text-center whitespace-nowrap pointer-events-none z-20"
+                              style={{
+                                left: '50%',
+                                width: `${blockSize * 100}%`,
+                                transform: 'translateX(-50%)',
+                              }}
+                            >
+                              {d.fase}
+                            </span>
                           ) : null}
                         </div>
                       </td>
@@ -867,7 +877,7 @@ export function AnnualPlanSection() {
                     </td>
                     <td colSpan={planData.length} className="p-1">
                       <div className="flex items-center gap-1 flex-wrap">
-                        {(['Umum', 'Khusus', 'Pra-Komp', 'Kompetisi'] as const).map((fase) => (
+                        {(['Umum', 'Khusus', 'Pra-Komp', 'Kompetisi', 'Transisi'] as const).map((fase) => (
                           <button
                             key={fase}
                             className={cn(
