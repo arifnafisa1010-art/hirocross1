@@ -32,6 +32,7 @@ const phaseColors: Record<string, string> = {
 // Helper function to determine period based on phase
 const getPeriodForPhase = (fase: string): string => {
   if (fase === 'Umum' || fase === 'Khusus') return 'PERSIAPAN';
+  if (fase === 'Transisi') return 'TRANSISI';
   return 'PERTANDINGAN';
 };
 
@@ -851,14 +852,12 @@ export function AnnualPlanSection() {
                           }
                         }}
                       >
-                        <div className="py-1 min-h-[20px] flex items-center justify-center">
+                        <div className="py-1 min-h-[20px]">
                           {isBlockStart && blockSize > 0 ? (
                             <span
-                              className="absolute text-[6px] font-extrabold text-center whitespace-nowrap pointer-events-none z-20"
+                              className="absolute top-0 left-0 h-full flex items-center justify-center text-[6px] font-extrabold whitespace-nowrap pointer-events-none z-20"
                               style={{
-                                left: '50%',
                                 width: `${blockSize * 100}%`,
-                                transform: 'translateX(-50%)',
                               }}
                             >
                               {d.fase}
