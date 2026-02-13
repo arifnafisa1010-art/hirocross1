@@ -850,9 +850,9 @@ export function AnnualPlanSection() {
                           }
                         }}
                       >
-                        <div className="py-1 min-h-[20px] flex items-center justify-center overflow-hidden">
+                        <div className="py-1 min-h-[20px] flex items-center justify-center">
                           {isBlockStart ? (
-                            <span className="text-[6px] whitespace-nowrap">{blockSize >= 4 ? d.fase : d.fase.substring(0, 3)}</span>
+                            <span className="text-[6px] font-extrabold text-center whitespace-normal break-words px-0.5">{d.fase}</span>
                           ) : null}
                         </div>
                       </td>
