@@ -39,7 +39,7 @@ const PAYMENT_INFO = {
   bank: 'Bank Mandiri',
   accountNumber: '1370020414021',
   accountName: 'NAFISA ARIF PAMBUDI',
-  ewallet: 'Dana/GoPay: 089515107100',
+  ewallet: 'Dana/GoPay: 085186064700',
 };
 
 interface PremiumPricingPackagesProps {
@@ -344,7 +344,7 @@ export function PremiumPricingPackages({ onPackageSelect }: PremiumPricingPackag
               <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="font-bold">1.</span>
-                  <span>Setelah melakukan pembayaran, <strong>hubungi admin</strong> melalui WhatsApp: <strong>089515107100</strong></span>
+                  <span>Setelah melakukan pembayaran, <strong>hubungi admin</strong> melalui WhatsApp: <strong>085186064700</strong></span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold">2.</span>
