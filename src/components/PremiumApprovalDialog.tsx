@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Crown, Loader2, Check, Image, ExternalLink, X } from 'lucide-react';
 import { addMonths, format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PremiumPackage {
   id: string;
@@ -53,6 +54,8 @@ export function PremiumApprovalDialog({
 }: PremiumApprovalDialogProps) {
   const [selectedPackage, setSelectedPackage] = useState<string>('3-months');
   const [showProofImage, setShowProofImage] = useState(false);
+  const [resolvedProofUrl, setResolvedProofUrl] = useState<string | null>(null);
+  const [proofLoading, setProofLoading] = useState(false);
   
   const pkg = PACKAGES.find(p => p.id === selectedPackage) || PACKAGES[1];
   const expiresAt = addMonths(new Date(), pkg.duration);
@@ -78,10 +81,26 @@ export function PremiumApprovalDialog({
     }
   };
 
-  // Detect on open
-  useState(() => {
-    detectPackageFromNotes();
-  });
+  // Detect on open & resolve proof URL
+  useEffect(() => {
+    if (open) {
+      detectPackageFromNotes();
+      if (paymentProofUrl) {
+        setProofLoading(true);
+        const path = paymentProofUrl.match(/\/storage\/v1\/object\/sign\/payment-proofs\/(.+?)(\?|$)/)?.[1]
+          || paymentProofUrl.match(/\/storage\/v1\/object\/public\/payment-proofs\/(.+?)(\?|$)/)?.[1];
+        if (path) {
+          supabase.storage.from('payment-proofs').createSignedUrl(path, 3600).then(({ data, error }) => {
+            setResolvedProofUrl(!error && data?.signedUrl ? data.signedUrl : paymentProofUrl);
+            setProofLoading(false);
+          });
+        } else {
+          setResolvedProofUrl(paymentProofUrl);
+          setProofLoading(false);
+        }
+      }
+    }
+  }, [open, paymentProofUrl]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,18 +132,24 @@ export function PremiumApprovalDialog({
                 Bukti Pembayaran
               </Label>
               <div className="relative rounded-lg border overflow-hidden bg-muted">
-                <img 
-                  src={paymentProofUrl} 
-                  alt="Bukti pembayaran" 
-                  className="w-full max-h-48 object-contain cursor-pointer"
-                  onClick={() => setShowProofImage(true)}
-                />
+                {proofLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <img 
+                    src={resolvedProofUrl || paymentProofUrl} 
+                    alt="Bukti pembayaran" 
+                    className="w-full max-h-48 object-contain cursor-pointer"
+                    onClick={() => setShowProofImage(true)}
+                  />
+                )}
                 <div className="absolute bottom-2 right-2 flex gap-2">
                   <Button
                     size="sm"
                     variant="secondary"
                     className="h-7 text-xs"
-                    onClick={() => window.open(paymentProofUrl, '_blank')}
+                    onClick={() => window.open(resolvedProofUrl || paymentProofUrl, '_blank')}
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
                     Buka
@@ -218,9 +243,9 @@ export function PremiumApprovalDialog({
             >
               <X className="w-4 h-4" />
             </Button>
-            {paymentProofUrl && (
+            {(resolvedProofUrl || paymentProofUrl) && (
               <img 
-                src={paymentProofUrl} 
+                src={resolvedProofUrl || paymentProofUrl} 
                 alt="Bukti pembayaran" 
                 className="w-full h-auto max-h-[80vh] object-contain"
               />

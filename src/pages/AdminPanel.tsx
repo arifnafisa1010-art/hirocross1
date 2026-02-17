@@ -102,6 +102,9 @@ export default function AdminPanel() {
   // Premium approval dialog state
   const [approvalDialog, setApprovalDialog] = useState(false);
   const [approvalRequest, setApprovalRequest] = useState<{ requestId: string; userId: string; email: string; notes: string | null; paymentProofUrl: string | null } | null>(null);
+  const [proofImageDialog, setProofImageDialog] = useState(false);
+  const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
+  const [proofImageLoading, setProofImageLoading] = useState(false);
   const [grantDialog, setGrantDialog] = useState(false);
   const [grantUser, setGrantUser] = useState<{ id: string; email: string } | null>(null);
   const [dialogLoading, setDialogLoading] = useState(false);
@@ -155,6 +158,43 @@ export default function AdminPanel() {
       loadActivityLogs();
     }
   }, [isAdmin]);
+
+  // Helper to extract storage path from signed URL
+  const getStoragePathFromUrl = (signedUrl: string): string | null => {
+    try {
+      const url = new URL(signedUrl);
+      const match = url.pathname.match(/\/storage\/v1\/object\/sign\/payment-proofs\/(.+)/);
+      if (match) return match[1];
+      // Also handle public URLs
+      const match2 = url.pathname.match(/\/storage\/v1\/object\/public\/payment-proofs\/(.+)/);
+      if (match2) return match2[1];
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleViewPaymentProof = async (paymentProofUrl: string) => {
+    setProofImageLoading(true);
+    setProofImageDialog(true);
+    setProofImageUrl(null);
+    
+    // Try to extract path and create a fresh signed URL
+    const path = getStoragePathFromUrl(paymentProofUrl);
+    if (path) {
+      const { data, error } = await supabase.storage
+        .from('payment-proofs')
+        .createSignedUrl(path, 60 * 60); // 1 hour
+      if (!error && data?.signedUrl) {
+        setProofImageUrl(data.signedUrl);
+        setProofImageLoading(false);
+        return;
+      }
+    }
+    // Fallback: use the stored URL directly
+    setProofImageUrl(paymentProofUrl);
+    setProofImageLoading(false);
+  };
 
   // Admin helper functions
   const logActivity = async (action: string, targetUserId?: string, targetUserEmail?: string, details?: string) => {
@@ -631,7 +671,7 @@ export default function AdminPanel() {
                                           size="sm"
                                           variant="outline"
                                           className="h-7 text-xs"
-                                          onClick={() => window.open(request.payment_proof_url!, '_blank')}
+                                          onClick={() => handleViewPaymentProof(request.payment_proof_url!)}
                                         >
                                           <Image className="w-3 h-3 mr-1" />
                                           Lihat Bukti
@@ -1081,6 +1121,33 @@ export default function AdminPanel() {
           }}
         />
       )}
+
+      {/* Payment Proof Image Dialog */}
+      <Dialog open={proofImageDialog} onOpenChange={setProofImageDialog}>
+        <DialogContent className="sm:max-w-2xl p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5" />
+              Bukti Pembayaran
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            {proofImageLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : proofImageUrl ? (
+              <img 
+                src={proofImageUrl} 
+                alt="Bukti pembayaran" 
+                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+              />
+            ) : (
+              <p className="text-center text-muted-foreground py-12">Gagal memuat gambar</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
