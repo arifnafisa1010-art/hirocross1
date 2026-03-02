@@ -15,7 +15,7 @@ import {
   Calendar, Activity, Trophy, Zap, Save, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, parseISO, addWeeks, addDays, isToday, isBefore } from 'date-fns';
+import { format, parseISO, addWeeks, addDays, isToday, isBefore, startOfWeek } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 interface Exercise {
@@ -153,7 +153,8 @@ export function AthleteCalendarView({
   // Get date for a specific week and day
   const getDateForDay = (week: number, dayIndex: number) => {
     const programStart = parseISO(startDate);
-    const weekStart = addWeeks(programStart, week - 1);
+    const monday = startOfWeek(programStart, { weekStartsOn: 1 });
+    const weekStart = addWeeks(monday, week - 1);
     return addDays(weekStart, dayIndex);
   };
 

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfWeek } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,11 +61,12 @@ export function WeeklySyncSummary({
   // Calculate session sync status for each day
   const daySyncStatus = useMemo(() => {
     const programStartDate = new Date(startDate);
+    const monday = startOfWeek(programStartDate, { weekStartsOn: 1 });
     
     return days.map((day, dayIndex) => {
       const sessionKey = `W${weekNumber}-${day}`;
       const session = sessions[sessionKey];
-      const dayDate = addDays(programStartDate, (weekNumber - 1) * 7 + dayIndex);
+      const dayDate = addDays(monday, (weekNumber - 1) * 7 + dayIndex);
       const dayDateStr = format(dayDate, 'yyyy-MM-dd');
       
       // Find matching load in database

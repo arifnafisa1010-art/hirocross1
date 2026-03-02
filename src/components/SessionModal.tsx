@@ -4,7 +4,7 @@ import { useTrainingLoads, calculateSessionLoad } from '@/hooks/useTrainingLoads
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { useAuth } from '@/hooks/useAuth';
 import { DaySession, Exercise } from '@/types/training';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfWeek } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -81,8 +81,9 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
   const getSessionDate = (): string | null => {
     if (!setup.startDate) return null;
     const startDate = new Date(setup.startDate);
+    const monday = startOfWeek(startDate, { weekStartsOn: 1 });
     const dayIndex = dayToIndex[day] ?? 0;
-    const sessionDate = addDays(startDate, (week - 1) * 7 + dayIndex);
+    const sessionDate = addDays(monday, (week - 1) * 7 + dayIndex);
     return format(sessionDate, 'yyyy-MM-dd');
   };
 
