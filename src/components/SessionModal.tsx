@@ -70,6 +70,7 @@ const intensityToRpe: Record<string, number> = {
 export function SessionModal({ open, onOpenChange, week, day, athleteId }: SessionModalProps) {
   const { sessions, updateSession, setup, selectedAthleteIds } = useTrainingStore();
   const { addLoad } = useTrainingLoads(athleteId);
+  const { saveSession: saveSessionToDb, currentProgram } = useTrainingPrograms();
   const { user } = useAuth();
   const key = `W${week}-${day}`;
   
