@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingLoads, calculateSessionLoad } from '@/hooks/useTrainingLoads';
+import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { useAuth } from '@/hooks/useAuth';
 import { DaySession, Exercise } from '@/types/training';
 import { format, addDays } from 'date-fns';
@@ -69,6 +70,7 @@ const intensityToRpe: Record<string, number> = {
 export function SessionModal({ open, onOpenChange, week, day, athleteId }: SessionModalProps) {
   const { sessions, updateSession, setup, selectedAthleteIds } = useTrainingStore();
   const { addLoad } = useTrainingLoads(athleteId);
+  const { saveSession: saveSessionToDb, currentProgram } = useTrainingPrograms();
   const { user } = useAuth();
   const key = `W${week}-${day}`;
   
@@ -110,8 +112,13 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
     setIsSaving(true);
     
     try {
-      // Update session in store
+      // Update session in local store
       updateSession(key, session);
+      
+      // Auto-persist to database if program exists
+      if (currentProgram) {
+        await saveSessionToDb(key, session);
+      }
       
       // If session is marked as done with RPE and duration, auto-sync to training_loads
       if (session.isDone && session.rpe && session.duration && sessionDate && user) {

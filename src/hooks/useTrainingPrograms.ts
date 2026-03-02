@@ -358,15 +358,31 @@ export function useTrainingPrograms() {
     return true;
   };
 
-  const saveSession = async (sessionKey: string, session: DaySession) => {
+  // Convert store key (W1-Senin) to DB key (week-1-day-1-session-1)
+  const storeKeyToDbKey = (storeKey: string): string => {
+    const dayNameToIndex: Record<string, number> = {
+      'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4,
+      'Jumat': 5, 'Sabtu': 6, 'Minggu': 7,
+    };
+    const match = storeKey.match(/^W(\d+)-(.+)$/);
+    if (!match) return storeKey;
+    const weekNum = match[1];
+    const dayName = match[2];
+    const dayIndex = dayNameToIndex[dayName] || 1;
+    return `week-${weekNum}-day-${dayIndex}-session-1`;
+  };
+
+  const saveSession = async (storeKey: string, session: DaySession) => {
     if (!currentProgram) {
-      toast.error('Simpan program terlebih dahulu');
+      // No program saved yet, skip DB save silently
       return false;
     }
 
+    const dbKey = storeKeyToDbKey(storeKey);
+
     const sessionData = {
       program_id: currentProgram.id,
-      session_key: sessionKey,
+      session_key: dbKey,
       warmup: session.warmup,
       exercises: session.exercises as unknown as Json,
       cooldown: session.cooldown,
@@ -382,12 +398,11 @@ export function useTrainingPrograms() {
       });
     
     if (error) {
-      toast.error('Gagal menyimpan sesi');
-      console.error(error);
+      console.error('Gagal menyimpan sesi ke database:', error);
       return false;
     }
     
-    setSessions(prev => ({ ...prev, [sessionKey]: session }));
+    setSessions(prev => ({ ...prev, [storeKey]: session }));
     return true;
   };
 
