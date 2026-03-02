@@ -264,7 +264,14 @@ export function MonthlySection() {
   return (
     <div className="animate-fade-in space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h2 className="text-2xl font-extrabold">Kalender Kerja Bulanan</h2>
+        <div>
+          <h2 className="text-2xl font-extrabold">Kalender Kerja Bulanan</h2>
+          {setup.planName && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Program: <span className="font-semibold text-foreground">{setup.planName}</span>
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {/* Re-sync Sessions Button */}
           {currentProgram && (
