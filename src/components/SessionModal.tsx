@@ -112,8 +112,13 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
     setIsSaving(true);
     
     try {
-      // Update session in store
+      // Update session in local store
       updateSession(key, session);
+      
+      // Auto-persist to database if program exists
+      if (currentProgram) {
+        await saveSessionToDb(key, session);
+      }
       
       // If session is marked as done with RPE and duration, auto-sync to training_loads
       if (session.isDone && session.rpe && session.duration && sessionDate && user) {
