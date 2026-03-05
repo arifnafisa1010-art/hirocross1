@@ -28,9 +28,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession } = useTrainingStore();
   const { athletes } = useAthletes();
-  const { saveProgram, currentProgram, loading: programLoading, resyncSessions } = useTrainingPrograms();
+  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
   const { loads, loading: loadsLoading, addLoad, deleteLoad } = useTrainingLoads();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
