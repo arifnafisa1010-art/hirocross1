@@ -297,6 +297,27 @@ export function MonthlySection() {
     }
   };
 
+  // Show loading while syncing program from DB
+  if (programLoading || !programSynced) {
+    return (
+      <div className="animate-fade-in flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  // No programs in DB and no local plan data
+  if (planData.length === 0 && programs.length === 0) {
+    return (
+      <div className="animate-fade-in text-center py-20">
+        <p className="text-muted-foreground mb-4">Belum ada program tersimpan. Silakan buat program dari tab Setup.</p>
+        <Button onClick={() => useTrainingStore.getState().setActiveTab('setup')}>
+          Ke Setup
+        </Button>
+      </div>
+    );
+  }
+
   if (planData.length === 0) {
     return (
       <div className="animate-fade-in text-center py-20">
