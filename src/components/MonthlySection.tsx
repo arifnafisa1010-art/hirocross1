@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { useTrainingLoads } from '@/hooks/useTrainingLoads';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
+import { Mesocycle, PlanWeek, Competition } from '@/types/training';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -27,9 +29,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession } = useTrainingStore();
   const { athletes } = useAthletes();
-  const { saveProgram, currentProgram, loading: programLoading, resyncSessions } = useTrainingPrograms();
+  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
   const { loads, loading: loadsLoading, addLoad, deleteLoad } = useTrainingLoads();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
@@ -57,6 +59,86 @@ export function MonthlySection() {
     }
     return DEFAULT_BASE_LOAD_PER_PHASE;
   });
+
+  // Auto-load latest program from DB and sync to store
+  const [programSynced, setProgramSynced] = useState(false);
+  
+  useEffect(() => {
+    if (programLoading || programSynced) return;
+    
+    // If there are saved programs in DB but none loaded, auto-load the latest
+    if (programs.length > 0 && !currentProgram) {
+      const loadLatest = async () => {
+        const program = await loadProgram(programs[0].id);
+        if (program) {
+          // Sync program data to store
+          setSetup({
+            planName: program.name,
+            startDate: program.start_date,
+            matchDate: program.match_date,
+            targets: {
+              strength: Number(program.target_strength) || 100,
+              speed: Number(program.target_speed) || 1000,
+              endurance: Number(program.target_endurance) || 10,
+              technique: Number(program.target_technique) || 500,
+              tactic: Number(program.target_tactic) || 200,
+            }
+          });
+          
+          const loadedMeso = program.mesocycles as unknown as Mesocycle[] || [];
+          const loadedPlan = program.plan_data as unknown as PlanWeek[] || [];
+          const loadedCompetitions = (program as any).competitions as unknown as Competition[] || [];
+          
+          setMesocycles(loadedMeso);
+          setPlanData(loadedPlan);
+          setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : []);
+          setSelectedAthleteIds((program.athlete_ids || []) as string[]);
+          
+          if (loadedPlan.length > 0) {
+            setTotalWeeks(loadedPlan.length);
+          }
+
+          // Load sessions from DB and sync to Zustand store
+          const { data: dbSessions } = await supabase
+            .from('training_sessions')
+            .select('*')
+            .eq('program_id', program.id);
+
+          if (dbSessions) {
+            const dayIndexToName: Record<number, string> = {
+              1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis',
+              5: 'Jumat', 6: 'Sabtu', 7: 'Minggu',
+            };
+            
+            dbSessions.forEach(s => {
+              // Convert DB key (week-1-day-1-session-1) to store key (W1-Senin)
+              const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-\d+$/);
+              if (match) {
+                const weekNum = match[1];
+                const dayIdx = parseInt(match[2]);
+                const dayName = dayIndexToName[dayIdx];
+                if (dayName) {
+                  const storeKey = `W${weekNum}-${dayName}`;
+                  updateSession(storeKey, {
+                    warmup: s.warmup || '',
+                    exercises: (s.exercises as any) || [],
+                    cooldown: s.cooldown || '',
+                    recovery: s.recovery || '',
+                    int: (s.intensity as any) || 'Rest',
+                    isDone: s.is_done || false,
+                  });
+                }
+              }
+            });
+          }
+        }
+        setProgramSynced(true);
+      };
+      loadLatest();
+    } else {
+      setProgramSynced(true);
+    }
+  }, [programLoading, programs, currentProgram, programSynced]);
 
   const handleTargetChange = (target: number | null) => {
     setWeeklyTarget(target);
@@ -249,6 +331,27 @@ export function MonthlySection() {
       // Error toast is shown in resyncSessions
     }
   };
+
+  // Show loading while syncing program from DB
+  if (programLoading || !programSynced) {
+    return (
+      <div className="animate-fade-in flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  // No programs in DB and no local plan data
+  if (planData.length === 0 && programs.length === 0) {
+    return (
+      <div className="animate-fade-in text-center py-20">
+        <p className="text-muted-foreground mb-4">Belum ada program tersimpan. Silakan buat program dari tab Setup.</p>
+        <Button onClick={() => useTrainingStore.getState().setActiveTab('setup')}>
+          Ke Setup
+        </Button>
+      </div>
+    );
+  }
 
   if (planData.length === 0) {
     return (
