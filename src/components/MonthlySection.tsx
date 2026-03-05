@@ -59,6 +59,52 @@ export function MonthlySection() {
     return DEFAULT_BASE_LOAD_PER_PHASE;
   });
 
+  // Auto-load latest program from DB and sync to store
+  const [programSynced, setProgramSynced] = useState(false);
+  
+  useEffect(() => {
+    if (programLoading || programSynced) return;
+    
+    // If there are saved programs in DB but none loaded, auto-load the latest
+    if (programs.length > 0 && !currentProgram) {
+      const loadLatest = async () => {
+        const program = await loadProgram(programs[0].id);
+        if (program) {
+          // Sync program data to store
+          setSetup({
+            planName: program.name,
+            startDate: program.start_date,
+            matchDate: program.match_date,
+            targets: {
+              strength: Number(program.target_strength) || 100,
+              speed: Number(program.target_speed) || 1000,
+              endurance: Number(program.target_endurance) || 10,
+              technique: Number(program.target_technique) || 500,
+              tactic: Number(program.target_tactic) || 200,
+            }
+          });
+          
+          const loadedMeso = program.mesocycles as unknown as Mesocycle[] || [];
+          const loadedPlan = program.plan_data as unknown as PlanWeek[] || [];
+          const loadedCompetitions = (program as any).competitions as unknown as Competition[] || [];
+          
+          setMesocycles(loadedMeso);
+          setPlanData(loadedPlan);
+          setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : []);
+          setSelectedAthleteIds((program.athlete_ids || []) as string[]);
+          
+          if (loadedPlan.length > 0) {
+            setTotalWeeks(loadedPlan.length);
+          }
+        }
+        setProgramSynced(true);
+      };
+      loadLatest();
+    } else {
+      setProgramSynced(true);
+    }
+  }, [programLoading, programs, currentProgram, programSynced]);
+
   const handleTargetChange = (target: number | null) => {
     setWeeklyTarget(target);
     localStorage.setItem('weeklyLoadTarget', target === null ? 'null' : target.toString());
