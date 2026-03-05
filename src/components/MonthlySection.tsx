@@ -5,6 +5,7 @@ import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { useTrainingLoads } from '@/hooks/useTrainingLoads';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { Mesocycle, PlanWeek, Competition } from '@/types/training';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
