@@ -484,6 +484,31 @@ export function MonthlySection() {
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Simpan ke Database
           </Button>
+
+          {/* Delete Program Button */}
+          {currentProgram && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" title="Hapus program">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Program?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Program "<span className="font-semibold">{currentProgram.name}</span>" beserta semua sesi latihannya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteProgram} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           
           {/* Athlete Selection */}
           <div className="relative">
