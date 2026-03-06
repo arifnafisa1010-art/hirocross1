@@ -333,7 +333,21 @@ export function MonthlySection() {
     }
   };
 
-  // Show loading while syncing program from DB
+  const handleDeleteProgram = async () => {
+    if (!currentProgram) return;
+    const success = await deleteProgram(currentProgram.id);
+    if (success) {
+      // Reset store to empty state
+      setSetup({ planName: '', startDate: '', matchDate: '', targets: { strength: 100, speed: 1000, endurance: 10, technique: 500, tactic: 200 } });
+      setPlanData([]);
+      setMesocycles([]);
+      setCompetitions([]);
+      setSelectedAthleteIds([]);
+      setProgramSynced(false);
+    }
+  };
+
+
   if (programLoading || !programSynced) {
     return (
       <div className="animate-fade-in flex items-center justify-center py-20">
