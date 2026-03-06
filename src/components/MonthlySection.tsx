@@ -18,20 +18,21 @@ import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarge
 import { WeeklySyncSummary } from './WeeklySyncSummary';
 import { PremiumBadge } from './PremiumBadge';
 import { CompetitionDayMarker, DayMarkerBadge } from './CompetitionDayMarker';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession } = useTrainingStore();
   const { athletes } = useAthletes();
-  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions } = useTrainingPrograms();
+  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
   const { loads, loading: loadsLoading, addLoad, deleteLoad } = useTrainingLoads();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
@@ -332,7 +333,21 @@ export function MonthlySection() {
     }
   };
 
-  // Show loading while syncing program from DB
+  const handleDeleteProgram = async () => {
+    if (!currentProgram) return;
+    const success = await deleteProgram(currentProgram.id);
+    if (success) {
+      // Reset store to empty state
+      setSetup({ planName: '', startDate: '', matchDate: '', targets: { strength: 100, speed: 1000, endurance: 10, technique: 500, tactic: 200 } });
+      setPlanData([]);
+      setMesocycles([]);
+      setCompetitions([]);
+      setSelectedAthleteIds([]);
+      setProgramSynced(false);
+    }
+  };
+
+
   if (programLoading || !programSynced) {
     return (
       <div className="animate-fade-in flex items-center justify-center py-20">
@@ -469,6 +484,31 @@ export function MonthlySection() {
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Simpan ke Database
           </Button>
+
+          {/* Delete Program Button */}
+          {currentProgram && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" title="Hapus program">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Program?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Program "<span className="font-semibold">{currentProgram.name}</span>" beserta semua sesi latihannya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteProgram} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           
           {/* Athlete Selection */}
           <div className="relative">
