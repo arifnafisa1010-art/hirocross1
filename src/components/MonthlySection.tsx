@@ -369,11 +369,81 @@ export function MonthlySection() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-extrabold">Kalender Kerja Bulanan</h2>
-          {setup.planName && (
+          {programs.length > 1 ? (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Program:</span>
+              <Select
+                value={currentProgram?.id || ''}
+                onValueChange={async (programId) => {
+                  setProgramSynced(false);
+                  const program = await loadProgram(programId);
+                  if (program) {
+                    setSetup({
+                      planName: program.name,
+                      startDate: program.start_date,
+                      matchDate: program.match_date,
+                      targets: {
+                        strength: Number(program.target_strength) || 100,
+                        speed: Number(program.target_speed) || 1000,
+                        endurance: Number(program.target_endurance) || 10,
+                        technique: Number(program.target_technique) || 500,
+                        tactic: Number(program.target_tactic) || 200,
+                      }
+                    });
+                    const loadedMeso = program.mesocycles as unknown as Mesocycle[] || [];
+                    const loadedPlan = program.plan_data as unknown as PlanWeek[] || [];
+                    const loadedCompetitions = (program as any).competitions as unknown as Competition[] || [];
+                    setMesocycles(loadedMeso);
+                    setPlanData(loadedPlan);
+                    setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : []);
+                    setSelectedAthleteIds((program.athlete_ids || []) as string[]);
+                    if (loadedPlan.length > 0) setTotalWeeks(loadedPlan.length);
+
+                    const { data: dbSessions } = await supabase
+                      .from('training_sessions')
+                      .select('*')
+                      .eq('program_id', program.id);
+                    if (dbSessions) {
+                      const dayIndexToName: Record<number, string> = {
+                        1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis',
+                        5: 'Jumat', 6: 'Sabtu', 7: 'Minggu',
+                      };
+                      dbSessions.forEach(s => {
+                        const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-\d+$/);
+                        if (match) {
+                          const dayName = dayIndexToName[parseInt(match[2])];
+                          if (dayName) {
+                            updateSession(`W${match[1]}-${dayName}`, {
+                              warmup: s.warmup || '', exercises: (s.exercises as any) || [],
+                              cooldown: s.cooldown || '', recovery: s.recovery || '',
+                              int: (s.intensity as any) || 'Rest', isDone: s.is_done || false,
+                            });
+                          }
+                        }
+                      });
+                    }
+                    toast.success(`Program "${program.name}" berhasil dimuat`);
+                  }
+                  setProgramSynced(true);
+                }}
+              >
+                <SelectTrigger className="w-[250px] h-8 text-sm">
+                  <SelectValue placeholder="Pilih program" />
+                </SelectTrigger>
+                <SelectContent>
+                  {programs.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : setup.planName ? (
             <p className="text-sm text-muted-foreground mt-1">
               Program: <span className="font-semibold text-foreground">{setup.planName}</span>
             </p>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           {/* Re-sync Sessions Button */}
