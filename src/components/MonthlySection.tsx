@@ -568,8 +568,36 @@ export function MonthlySection() {
               {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
             </Button>
           )}
-          
-          {/* Athlete Selection */}
+
+          {/* Rename Program Button */}
+          {currentProgram && (
+            <Dialog open={renameOpen} onOpenChange={(open) => {
+              setRenameOpen(open);
+              if (open) setRenameValue(currentProgram.name);
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" title="Ubah nama program">
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Ubah Nama Program</DialogTitle>
+                </DialogHeader>
+                <Input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Nama program baru"
+                  onKeyDown={(e) => e.key === 'Enter' && handleRenameProgram()}
+                />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setRenameOpen(false)}>Batal</Button>
+                  <Button onClick={handleRenameProgram} disabled={!renameValue.trim()}>Simpan</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+
           <div className="relative">
             <Button 
               variant="outline" 
