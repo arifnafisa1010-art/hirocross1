@@ -18,7 +18,9 @@ import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarge
 import { WeeklySyncSummary } from './WeeklySyncSummary';
 import { PremiumBadge } from './PremiumBadge';
 import { CompetitionDayMarker, DayMarkerBadge } from './CompetitionDayMarker';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy, Pencil } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,9 +34,11 @@ const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession } = useTrainingStore();
   const { athletes } = useAthletes();
-  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram } = useTrainingPrograms();
+  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram, renameProgram } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
   const [duplicating, setDuplicating] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
   const { loads, loading: loadsLoading, addLoad, deleteLoad } = useTrainingLoads();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -380,6 +384,15 @@ export function MonthlySection() {
     setDuplicating(false);
   };
 
+  const handleRenameProgram = async () => {
+    if (!currentProgram || !renameValue.trim()) return;
+    const newName = await renameProgram(currentProgram.id, renameValue.trim());
+    if (newName) {
+      setSetup({ planName: newName as string });
+      setRenameOpen(false);
+    }
+  };
+
 
   if (programLoading || !programSynced) {
     return (
@@ -555,8 +568,36 @@ export function MonthlySection() {
               {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
             </Button>
           )}
-          
-          {/* Athlete Selection */}
+
+          {/* Rename Program Button */}
+          {currentProgram && (
+            <Dialog open={renameOpen} onOpenChange={(open) => {
+              setRenameOpen(open);
+              if (open) setRenameValue(currentProgram.name);
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" title="Ubah nama program">
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Ubah Nama Program</DialogTitle>
+                </DialogHeader>
+                <Input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Nama program baru"
+                  onKeyDown={(e) => e.key === 'Enter' && handleRenameProgram()}
+                />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setRenameOpen(false)}>Batal</Button>
+                  <Button onClick={handleRenameProgram} disabled={!renameValue.trim()}>Simpan</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+
           <div className="relative">
             <Button 
               variant="outline" 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2, Copy } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2, Copy, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -81,9 +82,11 @@ export function AnnualPlanSection() {
     setTotalWeeks,
   } = useTrainingStore();
 
-  const { currentProgram, saveProgram, duplicateProgram, loadProgram } = useTrainingPrograms();
+  const { currentProgram, saveProgram, duplicateProgram, loadProgram, renameProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
   const [phaseSettingsOpen, setPhaseSettingsOpen] = useState(false);
   const [phaseSettings, setPhaseSettings] = useState<PhaseSettings>({
     umum: 40,
@@ -287,6 +290,15 @@ export function AnnualPlanSection() {
       setSetup({ planName: newProgram.name });
     }
     setDuplicating(false);
+  };
+
+  const handleRenameProgram = async () => {
+    if (!currentProgram || !renameValue.trim()) return;
+    const newName = await renameProgram(currentProgram.id, renameValue.trim());
+    if (newName) {
+      setSetup({ planName: newName as string });
+      setRenameOpen(false);
+    }
   };
 
   const applyPhaseSettings = () => {
@@ -614,6 +626,33 @@ export function AnnualPlanSection() {
               </div>
             </DialogContent>
           </Dialog>
+          {currentProgram && (
+            <Dialog open={renameOpen} onOpenChange={(open) => {
+              setRenameOpen(open);
+              if (open) setRenameValue(currentProgram.name);
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" title="Ubah nama program">
+                  <Pencil className="w-4 h-4 mr-1" /> Rename
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Ubah Nama Program</DialogTitle>
+                </DialogHeader>
+                <Input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Nama program baru"
+                  onKeyDown={(e) => e.key === 'Enter' && handleRenameProgram()}
+                />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setRenameOpen(false)}>Batal</Button>
+                  <Button onClick={handleRenameProgram} disabled={!renameValue.trim()}>Simpan</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
           {currentProgram && (
             <Button onClick={handleDuplicate} disabled={duplicating} size="sm" variant="outline">
               {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Copy className="w-4 h-4 mr-1" /> Duplikasi</>}
