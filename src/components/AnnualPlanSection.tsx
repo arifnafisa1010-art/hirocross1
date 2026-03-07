@@ -300,6 +300,7 @@ export function AnnualPlanSection() {
     }
   };
 
+  const applyPhaseSettings = () => {
     const total = phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi;
     if (total !== 100) {
       return;
