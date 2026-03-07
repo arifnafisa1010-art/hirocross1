@@ -542,6 +542,19 @@ export function MonthlySection() {
               </AlertDialogContent>
             </AlertDialog>
           )}
+
+          {/* Duplicate Program Button */}
+          {currentProgram && (
+            <Button
+              variant="outline"
+              size="icon"
+              title="Duplikasi program"
+              onClick={handleDuplicateProgram}
+              disabled={duplicating}
+            >
+              {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+            </Button>
+          )}
           
           {/* Athlete Selection */}
           <div className="relative">
