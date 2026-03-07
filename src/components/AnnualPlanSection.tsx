@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2 } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -61,7 +61,8 @@ const blockColors: Record<BlockCategory, { bg: string; text: string; border: str
 
 export function AnnualPlanSection() {
   const { 
-    setup, 
+    setup,
+    setSetup,
     mesocycles, 
     planData, 
     totalWeeks,
@@ -80,8 +81,9 @@ export function AnnualPlanSection() {
     setTotalWeeks,
   } = useTrainingStore();
 
-  const { currentProgram, saveProgram } = useTrainingPrograms();
+  const { currentProgram, saveProgram, duplicateProgram, loadProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [phaseSettingsOpen, setPhaseSettingsOpen] = useState(false);
   const [phaseSettings, setPhaseSettings] = useState<PhaseSettings>({
     umum: 40,
@@ -273,6 +275,18 @@ export function AnnualPlanSection() {
     setSaving(true);
     await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents);
     setSaving(false);
+  };
+
+  const handleDuplicate = async () => {
+    if (!currentProgram) return;
+    setDuplicating(true);
+    const newProgram = await duplicateProgram(currentProgram.id);
+    if (newProgram) {
+      // Load the duplicated program into the store
+      await loadProgram(newProgram.id);
+      setSetup({ planName: newProgram.name });
+    }
+    setDuplicating(false);
   };
 
   const applyPhaseSettings = () => {
@@ -600,6 +614,11 @@ export function AnnualPlanSection() {
               </div>
             </DialogContent>
           </Dialog>
+          {currentProgram && (
+            <Button onClick={handleDuplicate} disabled={duplicating} size="sm" variant="outline">
+              {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Copy className="w-4 h-4 mr-1" /> Duplikasi</>}
+            </Button>
+          )}
           <Button onClick={handleSave} disabled={saving} size="sm">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simpan'}
           </Button>
