@@ -338,7 +338,6 @@ export function MonthlySection() {
     if (!currentProgram) return;
     const success = await deleteProgram(currentProgram.id);
     if (success) {
-      // Reset store to empty state
       setSetup({ planName: '', startDate: '', matchDate: '', targets: { strength: 100, speed: 1000, endurance: 10, technique: 500, tactic: 200 } });
       setPlanData([]);
       setMesocycles([]);
@@ -346,6 +345,39 @@ export function MonthlySection() {
       setSelectedAthleteIds([]);
       setProgramSynced(false);
     }
+  };
+
+  const handleDuplicateProgram = async () => {
+    if (!currentProgram) return;
+    setDuplicating(true);
+    const newProgram = await duplicateProgram(currentProgram.id);
+    if (newProgram) {
+      // Load the duplicated program
+      setProgramSynced(false);
+      const loaded = await loadProgram(newProgram.id);
+      if (loaded) {
+        setSetup({
+          planName: loaded.name,
+          startDate: loaded.start_date,
+          matchDate: loaded.match_date,
+          targets: {
+            strength: Number(loaded.target_strength) || 100,
+            speed: Number(loaded.target_speed) || 1000,
+            endurance: Number(loaded.target_endurance) || 10,
+            technique: Number(loaded.target_technique) || 500,
+            tactic: Number(loaded.target_tactic) || 200,
+          }
+        });
+        const loadedPlan = loaded.plan_data as unknown as PlanWeek[] || [];
+        setMesocycles(loaded.mesocycles as unknown as Mesocycle[] || []);
+        setPlanData(loadedPlan);
+        setCompetitions((loaded as any).competitions as unknown as Competition[] || []);
+        setSelectedAthleteIds((loaded.athlete_ids || []) as string[]);
+        if (loadedPlan.length > 0) setTotalWeeks(loadedPlan.length);
+      }
+      setProgramSynced(true);
+    }
+    setDuplicating(false);
   };
 
 
