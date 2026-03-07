@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2, Copy } from 'lucide-react';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2, Copy, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
