@@ -61,7 +61,8 @@ const blockColors: Record<BlockCategory, { bg: string; text: string; border: str
 
 export function AnnualPlanSection() {
   const { 
-    setup, 
+    setup,
+    setSetup,
     mesocycles, 
     planData, 
     totalWeeks,
