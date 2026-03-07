@@ -432,7 +432,7 @@ export function useTrainingPrograms() {
     return newProgram;
   };
 
-
+  const deleteProgram = async (programId: string) => {
     const { error } = await supabase
       .from('training_programs')
       .delete()
