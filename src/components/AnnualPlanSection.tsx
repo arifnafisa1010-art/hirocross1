@@ -80,8 +80,9 @@ export function AnnualPlanSection() {
     setTotalWeeks,
   } = useTrainingStore();
 
-  const { currentProgram, saveProgram } = useTrainingPrograms();
+  const { currentProgram, saveProgram, duplicateProgram, loadProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [phaseSettingsOpen, setPhaseSettingsOpen] = useState(false);
   const [phaseSettings, setPhaseSettings] = useState<PhaseSettings>({
     umum: 40,
