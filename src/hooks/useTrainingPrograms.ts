@@ -357,8 +357,82 @@ export function useTrainingPrograms() {
     toast.success('Sesi latihan berhasil di-sync!');
     return true;
   };
+  const duplicateProgram = async (programId: string) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return null;
+    }
 
-  const deleteProgram = async (programId: string) => {
+    // Find source program
+    const source = programs.find(p => p.id === programId);
+    if (!source) {
+      toast.error('Program tidak ditemukan');
+      return null;
+    }
+
+    const newName = getUniqueName(source.name);
+
+    const { data: newProgram, error: programError } = await supabase
+      .from('training_programs')
+      .insert({
+        user_id: user.id,
+        name: newName,
+        start_date: source.start_date,
+        match_date: source.match_date,
+        target_strength: source.target_strength,
+        target_speed: source.target_speed,
+        target_endurance: source.target_endurance,
+        target_technique: source.target_technique,
+        target_tactic: source.target_tactic,
+        mesocycles: source.mesocycles,
+        plan_data: source.plan_data,
+        competitions: source.competitions,
+        athlete_ids: source.athlete_ids,
+        training_blocks: source.training_blocks,
+        scheduled_events: source.scheduled_events,
+      })
+      .select()
+      .single();
+
+    if (programError || !newProgram) {
+      toast.error('Gagal menduplikasi program');
+      console.error(programError);
+      return null;
+    }
+
+    // Copy sessions
+    const { data: sourceSessions } = await supabase
+      .from('training_sessions')
+      .select('*')
+      .eq('program_id', programId);
+
+    if (sourceSessions && sourceSessions.length > 0) {
+      const newSessions = sourceSessions.map(s => ({
+        program_id: newProgram.id,
+        session_key: s.session_key,
+        warmup: s.warmup || '',
+        exercises: s.exercises,
+        cooldown: s.cooldown || '',
+        recovery: s.recovery || '',
+        intensity: s.intensity || 'Rest',
+        is_done: false, // Reset done status for duplicate
+      }));
+
+      const { error: sessError } = await supabase
+        .from('training_sessions')
+        .insert(newSessions);
+
+      if (sessError) {
+        console.error('Error duplicating sessions:', sessError);
+      }
+    }
+
+    setPrograms(prev => [newProgram, ...prev]);
+    toast.success(`Program berhasil diduplikasi sebagai "${newName}"`);
+    return newProgram;
+  };
+
+
     const { error } = await supabase
       .from('training_programs')
       .delete()
