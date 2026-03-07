@@ -84,6 +84,24 @@ export function useTrainingPrograms() {
     return program;
   };
 
+  // Generate a unique program name by appending a number if needed
+  const getUniqueName = (name: string, excludeProgramId?: string): string => {
+    const existingNames = programs
+      .filter(p => !excludeProgramId || p.id !== excludeProgramId)
+      .map(p => p.name);
+    
+    if (!existingNames.includes(name)) return name;
+    
+    // Find the next available number
+    let counter = 1;
+    let candidateName = `${name} (${counter})`;
+    while (existingNames.includes(candidateName)) {
+      counter++;
+      candidateName = `${name} (${counter})`;
+    }
+    return candidateName;
+  };
+
   const saveProgram = async (
     setup: ProgramSetup,
     mesocycles: Mesocycle[],
@@ -102,6 +120,9 @@ export function useTrainingPrograms() {
     // Use the first competition date or matchDate for backwards compatibility
     const primaryCompetition = competitions.find(c => c.isPrimary) || competitions[0];
     const matchDate = primaryCompetition?.date || setup.matchDate;
+
+    // Ensure unique name (exclude current program when updating)
+    const uniqueName = getUniqueName(setup.planName, currentProgram?.id);
 
     const programData: TrainingProgramInsert = {
       user_id: user.id,
