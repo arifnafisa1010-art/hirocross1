@@ -614,6 +614,11 @@ export function AnnualPlanSection() {
               </div>
             </DialogContent>
           </Dialog>
+          {currentProgram && (
+            <Button onClick={handleDuplicate} disabled={duplicating} size="sm" variant="outline">
+              {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Copy className="w-4 h-4 mr-1" /> Duplikasi</>}
+            </Button>
+          )}
           <Button onClick={handleSave} disabled={saving} size="sm">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simpan'}
           </Button>
