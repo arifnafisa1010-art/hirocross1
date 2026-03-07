@@ -355,15 +355,6 @@ export function MonthlySection() {
     if (!currentProgram) return;
     setDuplicating(true);
     const newProgram = await duplicateProgram(currentProgram.id);
-
-  const handleRenameProgram = async () => {
-    if (!currentProgram || !renameValue.trim()) return;
-    const newName = await renameProgram(currentProgram.id, renameValue.trim());
-    if (newName) {
-      setSetup({ planName: newName as string });
-      setRenameOpen(false);
-    }
-  };
     if (newProgram) {
       // Load the duplicated program
       setProgramSynced(false);
@@ -391,6 +382,15 @@ export function MonthlySection() {
       setProgramSynced(true);
     }
     setDuplicating(false);
+  };
+
+  const handleRenameProgram = async () => {
+    if (!currentProgram || !renameValue.trim()) return;
+    const newName = await renameProgram(currentProgram.id, renameValue.trim());
+    if (newName) {
+      setSetup({ planName: newName as string });
+      setRenameOpen(false);
+    }
   };
 
 
