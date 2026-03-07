@@ -506,6 +506,33 @@ export function useTrainingPrograms() {
     setSessions({});
   };
 
+  const renameProgram = async (programId: string, newName: string) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return false;
+    }
+
+    const uniqueName = getUniqueName(newName, programId);
+
+    const { error } = await supabase
+      .from('training_programs')
+      .update({ name: uniqueName })
+      .eq('id', programId);
+
+    if (error) {
+      toast.error('Gagal mengubah nama program');
+      console.error(error);
+      return false;
+    }
+
+    setPrograms(prev => prev.map(p => p.id === programId ? { ...p, name: uniqueName } : p));
+    if (currentProgram?.id === programId) {
+      setCurrentProgram(prev => prev ? { ...prev, name: uniqueName } : prev);
+    }
+    toast.success(`Nama program diubah menjadi "${uniqueName}"`);
+    return uniqueName;
+  };
+
   useEffect(() => {
     fetchPrograms();
   }, [fetchPrograms]);
@@ -520,6 +547,7 @@ export function useTrainingPrograms() {
     saveSession,
     deleteProgram,
     duplicateProgram,
+    renameProgram,
     createNewProgram,
     resyncSessions,
     refetch: fetchPrograms,
