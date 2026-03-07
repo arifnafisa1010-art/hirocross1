@@ -32,8 +32,9 @@ const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession } = useTrainingStore();
   const { athletes } = useAthletes();
-  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram } = useTrainingPrograms();
+  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
+  const [duplicating, setDuplicating] = useState(false);
   const { loads, loading: loadsLoading, addLoad, deleteLoad } = useTrainingLoads();
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState(false);
