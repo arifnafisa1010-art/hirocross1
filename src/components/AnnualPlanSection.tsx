@@ -291,7 +291,15 @@ export function AnnualPlanSection() {
     setDuplicating(false);
   };
 
-  const applyPhaseSettings = () => {
+  const handleRenameProgram = async () => {
+    if (!currentProgram || !renameValue.trim()) return;
+    const newName = await renameProgram(currentProgram.id, renameValue.trim());
+    if (newName) {
+      setSetup({ planName: newName as string });
+      setRenameOpen(false);
+    }
+  };
+
     const total = phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi;
     if (total !== 100) {
       return;
