@@ -84,6 +84,24 @@ export function useTrainingPrograms() {
     return program;
   };
 
+  // Generate a unique program name by appending a number if needed
+  const getUniqueName = (name: string, excludeProgramId?: string): string => {
+    const existingNames = programs
+      .filter(p => !excludeProgramId || p.id !== excludeProgramId)
+      .map(p => p.name);
+    
+    if (!existingNames.includes(name)) return name;
+    
+    // Find the next available number
+    let counter = 1;
+    let candidateName = `${name} (${counter})`;
+    while (existingNames.includes(candidateName)) {
+      counter++;
+      candidateName = `${name} (${counter})`;
+    }
+    return candidateName;
+  };
+
   const saveProgram = async (
     setup: ProgramSetup,
     mesocycles: Mesocycle[],
@@ -103,9 +121,12 @@ export function useTrainingPrograms() {
     const primaryCompetition = competitions.find(c => c.isPrimary) || competitions[0];
     const matchDate = primaryCompetition?.date || setup.matchDate;
 
+    // Ensure unique name (exclude current program when updating)
+    const uniqueName = getUniqueName(setup.planName, currentProgram?.id);
+
     const programData: TrainingProgramInsert = {
       user_id: user.id,
-      name: setup.planName,
+      name: uniqueName,
       start_date: setup.startDate,
       match_date: matchDate,
       target_strength: setup.targets.strength,
@@ -336,6 +357,80 @@ export function useTrainingPrograms() {
     toast.success('Sesi latihan berhasil di-sync!');
     return true;
   };
+  const duplicateProgram = async (programId: string) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return null;
+    }
+
+    // Find source program
+    const source = programs.find(p => p.id === programId);
+    if (!source) {
+      toast.error('Program tidak ditemukan');
+      return null;
+    }
+
+    const newName = getUniqueName(source.name);
+
+    const { data: newProgram, error: programError } = await supabase
+      .from('training_programs')
+      .insert({
+        user_id: user.id,
+        name: newName,
+        start_date: source.start_date,
+        match_date: source.match_date,
+        target_strength: source.target_strength,
+        target_speed: source.target_speed,
+        target_endurance: source.target_endurance,
+        target_technique: source.target_technique,
+        target_tactic: source.target_tactic,
+        mesocycles: source.mesocycles,
+        plan_data: source.plan_data,
+        competitions: source.competitions,
+        athlete_ids: source.athlete_ids,
+        training_blocks: source.training_blocks,
+        scheduled_events: source.scheduled_events,
+      })
+      .select()
+      .single();
+
+    if (programError || !newProgram) {
+      toast.error('Gagal menduplikasi program');
+      console.error(programError);
+      return null;
+    }
+
+    // Copy sessions
+    const { data: sourceSessions } = await supabase
+      .from('training_sessions')
+      .select('*')
+      .eq('program_id', programId);
+
+    if (sourceSessions && sourceSessions.length > 0) {
+      const newSessions = sourceSessions.map(s => ({
+        program_id: newProgram.id,
+        session_key: s.session_key,
+        warmup: s.warmup || '',
+        exercises: s.exercises,
+        cooldown: s.cooldown || '',
+        recovery: s.recovery || '',
+        intensity: s.intensity || 'Rest',
+        is_done: false, // Reset done status for duplicate
+      }));
+
+      const { error: sessError } = await supabase
+        .from('training_sessions')
+        .insert(newSessions);
+
+      if (sessError) {
+        console.error('Error duplicating sessions:', sessError);
+      }
+    }
+
+    setPrograms(prev => [newProgram, ...prev]);
+    toast.success(`Program berhasil diduplikasi sebagai "${newName}"`);
+    return newProgram;
+  };
 
   const deleteProgram = async (programId: string) => {
     const { error } = await supabase
@@ -424,6 +519,7 @@ export function useTrainingPrograms() {
     saveProgram,
     saveSession,
     deleteProgram,
+    duplicateProgram,
     createNewProgram,
     resyncSessions,
     refetch: fetchPrograms,
