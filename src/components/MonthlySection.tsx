@@ -18,7 +18,7 @@ import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarge
 import { WeeklySyncSummary } from './WeeklySyncSummary';
 import { PremiumBadge } from './PremiumBadge';
 import { CompetitionDayMarker, DayMarkerBadge } from './CompetitionDayMarker';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2 } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
