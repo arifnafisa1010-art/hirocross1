@@ -627,6 +627,33 @@ export function AnnualPlanSection() {
             </DialogContent>
           </Dialog>
           {currentProgram && (
+            <Dialog open={renameOpen} onOpenChange={(open) => {
+              setRenameOpen(open);
+              if (open) setRenameValue(currentProgram.name);
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" title="Ubah nama program">
+                  <Pencil className="w-4 h-4 mr-1" /> Rename
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Ubah Nama Program</DialogTitle>
+                </DialogHeader>
+                <Input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Nama program baru"
+                  onKeyDown={(e) => e.key === 'Enter' && handleRenameProgram()}
+                />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setRenameOpen(false)}>Batal</Button>
+                  <Button onClick={handleRenameProgram} disabled={!renameValue.trim()}>Simpan</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+          {currentProgram && (
             <Button onClick={handleDuplicate} disabled={duplicating} size="sm" variant="outline">
               {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Copy className="w-4 h-4 mr-1" /> Duplikasi</>}
             </Button>
