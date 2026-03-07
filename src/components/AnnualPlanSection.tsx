@@ -276,6 +276,18 @@ export function AnnualPlanSection() {
     setSaving(false);
   };
 
+  const handleDuplicate = async () => {
+    if (!currentProgram) return;
+    setDuplicating(true);
+    const newProgram = await duplicateProgram(currentProgram.id);
+    if (newProgram) {
+      // Load the duplicated program into the store
+      await loadProgram(newProgram.id);
+      setSetup(prev => ({ ...prev, planName: newProgram.name }));
+    }
+    setDuplicating(false);
+  };
+
   const applyPhaseSettings = () => {
     const total = phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp + phaseSettings.kompetisi;
     if (total !== 100) {
