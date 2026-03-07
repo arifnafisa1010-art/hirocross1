@@ -284,7 +284,7 @@ export function AnnualPlanSection() {
     if (newProgram) {
       // Load the duplicated program into the store
       await loadProgram(newProgram.id);
-      setSetup(prev => ({ ...prev, planName: newProgram.name }));
+      setSetup({ planName: newProgram.name });
     }
     setDuplicating(false);
   };
