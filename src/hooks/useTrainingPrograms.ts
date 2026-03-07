@@ -126,7 +126,7 @@ export function useTrainingPrograms() {
 
     const programData: TrainingProgramInsert = {
       user_id: user.id,
-      name: setup.planName,
+      name: uniqueName,
       start_date: setup.startDate,
       match_date: matchDate,
       target_strength: setup.targets.strength,
