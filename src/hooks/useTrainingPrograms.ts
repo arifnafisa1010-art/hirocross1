@@ -519,6 +519,7 @@ export function useTrainingPrograms() {
     saveProgram,
     saveSession,
     deleteProgram,
+    duplicateProgram,
     createNewProgram,
     resyncSessions,
     refetch: fetchPrograms,
