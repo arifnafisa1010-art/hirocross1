@@ -919,16 +919,27 @@ export function MonthlySection() {
                         </div>
                       )}
                       
+                      {/* Session count badge */}
+                      {sessionCount > 1 && (
+                        <div className="mt-5">
+                          <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-primary/50 text-primary">
+                            {sessionCount} Sesi
+                          </Badge>
+                        </div>
+                      )}
+
                       {hasContent && (
-                        <div className="mt-4 space-y-1">
-                          {session.exercises.slice(0, 2).map((ex, i) => (
-                            <div key={i} className="text-[10px] font-semibold truncate">
-                              {ex.name}
-                            </div>
-                          ))}
-                          {session.exercises.length > 2 && (
+                        <div className={cn("space-y-1", sessionCount > 1 ? "mt-1" : "mt-4")}>
+                          {daySessions.map(({ session: s, number: num }) => (
+                            s?.exercises?.slice(0, 1).map((ex, i) => (
+                              <div key={`${num}-${i}`} className="text-[10px] font-semibold truncate">
+                                {sessionCount > 1 ? `S${num}: ` : ''}{ex.name}
+                              </div>
+                            ))
+                          )).flat()}
+                          {daySessions.reduce((sum, { session: s }) => sum + (s?.exercises?.length || 0), 0) > (sessionCount > 1 ? sessionCount : 2) && (
                             <div className="text-[9px] text-muted-foreground">
-                              +{session.exercises.length - 2} lainnya
+                              +{daySessions.reduce((sum, { session: s }) => sum + (s?.exercises?.length || 0), 0) - (sessionCount > 1 ? sessionCount : 2)} lainnya
                             </div>
                           )}
                         </div>
@@ -957,7 +968,7 @@ export function MonthlySection() {
                         </div>
                       )}
 
-                      {/* TSS/Load Display - calculated from RPE and Duration */}
+                      {/* TSS/Load Display - accumulated from all sessions */}
                       {(calculatedTSS > 0 || dayInternalLoad > 0) && (
                         <div className="absolute bottom-8 left-2 right-2">
                           <div className="flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded">
@@ -969,16 +980,19 @@ export function MonthlySection() {
                         </div>
                       )}
 
-                      {/* RPE & Duration display */}
+                      {/* RPE & Duration display - show summary for multi-session */}
                       <div className="absolute bottom-2 left-2 flex gap-1.5">
-                        {session?.rpe && (
+                        {daySessions.some(s => s.session?.rpe) && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">
-                            RPE {session.rpe}
+                            {sessionCount > 1 
+                              ? `RPE ${daySessions.filter(s => s.session?.rpe).map(s => s.session.rpe).join('/')}`
+                              : `RPE ${firstSession?.rpe || ''}`
+                            }
                           </span>
                         )}
-                        {session?.duration && (
+                        {daySessions.some(s => s.session?.duration) && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-                            {session.duration}m
+                            {daySessions.reduce((sum, s) => sum + (s.session?.duration || 0), 0)}m
                           </span>
                         )}
                       </div>
