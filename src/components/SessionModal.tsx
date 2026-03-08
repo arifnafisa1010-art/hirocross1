@@ -29,6 +29,8 @@ interface SessionModalProps {
   day: string;
   athleteId?: string;
   initialSessionNumber?: number;
+  hasSavedProgram?: boolean;
+  saveSessionToDb?: (storeKey: string, session: DaySession) => Promise<boolean>;
 }
 
 const defaultSession: DaySession = {
