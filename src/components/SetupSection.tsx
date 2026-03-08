@@ -6,10 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2, Trophy, Star, Copy } from 'lucide-react';
+import { Plus, Trash2, Loader2, Trophy, Star, Copy, History } from 'lucide-react';
 import { Mesocycle, PlanWeek, Competition } from '@/types/training';
 import { cn } from '@/lib/utils';
 import { AthletesManagement } from '@/components/AthletesManagement';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
 export function SetupSection() {
   const { 
