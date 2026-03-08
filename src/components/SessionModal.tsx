@@ -169,7 +169,7 @@ export function SessionModal({
     removeSession(key);
 
     // Delete from DB too
-    if (currentProgram) {
+    if (canPersistToDb && saveSessionToDb) {
       await saveSessionToDb(key, { ...defaultSession, int: 'Rest', isDone: false } as DaySession);
     }
 
@@ -202,7 +202,7 @@ export function SessionModal({
       removeSession(oldKey);
     }
     updateSession(currentKey, session);
-    if (currentProgram) {
+    if (canPersistToDb && saveSessionToDb) {
       await saveSessionToDb(currentKey, session);
     }
     setActiveSessionNum(num);
@@ -250,7 +250,7 @@ export function SessionModal({
     updateSession(currentKey, session);
 
     // Persist to DB if program exists
-    if (currentProgram) {
+    if (canPersistToDb && saveSessionToDb) {
       await saveSessionToDb(currentKey, session);
     }
 
