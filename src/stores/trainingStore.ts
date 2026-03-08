@@ -62,6 +62,7 @@ interface TrainingStore {
   
   sessions: Record<string, DaySession>;
   updateSession: (key: string, session: DaySession) => void;
+  removeSession: (key: string) => void;
   
   tests: TestResult[];
   addTest: (test: TestResult) => void;
