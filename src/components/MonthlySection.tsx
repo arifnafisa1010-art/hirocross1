@@ -47,6 +47,7 @@ export function MonthlySection() {
   const [saving, setSaving] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [loadInputOpen, setLoadInputOpen] = useState(false);
+  const [copiedDay, setCopiedDay] = useState<{ week: number; day: string } | null>(null);
   const [markerDialogOpen, setMarkerDialogOpen] = useState(false);
   const [selectedMarkerDate, setSelectedMarkerDate] = useState<string>('');
   const [weeklyTarget, setWeeklyTarget] = useState<number | null>(() => {
