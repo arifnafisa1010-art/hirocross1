@@ -18,7 +18,7 @@ import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarge
 import { WeeklySyncSummary } from './WeeklySyncSummary';
 import { PremiumBadge } from './PremiumBadge';
 import { CompetitionDayMarker, DayMarkerBadge } from './CompetitionDayMarker';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy, Pencil } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy, Pencil, ClipboardPaste, Clipboard } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -47,6 +47,7 @@ export function MonthlySection() {
   const [saving, setSaving] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [loadInputOpen, setLoadInputOpen] = useState(false);
+  const [copiedDay, setCopiedDay] = useState<{ week: number; day: string } | null>(null);
   const [markerDialogOpen, setMarkerDialogOpen] = useState(false);
   const [selectedMarkerDate, setSelectedMarkerDate] = useState<string>('');
   const [weeklyTarget, setWeeklyTarget] = useState<number | null>(() => {
@@ -284,6 +285,41 @@ export function MonthlySection() {
   const handleDayClick = (week: number, day: string) => {
     setSelectedDay({ week, day });
     setModalOpen(true);
+  };
+
+  const handleCopyDay = (e: React.MouseEvent, week: number, day: string) => {
+    e.stopPropagation();
+    setCopiedDay({ week, day });
+    toast.success(`Sesi W${week}-${day} disalin`);
+  };
+
+  const handlePasteDay = (e: React.MouseEvent, targetWeek: number, targetDay: string) => {
+    e.stopPropagation();
+    if (!copiedDay) return;
+
+    const sourceSessions = getSessionsForDay(copiedDay.week, copiedDay.day);
+    if (sourceSessions.length === 0) {
+      toast.error('Tidak ada sesi untuk ditempel');
+      return;
+    }
+
+    // Copy all sessions from source day to target day
+    sourceSessions.forEach(({ session, number }) => {
+      const targetKey = `W${targetWeek}-${targetDay}-S${number}`;
+      const copiedSession: DaySession = {
+        warmup: session.warmup || '',
+        exercises: session.exercises?.map(ex => ({ ...ex })) || [],
+        cooldown: session.cooldown || '',
+        recovery: session.recovery || '',
+        int: session.int || 'Rest',
+        isDone: false, // Reset done status
+        rpe: undefined, // Reset RPE
+        duration: undefined, // Reset duration
+      };
+      updateSession(targetKey, copiedSession);
+    });
+
+    toast.success(`Sesi ditempel ke W${targetWeek}-${targetDay}`);
   };
 
   const handleOpenMarkerDialog = (e: React.MouseEvent, dateStr: string) => {
@@ -910,6 +946,49 @@ export function MonthlySection() {
                           </Tooltip>
                         </TooltipProvider>
                       )}
+
+                      {/* Copy & Paste buttons */}
+                      <div className="absolute top-2 left-8 flex gap-0.5">
+                        {hasContent && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={(e) => handleCopyDay(e, wk, day)}
+                                  className={cn(
+                                    "p-1 rounded transition-colors",
+                                    copiedDay?.week === wk && copiedDay?.day === day
+                                      ? "text-primary bg-primary/20"
+                                      : "text-muted-foreground/50 hover:text-primary hover:bg-primary/10"
+                                  )}
+                                >
+                                  <Clipboard className="w-3 h-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                Salin sesi hari ini
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {copiedDay && !(copiedDay.week === wk && copiedDay.day === day) && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={(e) => handlePasteDay(e, wk, day)}
+                                  className="p-1 rounded text-muted-foreground/50 hover:text-accent hover:bg-accent/10 transition-colors"
+                                >
+                                  <ClipboardPaste className="w-3 h-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                Tempel sesi dari W{copiedDay.week}-{copiedDay.day}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                       
                       <div className="absolute top-2 right-2 text-right">
                         <div className="text-[10px] font-bold text-muted-foreground">
