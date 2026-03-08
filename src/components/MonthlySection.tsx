@@ -1382,6 +1382,8 @@ export function MonthlySection() {
           onOpenChange={setModalOpen}
           week={selectedDay.week}
           day={selectedDay.day}
+          hasSavedProgram={!!currentProgram}
+          saveSessionToDb={saveSession}
         />
       )}
 
