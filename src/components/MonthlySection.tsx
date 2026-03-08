@@ -966,38 +966,27 @@ export function MonthlySection() {
                       )}
 
                       {/* Copy & Paste buttons */}
-                      <div className="absolute top-2 left-8 flex gap-0.5">
+                      <div className="absolute top-1.5 right-1.5 flex gap-1">
                         {hasContent && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={(e) => handleCopyDay(e, wk, day)}
-                                  className={cn(
-                                    "p-1 rounded transition-colors",
-                                    copiedDay?.week === wk && copiedDay?.day === day
-                                      ? "text-primary bg-primary/20"
-                                      : "text-muted-foreground/50 hover:text-primary hover:bg-primary/10"
-                                  )}
-                                >
-                                  <Clipboard className="w-3 h-3" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                Salin sesi hari ini
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <button
+                            onClick={(e) => handleCopyDay(e, wk, day)}
+                            className={cn(
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all",
+                              copiedDay?.week === wk && copiedDay?.day === day
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "bg-muted/80 text-muted-foreground hover:bg-primary/20 hover:text-primary"
+                            )}
+                          >
+                            <Copy className="w-3 h-3" />
+                            {copiedDay?.week === wk && copiedDay?.day === day ? 'Copied' : 'Copy'}
+                          </button>
                         )}
                         {copiedDay && !(copiedDay.week === wk && copiedDay.day === day) && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={(e) => handlePasteDay(e, wk, day)}
-                                  className="p-1 rounded text-muted-foreground/50 hover:text-accent hover:bg-accent/10 transition-colors"
-                                >
-                                  <ClipboardPaste className="w-3 h-3" />
+                          <button
+                            onClick={(e) => handlePasteDay(e, wk, day)}
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-accent/20 text-accent-foreground hover:bg-accent/40 transition-all"
+                          >
+                            <ClipboardPaste className="w-3 h-3" />
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="text-xs">
