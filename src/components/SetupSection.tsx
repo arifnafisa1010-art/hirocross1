@@ -146,6 +146,50 @@ export function SetupSection() {
     setDuplicating(null);
   };
 
+  const handleOpenBackups = async (e: React.MouseEvent, programId: string) => {
+    e.stopPropagation();
+    setBackupProgramId(programId);
+    setBackupDialogOpen(true);
+    setLoadingBackups(true);
+    const data = await getBackups(programId);
+    setBackups(data);
+    setLoadingBackups(false);
+  };
+
+  const handleRestore = async (backupId: string) => {
+    setRestoring(backupId);
+    const success = await restoreBackup(backupId);
+    if (success) {
+      setBackupDialogOpen(false);
+      // Re-sync store
+      if (backupProgramId) {
+        const program = await loadProgram(backupProgramId);
+        if (program) {
+          setSetup({
+            planName: program.name,
+            startDate: program.start_date,
+            matchDate: program.match_date,
+            targets: {
+              strength: Number(program.target_strength) || 100,
+              speed: Number(program.target_speed) || 1000,
+              endurance: Number(program.target_endurance) || 10,
+              technique: Number(program.target_technique) || 500,
+              tactic: Number(program.target_tactic) || 200,
+            }
+          });
+          const loadedMeso = program.mesocycles as unknown as Mesocycle[] || [];
+          const loadedPlan = program.plan_data as unknown as PlanWeek[] || [];
+          const loadedCompetitions = (program as any).competitions as unknown as Competition[] || [];
+          setMesocycles(loadedMeso);
+          setPlanData(loadedPlan);
+          setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : []);
+          if (loadedPlan.length > 0) setTotalWeeks(loadedPlan.length);
+        }
+      }
+    }
+    setRestoring(null);
+  };
+
   const setPrimaryCompetition = (id: string) => {
     competitions.forEach(c => {
       if (c.id === id) {
