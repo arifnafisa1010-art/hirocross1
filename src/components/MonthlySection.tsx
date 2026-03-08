@@ -987,13 +987,8 @@ export function MonthlySection() {
                             className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-accent/20 text-accent-foreground hover:bg-accent/40 transition-all"
                           >
                             <ClipboardPaste className="w-3 h-3" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                Tempel sesi dari W{copiedDay.week}-{copiedDay.day}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                            Paste
+                          </button>
                         )}
                       </div>
                       
