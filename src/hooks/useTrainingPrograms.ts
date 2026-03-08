@@ -309,7 +309,6 @@ export function useTrainingPrograms() {
       
       const getIntensityForDay = (dayIndex: number): 'Rest' | 'Low' | 'Med' | 'High' => {
         if (dayIndex === 6) return 'Rest';
-        
         const weekInt = weekPlan.int;
         if (weekInt >= 80) return 'High';
         if (weekInt >= 60) return 'Med';
@@ -319,30 +318,48 @@ export function useTrainingPrograms() {
 
       for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
         const dayName = days[dayIndex];
-        const storeKey = `W${weekNum}-${dayName}`;
-        const sessionKey = `week-${weekNum}-day-${dayIndex + 1}-session-1`;
-        const storedSession = storeSessions?.[storeKey];
-
-        if (storedSession) {
-          let intensity: string = storedSession.int || 'Rest';
-          if (!['Rest', 'Low', 'Med', 'High'].includes(intensity)) {
-            intensity = 'Rest';
+        
+        // Find all sessions for this day
+        const storeSessionKeys: string[] = [];
+        if (storeSessions) {
+          for (let sn = 1; sn <= 20; sn++) {
+            const newKey = `W${weekNum}-${dayName}-S${sn}`;
+            if (storeSessions[newKey]) {
+              storeSessionKeys.push(newKey);
+            }
           }
-          
-          sessionsToSave.push({
-            program_id: programId,
-            session_key: sessionKey,
-            warmup: storedSession.warmup || '',
-            exercises: storedSession.exercises as unknown as Json,
-            cooldown: storedSession.cooldown || '',
-            recovery: storedSession.recovery || '',
-            intensity: intensity,
-            is_done: storedSession.isDone || false,
+          const oldKey = `W${weekNum}-${dayName}`;
+          if (storeSessions[oldKey] && storeSessionKeys.length === 0) {
+            storeSessionKeys.push(oldKey);
+          }
+        }
+
+        if (storeSessionKeys.length > 0) {
+          storeSessionKeys.forEach((storeKey, idx) => {
+            const storedSession = storeSessions![storeKey];
+            const sessionNum = idx + 1;
+            const sessionKey = `week-${weekNum}-day-${dayIndex + 1}-session-${sessionNum}`;
+
+            let intensity: string = storedSession.int || 'Rest';
+            if (!['Rest', 'Low', 'Med', 'High'].includes(intensity)) {
+              intensity = 'Rest';
+            }
+
+            sessionsToSave.push({
+              program_id: programId,
+              session_key: sessionKey,
+              warmup: storedSession.warmup || '',
+              exercises: storedSession.exercises as unknown as Json,
+              cooldown: storedSession.cooldown || '',
+              recovery: storedSession.recovery || '',
+              intensity: intensity,
+              is_done: storedSession.isDone || false,
+            });
           });
         } else {
           sessionsToSave.push({
             program_id: programId,
-            session_key: sessionKey,
+            session_key: `week-${weekNum}-day-${dayIndex + 1}-session-1`,
             warmup: '',
             exercises: [] as unknown as Json,
             cooldown: '',
