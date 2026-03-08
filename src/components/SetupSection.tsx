@@ -6,10 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2, Trophy, Star, Copy } from 'lucide-react';
+import { Plus, Trash2, Loader2, Trophy, Star, Copy, History } from 'lucide-react';
 import { Mesocycle, PlanWeek, Competition } from '@/types/training';
 import { cn } from '@/lib/utils';
 import { AthletesManagement } from '@/components/AthletesManagement';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
 export function SetupSection() {
   const { 
@@ -29,9 +32,14 @@ export function SetupSection() {
     updateCompetition,
   } = useTrainingStore();
   
-  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram } = useTrainingPrograms();
+  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram, getBackups, restoreBackup } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+  const [backupProgramId, setBackupProgramId] = useState<string | null>(null);
+  const [backups, setBackups] = useState<any[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [restoring, setRestoring] = useState<string | null>(null);
 
   // Load current program data into store when program changes
   useEffect(() => {
@@ -138,6 +146,50 @@ export function SetupSection() {
     setDuplicating(null);
   };
 
+  const handleOpenBackups = async (e: React.MouseEvent, programId: string) => {
+    e.stopPropagation();
+    setBackupProgramId(programId);
+    setBackupDialogOpen(true);
+    setLoadingBackups(true);
+    const data = await getBackups(programId);
+    setBackups(data);
+    setLoadingBackups(false);
+  };
+
+  const handleRestore = async (backupId: string) => {
+    setRestoring(backupId);
+    const success = await restoreBackup(backupId);
+    if (success) {
+      setBackupDialogOpen(false);
+      // Re-sync store
+      if (backupProgramId) {
+        const program = await loadProgram(backupProgramId);
+        if (program) {
+          setSetup({
+            planName: program.name,
+            startDate: program.start_date,
+            matchDate: program.match_date,
+            targets: {
+              strength: Number(program.target_strength) || 100,
+              speed: Number(program.target_speed) || 1000,
+              endurance: Number(program.target_endurance) || 10,
+              technique: Number(program.target_technique) || 500,
+              tactic: Number(program.target_tactic) || 200,
+            }
+          });
+          const loadedMeso = program.mesocycles as unknown as Mesocycle[] || [];
+          const loadedPlan = program.plan_data as unknown as PlanWeek[] || [];
+          const loadedCompetitions = (program as any).competitions as unknown as Competition[] || [];
+          setMesocycles(loadedMeso);
+          setPlanData(loadedPlan);
+          setCompetitions(loadedCompetitions.length > 0 ? loadedCompetitions : []);
+          if (loadedPlan.length > 0) setTotalWeeks(loadedPlan.length);
+        }
+      }
+    }
+    setRestoring(null);
+  };
+
   const setPrimaryCompetition = (id: string) => {
     competitions.forEach(c => {
       if (c.id === id) {
@@ -201,6 +253,13 @@ export function SetupSection() {
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
+                      </button>
+                      <button 
+                        onClick={(e) => handleOpenBackups(e, program.id)}
+                        className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                        title="Riwayat backup"
+                      >
+                        <History className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id); }}
@@ -409,6 +468,70 @@ export function SetupSection() {
 
       {/* Athletes Management */}
       <AthletesManagement />
+
+      {/* Backup Restore Dialog */}
+      <Dialog open={backupDialogOpen} onOpenChange={setBackupDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Riwayat Backup
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {loadingBackups ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-accent" />
+              </div>
+            ) : backups.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Belum ada backup untuk program ini. Backup otomatis dibuat setiap kali Anda menyimpan program.
+              </p>
+            ) : (
+              backups.map((backup) => {
+                const snapshot = backup.program_snapshot as any;
+                const sessionsCount = (backup.sessions_snapshot as any[])?.length || 0;
+                const reasonLabel = backup.backup_reason === 'auto_save' ? 'Auto (sebelum save)' 
+                  : backup.backup_reason === 'before_restore' ? 'Auto (sebelum restore)' 
+                  : 'Manual';
+                return (
+                  <div key={backup.id} className="p-3 rounded-lg border border-border hover:border-accent/50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-bold">{snapshot?.name || 'Program'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(backup.created_at), 'd MMM yyyy, HH:mm', { locale: idLocale })}
+                        </p>
+                        <div className="flex gap-2 mt-1">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                            {reasonLabel}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                            {sessionsCount} sesi
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRestore(backup.id)}
+                        disabled={restoring === backup.id}
+                        className="text-xs"
+                      >
+                        {restoring === backup.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          'Restore'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

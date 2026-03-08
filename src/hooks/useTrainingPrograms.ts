@@ -117,6 +117,11 @@ export function useTrainingPrograms() {
       return false;
     }
 
+    // Auto-backup before save (only if updating existing program)
+    if (currentProgram) {
+      await createBackup(currentProgram.id, 'auto_save');
+    }
+
     // Use the first competition date or matchDate for backwards compatibility
     const primaryCompetition = competitions.find(c => c.isPrimary) || competitions[0];
     const matchDate = primaryCompetition?.date || setup.matchDate;
@@ -643,6 +648,140 @@ export function useTrainingPrograms() {
     return uniqueName;
   };
 
+  // Create a backup of a program and its sessions
+  const createBackup = async (programId: string, reason: string = 'manual') => {
+    if (!user) return false;
+
+    const program = programs.find(p => p.id === programId);
+    if (!program) return false;
+
+    // Fetch current sessions from DB
+    const { data: sessionsData } = await supabase
+      .from('training_sessions')
+      .select('*')
+      .eq('program_id', programId);
+
+    const { error } = await supabase
+      .from('program_backups')
+      .insert({
+        program_id: programId,
+        user_id: user.id,
+        program_snapshot: program as unknown as Json,
+        sessions_snapshot: (sessionsData || []) as unknown as Json,
+        backup_reason: reason,
+      });
+
+    if (error) {
+      console.error('Backup failed:', error);
+      return false;
+    }
+    return true;
+  };
+
+  // Get backups for a program
+  const getBackups = async (programId: string) => {
+    const { data, error } = await supabase
+      .from('program_backups')
+      .select('*')
+      .eq('program_id', programId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch backups:', error);
+      return [];
+    }
+    return data || [];
+  };
+
+  // Restore a program from a backup
+  const restoreBackup = async (backupId: string) => {
+    if (!user) {
+      toast.error('Anda harus login!');
+      return false;
+    }
+
+    const { data: backup, error: fetchError } = await supabase
+      .from('program_backups')
+      .select('*')
+      .eq('id', backupId)
+      .single();
+
+    if (fetchError || !backup) {
+      toast.error('Gagal memuat backup');
+      return false;
+    }
+
+    const snapshot = backup.program_snapshot as any;
+    const programId = backup.program_id;
+
+    // Create a backup of current state before restoring
+    await createBackup(programId, 'before_restore');
+
+    // Restore program data
+    const { error: updateError } = await supabase
+      .from('training_programs')
+      .update({
+        name: snapshot.name,
+        start_date: snapshot.start_date,
+        match_date: snapshot.match_date,
+        target_strength: snapshot.target_strength,
+        target_speed: snapshot.target_speed,
+        target_endurance: snapshot.target_endurance,
+        target_technique: snapshot.target_technique,
+        target_tactic: snapshot.target_tactic,
+        mesocycles: snapshot.mesocycles,
+        plan_data: snapshot.plan_data,
+        competitions: snapshot.competitions,
+        athlete_ids: snapshot.athlete_ids,
+        training_blocks: snapshot.training_blocks,
+        scheduled_events: snapshot.scheduled_events,
+      })
+      .eq('id', programId);
+
+    if (updateError) {
+      toast.error('Gagal restore program');
+      console.error(updateError);
+      return false;
+    }
+
+    // Restore sessions: delete current then insert backup sessions
+    const sessionsSnapshot = backup.sessions_snapshot as any[];
+    
+    await supabase
+      .from('training_sessions')
+      .delete()
+      .eq('program_id', programId);
+
+    if (sessionsSnapshot && sessionsSnapshot.length > 0) {
+      const sessionsToInsert = sessionsSnapshot.map((s: any) => ({
+        program_id: programId,
+        session_key: s.session_key,
+        warmup: s.warmup || '',
+        exercises: s.exercises,
+        cooldown: s.cooldown || '',
+        recovery: s.recovery || '',
+        intensity: s.intensity || 'Rest',
+        is_done: s.is_done || false,
+      }));
+
+      const { error: sessError } = await supabase
+        .from('training_sessions')
+        .insert(sessionsToInsert);
+
+      if (sessError) {
+        console.error('Error restoring sessions:', sessError);
+        toast.error('Program di-restore tapi sesi gagal');
+        return false;
+      }
+    }
+
+    // Reload the program
+    await loadProgram(programId);
+    await fetchPrograms();
+    toast.success('Program berhasil di-restore dari backup!');
+    return true;
+  };
+
   useEffect(() => {
     fetchPrograms();
   }, [fetchPrograms]);
@@ -660,6 +799,8 @@ export function useTrainingPrograms() {
     renameProgram,
     createNewProgram,
     resyncSessions,
+    getBackups,
+    restoreBackup,
     refetch: fetchPrograms,
   };
 }

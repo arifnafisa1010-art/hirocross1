@@ -179,6 +179,44 @@ export type Database = {
         }
         Relationships: []
       }
+      program_backups: {
+        Row: {
+          backup_reason: string
+          created_at: string
+          id: string
+          program_id: string
+          program_snapshot: Json
+          sessions_snapshot: Json
+          user_id: string
+        }
+        Insert: {
+          backup_reason?: string
+          created_at?: string
+          id?: string
+          program_id: string
+          program_snapshot: Json
+          sessions_snapshot?: Json
+          user_id: string
+        }
+        Update: {
+          backup_reason?: string
+          created_at?: string
+          id?: string
+          program_id?: string
+          program_snapshot?: Json
+          sessions_snapshot?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_backups_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "training_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_norms: {
         Row: {
           age_max: number | null
