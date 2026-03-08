@@ -61,6 +61,7 @@ interface TrainingStore {
   updatePlanWeek: (index: number, data: Partial<PlanWeek>) => void;
   
   sessions: Record<string, DaySession>;
+  setSessions: (sessions: Record<string, DaySession>) => void;
   updateSession: (key: string, session: DaySession) => void;
   removeSession: (key: string) => void;
   
