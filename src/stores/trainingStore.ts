@@ -148,6 +148,11 @@ export const useTrainingStore = create<TrainingStore>()(
       updateSession: (key, session) => set((state) => ({
         sessions: { ...state.sessions, [key]: session },
       })),
+      removeSession: (key) => set((state) => {
+        const newSessions = { ...state.sessions };
+        delete newSessions[key];
+        return { sessions: newSessions };
+      }),
       
       tests: [],
       addTest: (test) => set((state) => ({ tests: [...state.tests, test] })),
