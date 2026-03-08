@@ -128,6 +128,16 @@ export function SetupSection() {
     }
   };
 
+  const handleDuplicateProgram = async (e: React.MouseEvent, programId: string) => {
+    e.stopPropagation();
+    setDuplicating(programId);
+    const newProgram = await duplicateProgram(programId);
+    if (newProgram) {
+      await loadProgram(newProgram.id);
+    }
+    setDuplicating(null);
+  };
+
   const setPrimaryCompetition = (id: string) => {
     competitions.forEach(c => {
       if (c.id === id) {
