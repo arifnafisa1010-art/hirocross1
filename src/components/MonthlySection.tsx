@@ -992,7 +992,7 @@ export function MonthlySection() {
                         )}
                       </div>
                       
-                      <div className="absolute top-2 right-2 text-right">
+                      <div className="text-left">
                         <div className="text-[10px] font-bold text-muted-foreground">
                           {day.slice(0, 3)}
                         </div>
