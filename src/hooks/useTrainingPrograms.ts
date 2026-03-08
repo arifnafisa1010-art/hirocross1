@@ -117,6 +117,11 @@ export function useTrainingPrograms() {
       return false;
     }
 
+    // Auto-backup before save (only if updating existing program)
+    if (currentProgram) {
+      await createBackup(currentProgram.id, 'auto_save');
+    }
+
     // Use the first competition date or matchDate for backwards compatibility
     const primaryCompetition = competitions.find(c => c.isPrimary) || competitions[0];
     const matchDate = primaryCompetition?.date || setup.matchDate;
