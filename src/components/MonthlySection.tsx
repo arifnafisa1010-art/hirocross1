@@ -800,27 +800,30 @@ export function MonthlySection() {
 
                 {/* Days */}
                 {days.map((day, dayIndex) => {
-                  const key = getSessionKey(wk, day);
-                  const session = sessions[key];
-                  const hasContent = session?.exercises?.length > 0;
-                  const isDone = session?.isDone;
-                  const intensity = session?.int || 'Rest';
+                  // Multi-session support: get all sessions for this day
+                  const daySessions = getSessionsForDay(wk, day);
+                  const sessionCount = daySessions.length;
+                  const firstSession = daySessions[0]?.session;
+                  const hasContent = daySessions.some(s => s.session?.exercises?.length > 0);
+                  const isDone = daySessions.some(s => s.session?.isDone);
+                  const intensity = firstSession?.int || 'Rest';
                   const dayDate = getDateForDay(wk, dayIndex);
                   const dayDateStr = dayDate ? format(dayDate, 'yyyy-MM-dd') : null;
 
-                  // Calculate total load from completed exercises
-                  const totalLoad = session?.exercises?.reduce((sum, ex) => sum + (ex.load * ex.set * ex.rep), 0) || 0;
+                  // Calculate total load from all sessions' completed exercises
+                  const totalLoad = daySessions.reduce((sum, { session: s }) => {
+                    return sum + (s?.exercises?.reduce((exSum, ex) => exSum + (ex.load * ex.set * ex.rep), 0) || 0);
+                  }, 0);
 
-                  // Calculate load from session exercises by category (speed in m, endurance in km)
-                  const exerciseLoadByCategory = session?.exercises?.reduce((acc, ex) => {
-                    const totalReps = ex.set * ex.rep;
-                    if (ex.cat === 'speed') {
-                      acc.speed += ex.load * totalReps; // Load in meters
-                    } else if (ex.cat === 'endurance') {
-                      acc.endurance += (ex.load * totalReps) / 1000; // Convert to km
-                    }
+                  // Calculate load from all sessions by category
+                  const exerciseLoadByCategory = daySessions.reduce((acc, { session: s }) => {
+                    s?.exercises?.forEach(ex => {
+                      const totalReps = ex.set * ex.rep;
+                      if (ex.cat === 'speed') acc.speed += ex.load * totalReps;
+                      else if (ex.cat === 'endurance') acc.endurance += (ex.load * totalReps) / 1000;
+                    });
                     return acc;
-                  }, { speed: 0, endurance: 0 }) || { speed: 0, endurance: 0 };
+                  }, { speed: 0, endurance: 0 });
 
                   // Get internal load (TSS) from training_loads table for this day
                   const dayDbLoads = dayDateStr 
@@ -828,34 +831,26 @@ export function MonthlySection() {
                     : [];
                   const dayInternalLoad = dayDbLoads.reduce((sum, l) => sum + (l.session_load || 0), 0);
                   
-                  // Check if this session is synced to training_loads
-                  const hasSessionData = isDone && session?.rpe && session?.duration;
+                  // Check sync status across all sessions
+                  const hasSessionData = daySessions.some(s => s.session?.isDone && s.session?.rpe && s.session?.duration);
                   const isSyncedToDb = dayDbLoads.length > 0;
 
-                  // RPE-based Load Map: Base load for 60 minutes at each RPE level
+                  // RPE-based Load Map
                   const RPE_LOAD_MAP: Record<number, number> = {
-                    1: 20,   // Very light
-                    2: 30,   // Light
-                    3: 40,   // Light-moderate
-                    4: 50,   // Moderate
-                    5: 60,   // Moderate
-                    6: 70,   // Moderate-hard
-                    7: 80,   // Hard
-                    8: 100,  // Very hard
-                    9: 120,  // Very very hard
-                    10: 140, // Maximum
+                    1: 20, 2: 30, 3: 40, 4: 50, 5: 60,
+                    6: 70, 7: 80, 8: 100, 9: 120, 10: 140,
                   };
 
-                  // Calculate TSS from RPE and Duration using proper formula
-                  // Base load is for 60 min, scale by actual duration
-                  const calculatedTSS = session?.rpe && session?.duration 
-                    ? Math.round((session.duration / 60) * (RPE_LOAD_MAP[Math.min(10, Math.max(1, Math.round(session.rpe)))] || 60))
-                    : 0;
+                  // Calculate TSS from all sessions' RPE and Duration
+                  const calculatedTSS = daySessions.reduce((sum, { session: s }) => {
+                    if (s?.rpe && s?.duration) {
+                      return sum + Math.round((s.duration / 60) * (RPE_LOAD_MAP[Math.min(10, Math.max(1, Math.round(s.rpe)))] || 60));
+                    }
+                    return sum;
+                  }, 0);
 
-                  // Get TSS value for color gradient
                   const tssValue = dayInternalLoad > 0 ? dayInternalLoad : calculatedTSS;
                   
-                  // Determine TSS color gradient: green=low (<50), yellow=medium (50-100), red=high (>100)
                   const getTSSColorClass = (tss: number) => {
                     if (tss === 0) return '';
                     if (tss < 50) return 'bg-gradient-to-br from-green-500/20 to-green-600/30 border-green-500/50';
