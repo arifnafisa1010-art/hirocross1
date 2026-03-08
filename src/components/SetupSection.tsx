@@ -189,12 +189,27 @@ export function SetupSection() {
                         {new Date(program.start_date).toLocaleDateString('id-ID')} - {new Date(program.match_date).toLocaleDateString('id-ID')}
                       </p>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id); }}
-                      className="p-1 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={(e) => handleDuplicateProgram(e, program.id)}
+                        className="p-1 text-muted-foreground hover:text-accent transition-colors"
+                        title="Duplikasi program"
+                        disabled={duplicating === program.id}
+                      >
+                        {duplicating === program.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id); }}
+                        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Hapus program"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
