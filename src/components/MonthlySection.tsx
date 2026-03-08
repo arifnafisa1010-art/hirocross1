@@ -287,6 +287,41 @@ export function MonthlySection() {
     setModalOpen(true);
   };
 
+  const handleCopyDay = (e: React.MouseEvent, week: number, day: string) => {
+    e.stopPropagation();
+    setCopiedDay({ week, day });
+    toast.success(`Sesi W${week}-${day} disalin`);
+  };
+
+  const handlePasteDay = (e: React.MouseEvent, targetWeek: number, targetDay: string) => {
+    e.stopPropagation();
+    if (!copiedDay) return;
+
+    const sourceSessions = getSessionsForDay(copiedDay.week, copiedDay.day);
+    if (sourceSessions.length === 0) {
+      toast.error('Tidak ada sesi untuk ditempel');
+      return;
+    }
+
+    // Copy all sessions from source day to target day
+    sourceSessions.forEach(({ session, number }) => {
+      const targetKey = `W${targetWeek}-${targetDay}-S${number}`;
+      const copiedSession: DaySession = {
+        warmup: session.warmup || '',
+        exercises: session.exercises?.map(ex => ({ ...ex })) || [],
+        cooldown: session.cooldown || '',
+        recovery: session.recovery || '',
+        int: session.int || 'Rest',
+        isDone: false, // Reset done status
+        rpe: undefined, // Reset RPE
+        duration: undefined, // Reset duration
+      };
+      updateSession(targetKey, copiedSession);
+    });
+
+    toast.success(`Sesi ditempel ke W${targetWeek}-${targetDay}`);
+  };
+
   const handleOpenMarkerDialog = (e: React.MouseEvent, dateStr: string) => {
     e.stopPropagation();
     setSelectedMarkerDate(dateStr);
