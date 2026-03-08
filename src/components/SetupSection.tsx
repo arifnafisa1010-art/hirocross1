@@ -32,9 +32,14 @@ export function SetupSection() {
     updateCompetition,
   } = useTrainingStore();
   
-  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram } = useTrainingPrograms();
+  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram, getBackups, restoreBackup } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+  const [backupProgramId, setBackupProgramId] = useState<string | null>(null);
+  const [backups, setBackups] = useState<any[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [restoring, setRestoring] = useState<string | null>(null);
 
   // Load current program data into store when program changes
   useEffect(() => {
