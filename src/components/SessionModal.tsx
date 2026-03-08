@@ -170,78 +170,9 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
 
   const handleSave = async () => {
     setIsSaving(true);
-
     try {
-      const currentKey = getStoreKey(activeSessionNum);
-
-      // Migrate old key if needed
-      const oldKey = `W${week}-${day}`;
-      if (sessions[oldKey] && activeSessionNum === 1) {
-        removeSession(oldKey);
-      }
-
-      // Update session in local store
-      updateSession(currentKey, session);
-
-      // Auto-persist to database if program exists
-      if (currentProgram) {
-        await saveSessionToDb(currentKey, session);
-      }
-
-      // If session is marked as done with RPE and duration, auto-sync to training_loads
-      if (session.isDone && session.rpe && session.duration && sessionDate && user) {
-        const getTrainingType = (): string => {
-          if (session.exercises.length === 0) return 'training';
-          const firstCat = session.exercises[0].cat;
-          switch (firstCat) {
-            case 'strength': return 'strength';
-            case 'endurance': return 'conditioning';
-            case 'technique': return 'technical';
-            case 'tactic': return 'tactical';
-            case 'speed': return 'conditioning';
-            default: return 'training';
-          }
-        };
-        const trainingType = getTrainingType();
-
-        const notes = [
-          `W${week} ${day} Sesi-${activeSessionNum}`,
-          session.warmup ? `Warmup: ${session.warmup.substring(0, 50)}` : '',
-          session.exercises.length > 0 ? `${session.exercises.length} exercises` : '',
-        ].filter(Boolean).join(' | ');
-
-        const targetAthleteId = athleteId || (selectedAthleteIds.length === 1 ? selectedAthleteIds[0] : undefined);
-
-        const result = await addLoad({
-          session_date: sessionDate,
-          duration_minutes: session.duration,
-          rpe: session.rpe,
-          training_type: trainingType,
-          notes: notes,
-          athlete_id: targetAthleteId,
-        });
-
-        if (result.success) {
-          toast.success(
-            <div className="flex flex-col gap-1">
-              <span className="font-bold">Sesi {activeSessionNum} berhasil disimpan!</span>
-              <span className="text-xs text-muted-foreground">
-                Load {sessionLoad} AU auto-sync ke Monitoring Performa
-              </span>
-            </div>
-          );
-        } else {
-          toast.warning(
-            <div className="flex flex-col gap-1">
-              <span className="font-bold">Sesi disimpan ke kalender</span>
-              <span className="text-xs">Gagal sync ke monitoring: {result.error}</span>
-            </div>
-          );
-        }
-      } else {
-        toast.success(`Sesi ${activeSessionNum} disimpan!`);
-      }
-
+      await autoSaveCurrentSession();
+      toast.success(`Sesi ${activeSessionNum} disimpan!`);
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving session:', error);
@@ -249,6 +180,22 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Auto-save before switching tabs
+  const handleTabSwitch = async (num: number) => {
+    if (num === activeSessionNum) return;
+    // Save current session before switching
+    const currentKey = getStoreKey(activeSessionNum);
+    const oldKey = `W${week}-${day}`;
+    if (sessions[oldKey] && activeSessionNum === 1) {
+      removeSession(oldKey);
+    }
+    updateSession(currentKey, session);
+    if (currentProgram) {
+      await saveSessionToDb(currentKey, session);
+    }
+    setActiveSessionNum(num);
   };
 
   const addExercise = () => {
@@ -279,8 +226,69 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
     return 'bg-red-500';
   };
 
+  // Auto-save current session to store + DB when modal closes or tab switches
+  const autoSaveCurrentSession = async () => {
+    const currentKey = getStoreKey(activeSessionNum);
+    
+    // Migrate old key if needed
+    const oldKey = `W${week}-${day}`;
+    if (sessions[oldKey] && activeSessionNum === 1) {
+      removeSession(oldKey);
+    }
+
+    // Update local store
+    updateSession(currentKey, session);
+
+    // Persist to DB if program exists
+    if (currentProgram) {
+      await saveSessionToDb(currentKey, session);
+    }
+
+    // If marked done with RPE + duration, sync to training_loads
+    if (session.isDone && session.rpe && session.duration && sessionDate && user) {
+      const getTrainingType = (): string => {
+        if (session.exercises.length === 0) return 'training';
+        const firstCat = session.exercises[0].cat;
+        switch (firstCat) {
+          case 'strength': return 'strength';
+          case 'endurance': return 'conditioning';
+          case 'technique': return 'technical';
+          case 'tactic': return 'tactical';
+          case 'speed': return 'conditioning';
+          default: return 'training';
+        }
+      };
+
+      const notes = [
+        `W${week} ${day} Sesi-${activeSessionNum}`,
+        session.warmup ? `Warmup: ${session.warmup.substring(0, 50)}` : '',
+        session.exercises.length > 0 ? `${session.exercises.length} exercises` : '',
+      ].filter(Boolean).join(' | ');
+
+      const targetAthleteId = athleteId || (selectedAthleteIds.length === 1 ? selectedAthleteIds[0] : undefined);
+
+      await addLoad({
+        session_date: sessionDate,
+        duration_minutes: session.duration,
+        rpe: session.rpe,
+        training_type: getTrainingType(),
+        notes: notes,
+        athlete_id: targetAthleteId,
+      });
+    }
+  };
+
+  const handleModalClose = async (isOpen: boolean) => {
+    if (!isOpen && open) {
+      // Modal is closing — auto-save
+      await autoSaveCurrentSession();
+      toast.success(`Sesi ${activeSessionNum} tersimpan otomatis`);
+    }
+    onOpenChange(isOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
@@ -332,7 +340,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
           {sessionNumbers.map(num => (
             <button
               key={num}
-              onClick={() => setActiveSessionNum(num)}
+              onClick={() => handleTabSwitch(num)}
               className={cn(
                 "relative px-4 py-2 text-sm font-bold rounded-t-lg transition-colors group",
                 activeSessionNum === num
