@@ -144,10 +144,16 @@ export function AthleteCalendarView({
 
   const currentMonthWeeks = months[selectedMonth]?.weeks || [];
 
-  // Get session for a specific week and day
+  // Get all sessions for a specific week and day (multi-session support)
+  const getSessionsForDay = (week: number, dayIndex: number): Session[] => {
+    const prefix = `week-${week}-day-${dayIndex + 1}-session-`;
+    return sessions.filter(s => s.session_key.startsWith(prefix)).sort((a, b) => a.session_key.localeCompare(b.session_key));
+  };
+
+  // Get first session for a specific week and day (backward compat)
   const getSession = (week: number, dayIndex: number): Session | null => {
-    const sessionKey = `week-${week}-day-${dayIndex + 1}-session-1`;
-    return sessions.find(s => s.session_key === sessionKey) || null;
+    const daySessions = getSessionsForDay(week, dayIndex);
+    return daySessions[0] || null;
   };
 
   // Get date for a specific week and day
