@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2, Trophy, Star } from 'lucide-react';
+import { Plus, Trash2, Loader2, Trophy, Star, Copy } from 'lucide-react';
 import { Mesocycle, PlanWeek, Competition } from '@/types/training';
 import { cn } from '@/lib/utils';
 import { AthletesManagement } from '@/components/AthletesManagement';
@@ -29,8 +29,9 @@ export function SetupSection() {
     updateCompetition,
   } = useTrainingStore();
   
-  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, createNewProgram } = useTrainingPrograms();
+  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
 
   // Load current program data into store when program changes
   useEffect(() => {
@@ -127,6 +128,16 @@ export function SetupSection() {
     }
   };
 
+  const handleDuplicateProgram = async (e: React.MouseEvent, programId: string) => {
+    e.stopPropagation();
+    setDuplicating(programId);
+    const newProgram = await duplicateProgram(programId);
+    if (newProgram) {
+      await loadProgram(newProgram.id);
+    }
+    setDuplicating(null);
+  };
+
   const setPrimaryCompetition = (id: string) => {
     competitions.forEach(c => {
       if (c.id === id) {
@@ -178,12 +189,27 @@ export function SetupSection() {
                         {new Date(program.start_date).toLocaleDateString('id-ID')} - {new Date(program.match_date).toLocaleDateString('id-ID')}
                       </p>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id); }}
-                      className="p-1 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={(e) => handleDuplicateProgram(e, program.id)}
+                        className="p-1 text-muted-foreground hover:text-accent transition-colors"
+                        title="Duplikasi program"
+                        disabled={duplicating === program.id}
+                      >
+                        {duplicating === program.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id); }}
+                        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Hapus program"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
