@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingLoads, calculateSessionLoad } from '@/hooks/useTrainingLoads';
-import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { useAuth } from '@/hooks/useAuth';
 import { DaySession, Exercise } from '@/types/training';
 import { format, addDays, startOfWeek } from 'date-fns';
@@ -30,6 +29,8 @@ interface SessionModalProps {
   day: string;
   athleteId?: string;
   initialSessionNumber?: number;
+  hasSavedProgram?: boolean;
+  saveSessionToDb?: (storeKey: string, session: DaySession) => Promise<boolean>;
 }
 
 const defaultSession: DaySession = {
@@ -79,11 +80,20 @@ function getSessionNumbersForDay(sessions: Record<string, DaySession>, week: num
   return nums.sort((a, b) => a - b);
 }
 
-export function SessionModal({ open, onOpenChange, week, day, athleteId, initialSessionNumber }: SessionModalProps) {
+export function SessionModal({
+  open,
+  onOpenChange,
+  week,
+  day,
+  athleteId,
+  initialSessionNumber,
+  hasSavedProgram = false,
+  saveSessionToDb,
+}: SessionModalProps) {
   const { sessions, updateSession, removeSession, setup, selectedAthleteIds } = useTrainingStore();
   const { addLoad } = useTrainingLoads(athleteId);
-  const { saveSession: saveSessionToDb, currentProgram } = useTrainingPrograms();
   const { user } = useAuth();
+  const canPersistToDb = hasSavedProgram && typeof saveSessionToDb === 'function';
 
   const [activeSessionNum, setActiveSessionNum] = useState(1);
   const [session, setSession] = useState<DaySession>({ ...defaultSession });
@@ -159,7 +169,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
     removeSession(key);
 
     // Delete from DB too
-    if (currentProgram) {
+    if (canPersistToDb && saveSessionToDb) {
       await saveSessionToDb(key, { ...defaultSession, int: 'Rest', isDone: false } as DaySession);
     }
 
@@ -192,7 +202,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
       removeSession(oldKey);
     }
     updateSession(currentKey, session);
-    if (currentProgram) {
+    if (canPersistToDb && saveSessionToDb) {
       await saveSessionToDb(currentKey, session);
     }
     setActiveSessionNum(num);
@@ -240,7 +250,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
     updateSession(currentKey, session);
 
     // Persist to DB if program exists
-    if (currentProgram) {
+    if (canPersistToDb && saveSessionToDb) {
       await saveSessionToDb(currentKey, session);
     }
 

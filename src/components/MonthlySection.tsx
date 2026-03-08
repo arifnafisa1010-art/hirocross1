@@ -34,7 +34,7 @@ const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 export function MonthlySection() {
   const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession, setSessions } = useTrainingStore();
   const { athletes } = useAthletes();
-  const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram, renameProgram } = useTrainingPrograms();
+  const { saveProgram, saveSession, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram, renameProgram } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
   const [duplicating, setDuplicating] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -293,7 +293,7 @@ export function MonthlySection() {
     toast.success(`Sesi W${week}-${day} disalin`);
   };
 
-  const handlePasteDay = (e: React.MouseEvent, targetWeek: number, targetDay: string) => {
+  const handlePasteDay = async (e: React.MouseEvent, targetWeek: number, targetDay: string) => {
     e.stopPropagation();
     if (!copiedDay) return;
 
@@ -302,6 +302,9 @@ export function MonthlySection() {
       toast.error('Tidak ada sesi untuk ditempel');
       return;
     }
+
+    const shouldPersistToDb = Boolean(currentProgram);
+    const persistPromises: Promise<boolean>[] = [];
 
     // Copy all sessions from source day to target day
     sourceSessions.forEach(({ session, number }) => {
@@ -316,8 +319,23 @@ export function MonthlySection() {
         rpe: undefined, // Reset RPE
         duration: undefined, // Reset duration
       };
+
       updateSession(targetKey, copiedSession);
+
+      if (shouldPersistToDb) {
+        persistPromises.push(saveSession(targetKey, copiedSession));
+      }
     });
+
+    if (shouldPersistToDb) {
+      const results = await Promise.all(persistPromises);
+      if (results.some((ok) => !ok)) {
+        toast.warning(`Sesi ditempel ke W${targetWeek}-${targetDay}, tetapi sebagian gagal tersimpan`);
+        return;
+      }
+      toast.success(`Sesi ditempel ke W${targetWeek}-${targetDay} dan tersimpan`);
+      return;
+    }
 
     toast.success(`Sesi ditempel ke W${targetWeek}-${targetDay}`);
   };
@@ -1364,6 +1382,8 @@ export function MonthlySection() {
           onOpenChange={setModalOpen}
           week={selectedDay.week}
           day={selectedDay.day}
+          hasSavedProgram={!!currentProgram}
+          saveSessionToDb={saveSession}
         />
       )}
 
