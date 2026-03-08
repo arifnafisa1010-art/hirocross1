@@ -32,7 +32,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession, setSessions } = useTrainingStore();
   const { athletes } = useAthletes();
   const { saveProgram, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram, renameProgram } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
@@ -110,6 +110,8 @@ export function MonthlySection() {
             .select('*')
             .eq('program_id', program.id);
 
+          // Clear old sessions first, then load new ones
+          const newSessions: Record<string, DaySession> = {};
           if (dbSessions) {
             const dayIndexToName: Record<number, string> = {
               1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis',
@@ -117,7 +119,6 @@ export function MonthlySection() {
             };
             
             dbSessions.forEach(s => {
-              // Convert DB key (week-1-day-1-session-N) to store key (W1-Senin-SN)
               const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-(\d+)$/);
               if (match) {
                 const weekNum = match[1];
@@ -126,18 +127,19 @@ export function MonthlySection() {
                 const dayName = dayIndexToName[dayIdx];
                 if (dayName) {
                   const storeKey = `W${weekNum}-${dayName}-S${sessionNum}`;
-                  updateSession(storeKey, {
+                  newSessions[storeKey] = {
                     warmup: s.warmup || '',
                     exercises: (s.exercises as any) || [],
                     cooldown: s.cooldown || '',
                     recovery: s.recovery || '',
                     int: (s.intensity as any) || 'Rest',
                     isDone: s.is_done || false,
-                  });
+                  };
                 }
               }
             });
           }
+          setSessions(newSessions);
         }
         setProgramSynced(true);
       };
@@ -484,25 +486,35 @@ export function MonthlySection() {
                       .from('training_sessions')
                       .select('*')
                       .eq('program_id', program.id);
+                    
+                    // Clear old sessions and load new ones
+                    const newSessions: Record<string, DaySession> = {};
                     if (dbSessions) {
                       const dayIndexToName: Record<number, string> = {
                         1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis',
                         5: 'Jumat', 6: 'Sabtu', 7: 'Minggu',
                       };
                       dbSessions.forEach(s => {
-                        const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-\d+$/);
+                        const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-(\d+)$/);
                         if (match) {
+                          const weekNum = match[1];
+                          const dayIdx = parseInt(match[2]);
+                          const sessionNum = match[3];
                           const dayName = dayIndexToName[parseInt(match[2])];
                           if (dayName) {
-                            updateSession(`W${match[1]}-${dayName}`, {
-                              warmup: s.warmup || '', exercises: (s.exercises as any) || [],
-                              cooldown: s.cooldown || '', recovery: s.recovery || '',
-                              int: (s.intensity as any) || 'Rest', isDone: s.is_done || false,
-                            });
+                            newSessions[`W${weekNum}-${dayName}-S${sessionNum}`] = {
+                              warmup: s.warmup || '',
+                              exercises: (s.exercises as any) || [],
+                              cooldown: s.cooldown || '',
+                              recovery: s.recovery || '',
+                              int: (s.intensity as any) || 'Rest',
+                              isDone: s.is_done || false,
+                            };
                           }
                         }
                       });
                     }
+                    setSessions(newSessions);
                     toast.success(`Program "${program.name}" berhasil dimuat`);
                   }
                   setProgramSynced(true);
