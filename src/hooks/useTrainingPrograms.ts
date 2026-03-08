@@ -453,12 +453,22 @@ export function useTrainingPrograms() {
     return true;
   };
 
-  // Convert store key (W1-Senin) to DB key (week-1-day-1-session-1)
+  // Convert store key (W1-Senin-S1 or W1-Senin) to DB key (week-1-day-1-session-1)
   const storeKeyToDbKey = (storeKey: string): string => {
     const dayNameToIndex: Record<string, number> = {
       'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4,
       'Jumat': 5, 'Sabtu': 6, 'Minggu': 7,
     };
+    // Handle new format: W1-Senin-S2
+    const matchNew = storeKey.match(/^W(\d+)-(.+)-S(\d+)$/);
+    if (matchNew) {
+      const weekNum = matchNew[1];
+      const dayName = matchNew[2];
+      const sessionNum = matchNew[3];
+      const dayIndex = dayNameToIndex[dayName] || 1;
+      return `week-${weekNum}-day-${dayIndex}-session-${sessionNum}`;
+    }
+    // Handle old format: W1-Senin (defaults to session 1)
     const match = storeKey.match(/^W(\d+)-(.+)$/);
     if (!match) return storeKey;
     const weekNum = match[1];

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingLoads, calculateSessionLoad } from '@/hooks/useTrainingLoads';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
@@ -17,10 +17,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, X, Zap, Info } from 'lucide-react';
+import { Plus, X, Zap, Info, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface SessionModalProps {
   open: boolean;
@@ -28,6 +29,7 @@ interface SessionModalProps {
   week: number;
   day: string;
   athleteId?: string;
+  initialSessionNumber?: number;
 }
 
 const defaultSession: DaySession = {
@@ -50,32 +52,50 @@ const defaultExercise: Exercise = {
 };
 
 const dayToIndex: Record<string, number> = {
-  'Senin': 0,
-  'Selasa': 1,
-  'Rabu': 2,
-  'Kamis': 3,
-  'Jumat': 4,
-  'Sabtu': 5,
-  'Minggu': 6,
+  'Senin': 0, 'Selasa': 1, 'Rabu': 2, 'Kamis': 3,
+  'Jumat': 4, 'Sabtu': 5, 'Minggu': 6,
 };
 
-// Map intensity to default RPE
 const intensityToRpe: Record<string, number> = {
-  'Rest': 1,
-  'Low': 4,
-  'Med': 6,
-  'High': 8,
+  'Rest': 1, 'Low': 4, 'Med': 6, 'High': 8,
 };
 
-export function SessionModal({ open, onOpenChange, week, day, athleteId }: SessionModalProps) {
-  const { sessions, updateSession, setup, selectedAthleteIds } = useTrainingStore();
+// Helper to get all session numbers for a day from store
+function getSessionNumbersForDay(sessions: Record<string, DaySession>, week: number, day: string): number[] {
+  const prefix = `W${week}-${day}-S`;
+  const nums: number[] = [];
+  Object.keys(sessions).forEach(k => {
+    if (k.startsWith(prefix)) {
+      const match = k.match(/-S(\d+)$/);
+      if (match) nums.push(parseInt(match[1]));
+    }
+  });
+  // Check old format
+  const oldKey = `W${week}-${day}`;
+  if (sessions[oldKey] && nums.length === 0) {
+    nums.push(1);
+  }
+  if (nums.length === 0) nums.push(1);
+  return nums.sort((a, b) => a - b);
+}
+
+export function SessionModal({ open, onOpenChange, week, day, athleteId, initialSessionNumber }: SessionModalProps) {
+  const { sessions, updateSession, removeSession, setup, selectedAthleteIds } = useTrainingStore();
   const { addLoad } = useTrainingLoads(athleteId);
   const { saveSession: saveSessionToDb, currentProgram } = useTrainingPrograms();
   const { user } = useAuth();
-  const key = `W${week}-${day}`;
-  
-  const [session, setSession] = useState<DaySession>(defaultSession);
+
+  const [activeSessionNum, setActiveSessionNum] = useState(1);
+  const [session, setSession] = useState<DaySession>({ ...defaultSession });
   const [isSaving, setIsSaving] = useState(false);
+
+  // Get all session numbers for this day
+  const sessionNumbers = useMemo(() => {
+    if (!open) return [1];
+    return getSessionNumbersForDay(sessions, week, day);
+  }, [sessions, week, day, open]);
+
+  const getStoreKey = (num: number) => `W${week}-${day}-S${num}`;
 
   // Calculate the actual date for this session
   const getSessionDate = (): string | null => {
@@ -89,41 +109,87 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
 
   const sessionDate = getSessionDate();
 
+  // Reset active tab when modal opens
   useEffect(() => {
     if (open) {
-      const existingSession = sessions[key] || defaultSession;
-      // Set default RPE based on intensity if not already set
-      if (!existingSession.rpe && existingSession.int) {
-        existingSession.rpe = intensityToRpe[existingSession.int] || 5;
-      }
-      // Set default duration if not set
-      if (!existingSession.duration) {
-        existingSession.duration = 60;
-      }
-      setSession(existingSession);
+      const nums = getSessionNumbersForDay(sessions, week, day);
+      setActiveSessionNum(initialSessionNumber || nums[0] || 1);
     }
-  }, [open, key, sessions]);
+  }, [open]);
+
+  // Load session data when active tab changes
+  useEffect(() => {
+    if (open) {
+      const key = getStoreKey(activeSessionNum);
+      // Also check old format for backward compat
+      const oldKey = `W${week}-${day}`;
+      const existingSession = sessions[key] || (activeSessionNum === 1 ? sessions[oldKey] : null) || { ...defaultSession };
+      
+      const sessionCopy = { ...existingSession, exercises: [...(existingSession.exercises || [])] };
+      
+      // Set default RPE based on intensity if not already set
+      if (!sessionCopy.rpe && sessionCopy.int) {
+        sessionCopy.rpe = intensityToRpe[sessionCopy.int] || 5;
+      }
+      if (!sessionCopy.duration) {
+        sessionCopy.duration = 60;
+      }
+      setSession(sessionCopy);
+    }
+  }, [open, activeSessionNum, week, day]);
 
   // Calculate session load preview
-  const sessionLoad = session.rpe && session.duration 
+  const sessionLoad = session.rpe && session.duration
     ? calculateSessionLoad(session.duration, session.rpe)
     : 0;
 
+  const handleAddSession = () => {
+    const nextNum = sessionNumbers.length > 0 ? Math.max(...sessionNumbers) + 1 : 1;
+    const newKey = getStoreKey(nextNum);
+    updateSession(newKey, { ...defaultSession, duration: 60, rpe: 5 });
+    setActiveSessionNum(nextNum);
+  };
+
+  const handleDeleteSession = async (num: number) => {
+    if (sessionNumbers.length <= 1) {
+      toast.error('Minimal harus ada 1 sesi per hari');
+      return;
+    }
+    const key = getStoreKey(num);
+    removeSession(key);
+
+    // Delete from DB too
+    if (currentProgram) {
+      await saveSessionToDb(key, { ...defaultSession, int: 'Rest', isDone: false } as DaySession);
+    }
+
+    const remaining = sessionNumbers.filter(n => n !== num);
+    setActiveSessionNum(remaining[0] || 1);
+    toast.success(`Sesi ${num} dihapus`);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
-    
+
     try {
+      const currentKey = getStoreKey(activeSessionNum);
+
+      // Migrate old key if needed
+      const oldKey = `W${week}-${day}`;
+      if (sessions[oldKey] && activeSessionNum === 1) {
+        removeSession(oldKey);
+      }
+
       // Update session in local store
-      updateSession(key, session);
-      
+      updateSession(currentKey, session);
+
       // Auto-persist to database if program exists
       if (currentProgram) {
-        await saveSessionToDb(key, session);
+        await saveSessionToDb(currentKey, session);
       }
-      
+
       // If session is marked as done with RPE and duration, auto-sync to training_loads
       if (session.isDone && session.rpe && session.duration && sessionDate && user) {
-        // Determine training type based on exercises - use "training" as fallback
         const getTrainingType = (): string => {
           if (session.exercises.length === 0) return 'training';
           const firstCat = session.exercises[0].cat;
@@ -137,15 +203,13 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
           }
         };
         const trainingType = getTrainingType();
-        
-        // Create notes from session info
+
         const notes = [
-          `W${week} ${day}`,
+          `W${week} ${day} Sesi-${activeSessionNum}`,
           session.warmup ? `Warmup: ${session.warmup.substring(0, 50)}` : '',
           session.exercises.length > 0 ? `${session.exercises.length} exercises` : '',
         ].filter(Boolean).join(' | ');
 
-        // Get the athlete ID to use (from props, selected in store, or null for coach's own data)
         const targetAthleteId = athleteId || (selectedAthleteIds.length === 1 ? selectedAthleteIds[0] : undefined);
 
         const result = await addLoad({
@@ -160,14 +224,13 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
         if (result.success) {
           toast.success(
             <div className="flex flex-col gap-1">
-              <span className="font-bold">Sesi berhasil disimpan!</span>
+              <span className="font-bold">Sesi {activeSessionNum} berhasil disimpan!</span>
               <span className="text-xs text-muted-foreground">
                 Load {sessionLoad} AU auto-sync ke Monitoring Performa
               </span>
             </div>
           );
         } else {
-          // Session saved to store but failed to sync to training_loads
           toast.warning(
             <div className="flex flex-col gap-1">
               <span className="font-bold">Sesi disimpan ke kalender</span>
@@ -176,9 +239,9 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
           );
         }
       } else {
-        toast.success('Sesi disimpan!');
+        toast.success(`Sesi ${activeSessionNum} disimpan!`);
       }
-      
+
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving session:', error);
@@ -243,10 +306,9 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
                 value={session.int}
                 onValueChange={(v) => {
                   const newInt = v as DaySession['int'];
-                  setSession(prev => ({ 
-                    ...prev, 
+                  setSession(prev => ({
+                    ...prev,
                     int: newInt,
-                    // Auto-suggest RPE based on intensity if user hasn't set it
                     rpe: prev.rpe || intensityToRpe[newInt] || 5,
                   }));
                 }}
@@ -265,7 +327,40 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
+        {/* Session Tabs */}
+        <div className="flex items-center gap-1 border-b border-border pb-0 -mt-1">
+          {sessionNumbers.map(num => (
+            <button
+              key={num}
+              onClick={() => setActiveSessionNum(num)}
+              className={cn(
+                "relative px-4 py-2 text-sm font-bold rounded-t-lg transition-colors group",
+                activeSessionNum === num
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              Sesi {num}
+              {sessionNumbers.length > 1 && activeSessionNum === num && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteSession(num); }}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
+            </button>
+          ))}
+          <button
+            onClick={handleAddSession}
+            className="px-3 py-2 text-sm font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-t-lg transition-colors flex items-center gap-1"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Tambah Sesi
+          </button>
+        </div>
+
+        <div className="space-y-4 mt-2">
           {/* Warmup */}
           <div>
             <Label className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-2">
@@ -285,7 +380,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
             <Label className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-2 mb-2">
               🎯 Main Set
             </Label>
-            
+
             <div className="space-y-2">
               {session.exercises.map((ex, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-center bg-secondary/30 p-2 rounded-lg">
@@ -391,7 +486,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
             />
           </div>
 
-          {/* RPE & Duration - Enhanced with auto-sync info */}
+          {/* RPE & Duration */}
           <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-extrabold text-primary flex items-center gap-2">
@@ -407,8 +502,9 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
                   </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs">
                     <p className="text-xs">
-                      Ketika sesi ditandai <strong>SELESAI</strong> dengan RPE dan durasi, 
+                      Ketika sesi ditandai <strong>SELESAI</strong> dengan RPE dan durasi,
                       data akan otomatis tersimpan ke Monitoring Performa (ACWR, Fitness, Fatigue).
+                      Semua sesi dalam 1 hari akan diakumulasi.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -481,7 +577,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId }: Sessi
 
         <div className="flex gap-3 mt-6">
           <Button onClick={handleSave} className="flex-[2]" disabled={isSaving}>
-            {isSaving ? 'Menyimpan...' : 'SIMPAN'}
+            {isSaving ? 'Menyimpan...' : `SIMPAN SESI ${activeSessionNum}`}
           </Button>
           <Button onClick={() => onOpenChange(false)} variant="secondary" className="flex-1">
             BATAL
