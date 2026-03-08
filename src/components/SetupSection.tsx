@@ -255,6 +255,13 @@ export function SetupSection() {
                         )}
                       </button>
                       <button 
+                        onClick={(e) => handleOpenBackups(e, program.id)}
+                        className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                        title="Riwayat backup"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
+                      <button 
                         onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id); }}
                         className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                         title="Hapus program"
