@@ -29,8 +29,9 @@ export function SetupSection() {
     updateCompetition,
   } = useTrainingStore();
   
-  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, createNewProgram } = useTrainingPrograms();
+  const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
 
   // Load current program data into store when program changes
   useEffect(() => {
