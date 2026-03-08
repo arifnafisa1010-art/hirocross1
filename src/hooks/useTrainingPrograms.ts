@@ -264,16 +264,51 @@ export function useTrainingPrograms() {
     }
 
     if (sessionsToSave.length > 0) {
-      const { error: sessionsError } = await supabase
-        .from('training_sessions')
-        .upsert(sessionsToSave, { 
-          onConflict: 'program_id,session_key' 
-        });
+      // Separate sessions that have actual content from empty defaults
+      const sessionsWithContent = sessionsToSave.filter(s => 
+        s.warmup || s.cooldown || s.recovery || 
+        (s.exercises as unknown as any[])?.length > 0 || s.is_done
+      );
+      const emptyDefaults = sessionsToSave.filter(s => 
+        !s.warmup && !s.cooldown && !s.recovery && 
+        (!(s.exercises as unknown as any[])?.length) && !s.is_done
+      );
 
-      if (sessionsError) {
-        console.error('Error saving sessions:', sessionsError);
-        toast.error('Program tersimpan, tapi gagal menyimpan sesi latihan');
-        return false;
+      // Always upsert sessions with content
+      if (sessionsWithContent.length > 0) {
+        const { error: sessionsError } = await supabase
+          .from('training_sessions')
+          .upsert(sessionsWithContent, { 
+            onConflict: 'program_id,session_key' 
+          });
+        if (sessionsError) {
+          console.error('Error saving sessions:', sessionsError);
+          toast.error('Program tersimpan, tapi gagal menyimpan sesi latihan');
+          return false;
+        }
+      }
+
+      // For empty defaults, only INSERT if they don't already exist (never overwrite)
+      if (emptyDefaults.length > 0) {
+        // Check which keys already exist in the DB
+        const existingKeys = new Set<string>();
+        const { data: existing } = await supabase
+          .from('training_sessions')
+          .select('session_key')
+          .eq('program_id', programId)
+          .in('session_key', emptyDefaults.map(s => s.session_key));
+        
+        existing?.forEach(e => existingKeys.add(e.session_key));
+
+        const newDefaults = emptyDefaults.filter(s => !existingKeys.has(s.session_key));
+        if (newDefaults.length > 0) {
+          const { error: defaultsError } = await supabase
+            .from('training_sessions')
+            .insert(newDefaults);
+          if (defaultsError) {
+            console.error('Error inserting default sessions:', defaultsError);
+          }
+        }
       }
     }
     
