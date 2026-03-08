@@ -95,14 +95,15 @@ export function ProgramMonitoringSection() {
       let totalDur = 0;
       
       days.forEach((d) => {
-        const session = sessions[`W${pw.wk}-${d}`];
-        if (session?.rpe) {
-          totalRpe += session.rpe;
-          rpeCount++;
-        }
-        if (session?.duration) {
-          totalDur += session.duration;
-        }
+        const prefix = `W${pw.wk}-${d}-S`;
+        const daySessions = Object.keys(sessions).filter(k => k.startsWith(prefix)).map(k => sessions[k]);
+        const oldKey = `W${pw.wk}-${d}`;
+        if (sessions[oldKey] && daySessions.length === 0) daySessions.push(sessions[oldKey]);
+        
+        daySessions.forEach(s => {
+          if (s?.rpe) { totalRpe += s.rpe; rpeCount++; }
+          if (s?.duration) { totalDur += s.duration; }
+        });
       });
       
       data.push({
