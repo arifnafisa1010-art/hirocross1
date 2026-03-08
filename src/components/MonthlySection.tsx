@@ -946,6 +946,49 @@ export function MonthlySection() {
                           </Tooltip>
                         </TooltipProvider>
                       )}
+
+                      {/* Copy & Paste buttons */}
+                      <div className="absolute top-2 left-8 flex gap-0.5">
+                        {hasContent && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={(e) => handleCopyDay(e, wk, day)}
+                                  className={cn(
+                                    "p-1 rounded transition-colors",
+                                    copiedDay?.week === wk && copiedDay?.day === day
+                                      ? "text-primary bg-primary/20"
+                                      : "text-muted-foreground/50 hover:text-primary hover:bg-primary/10"
+                                  )}
+                                >
+                                  <Clipboard className="w-3 h-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                Salin sesi hari ini
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {copiedDay && !(copiedDay.week === wk && copiedDay.day === day) && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={(e) => handlePasteDay(e, wk, day)}
+                                  className="p-1 rounded text-muted-foreground/50 hover:text-accent hover:bg-accent/10 transition-colors"
+                                >
+                                  <ClipboardPaste className="w-3 h-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                Tempel sesi dari W{copiedDay.week}-{copiedDay.day}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                       
                       <div className="absolute top-2 right-2 text-right">
                         <div className="text-[10px] font-bold text-muted-foreground">
