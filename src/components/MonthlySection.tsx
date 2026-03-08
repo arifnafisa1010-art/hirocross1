@@ -729,7 +729,7 @@ export function MonthlySection() {
                     6: 70, 7: 80, 8: 100, 9: 120, 10: 140,
                   };
 
-                  // Calculate weekly internal load total (from database and calculated TSS)
+                  // Calculate weekly internal load total (from database and calculated TSS) - multi-session
                   const weeklyInternalLoad = days.reduce((total, day, dayIndex) => {
                     const dayDate = getDateForDay(wk, dayIndex);
                     if (!dayDate) return total;
@@ -738,12 +738,14 @@ export function MonthlySection() {
                     // Get load from database
                     const dayDbLoad = loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0);
                     
-                    // Calculate from session RPE/Duration if no database load
-                    const sessionKey = getSessionKey(wk, day);
-                    const sessionData = sessions[sessionKey];
-                    const sessionTSS = sessionData?.rpe && sessionData?.duration 
-                      ? Math.round((sessionData.duration / 60) * (RPE_LOAD_MAP_WEEKLY[Math.min(10, Math.max(1, Math.round(sessionData.rpe)))] || 60))
-                      : 0;
+                    // Calculate from all sessions' RPE/Duration if no database load
+                    const daySessions = getSessionsForDay(wk, day);
+                    const sessionTSS = daySessions.reduce((sum, { session: s }) => {
+                      if (s?.rpe && s?.duration) {
+                        return sum + Math.round((s.duration / 60) * (RPE_LOAD_MAP_WEEKLY[Math.min(10, Math.max(1, Math.round(s.rpe)))] || 60));
+                      }
+                      return sum;
+                    }, 0);
                     
                     return total + (dayDbLoad > 0 ? dayDbLoad : sessionTSS);
                   }, 0);
