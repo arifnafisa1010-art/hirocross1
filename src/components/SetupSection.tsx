@@ -468,6 +468,70 @@ export function SetupSection() {
 
       {/* Athletes Management */}
       <AthletesManagement />
+
+      {/* Backup Restore Dialog */}
+      <Dialog open={backupDialogOpen} onOpenChange={setBackupDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Riwayat Backup
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {loadingBackups ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-accent" />
+              </div>
+            ) : backups.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Belum ada backup untuk program ini. Backup otomatis dibuat setiap kali Anda menyimpan program.
+              </p>
+            ) : (
+              backups.map((backup) => {
+                const snapshot = backup.program_snapshot as any;
+                const sessionsCount = (backup.sessions_snapshot as any[])?.length || 0;
+                const reasonLabel = backup.backup_reason === 'auto_save' ? 'Auto (sebelum save)' 
+                  : backup.backup_reason === 'before_restore' ? 'Auto (sebelum restore)' 
+                  : 'Manual';
+                return (
+                  <div key={backup.id} className="p-3 rounded-lg border border-border hover:border-accent/50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-bold">{snapshot?.name || 'Program'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(backup.created_at), 'd MMM yyyy, HH:mm', { locale: idLocale })}
+                        </p>
+                        <div className="flex gap-2 mt-1">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                            {reasonLabel}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                            {sessionsCount} sesi
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRestore(backup.id)}
+                        disabled={restoring === backup.id}
+                        className="text-xs"
+                      >
+                        {restoring === backup.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          'Restore'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
