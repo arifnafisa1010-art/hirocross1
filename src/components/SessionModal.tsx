@@ -80,11 +80,20 @@ function getSessionNumbersForDay(sessions: Record<string, DaySession>, week: num
   return nums.sort((a, b) => a - b);
 }
 
-export function SessionModal({ open, onOpenChange, week, day, athleteId, initialSessionNumber }: SessionModalProps) {
+export function SessionModal({
+  open,
+  onOpenChange,
+  week,
+  day,
+  athleteId,
+  initialSessionNumber,
+  hasSavedProgram = false,
+  saveSessionToDb,
+}: SessionModalProps) {
   const { sessions, updateSession, removeSession, setup, selectedAthleteIds } = useTrainingStore();
   const { addLoad } = useTrainingLoads(athleteId);
-  const { saveSession: saveSessionToDb, currentProgram } = useTrainingPrograms();
   const { user } = useAuth();
+  const canPersistToDb = hasSavedProgram && typeof saveSessionToDb === 'function';
 
   const [activeSessionNum, setActiveSessionNum] = useState(1);
   const [session, setSession] = useState<DaySession>({ ...defaultSession });
