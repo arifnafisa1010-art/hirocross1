@@ -117,14 +117,15 @@ export function MonthlySection() {
             };
             
             dbSessions.forEach(s => {
-              // Convert DB key (week-1-day-1-session-1) to store key (W1-Senin)
-              const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-\d+$/);
+              // Convert DB key (week-1-day-1-session-N) to store key (W1-Senin-SN)
+              const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-(\d+)$/);
               if (match) {
                 const weekNum = match[1];
                 const dayIdx = parseInt(match[2]);
+                const sessionNum = match[3];
                 const dayName = dayIndexToName[dayIdx];
                 if (dayName) {
-                  const storeKey = `W${weekNum}-${dayName}`;
+                  const storeKey = `W${weekNum}-${dayName}-S${sessionNum}`;
                   updateSession(storeKey, {
                     warmup: s.warmup || '',
                     exercises: (s.exercises as any) || [],
