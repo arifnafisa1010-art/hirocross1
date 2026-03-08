@@ -340,7 +340,7 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
           {sessionNumbers.map(num => (
             <button
               key={num}
-              onClick={() => setActiveSessionNum(num)}
+              onClick={() => handleTabSwitch(num)}
               className={cn(
                 "relative px-4 py-2 text-sm font-bold rounded-t-lg transition-colors group",
                 activeSessionNum === num
