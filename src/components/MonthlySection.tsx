@@ -486,25 +486,35 @@ export function MonthlySection() {
                       .from('training_sessions')
                       .select('*')
                       .eq('program_id', program.id);
+                    
+                    // Clear old sessions and load new ones
+                    const newSessions: Record<string, DaySession> = {};
                     if (dbSessions) {
                       const dayIndexToName: Record<number, string> = {
                         1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis',
                         5: 'Jumat', 6: 'Sabtu', 7: 'Minggu',
                       };
                       dbSessions.forEach(s => {
-                        const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-\d+$/);
+                        const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-(\d+)$/);
                         if (match) {
+                          const weekNum = match[1];
+                          const dayIdx = parseInt(match[2]);
+                          const sessionNum = match[3];
                           const dayName = dayIndexToName[parseInt(match[2])];
                           if (dayName) {
-                            updateSession(`W${match[1]}-${dayName}`, {
-                              warmup: s.warmup || '', exercises: (s.exercises as any) || [],
-                              cooldown: s.cooldown || '', recovery: s.recovery || '',
-                              int: (s.intensity as any) || 'Rest', isDone: s.is_done || false,
-                            });
+                            newSessions[`W${weekNum}-${dayName}-S${sessionNum}`] = {
+                              warmup: s.warmup || '',
+                              exercises: (s.exercises as any) || [],
+                              cooldown: s.cooldown || '',
+                              recovery: s.recovery || '',
+                              int: (s.intensity as any) || 'Rest',
+                              isDone: s.is_done || false,
+                            };
                           }
                         }
                       });
                     }
+                    setSessions(newSessions);
                     toast.success(`Program "${program.name}" berhasil dimuat`);
                   }
                   setProgramSynced(true);
