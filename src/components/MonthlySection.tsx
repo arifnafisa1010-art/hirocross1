@@ -783,6 +783,19 @@ export function MonthlySection() {
         </div>
       )}
 
+      {/* Copied indicator banner */}
+      {copiedDay && (
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
+          <Copy className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-primary">
+            Program W{copiedDay.week}-{copiedDay.day} sudah di-copy — klik <strong>Paste</strong> di hari tujuan
+          </span>
+          <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => setCopiedDay(null)}>
+            Batal
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-5">
         {currentMonthWeeks.map((wk) => {
           const weekData = planData.find(p => p.wk === wk);
