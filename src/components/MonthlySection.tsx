@@ -4,7 +4,7 @@ import { useAthletes } from '@/hooks/useAthletes';
 import { useTrainingPrograms } from '@/hooks/useTrainingPrograms';
 import { useTrainingLoads } from '@/hooks/useTrainingLoads';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
-import { Mesocycle, PlanWeek, Competition } from '@/types/training';
+import { Mesocycle, PlanWeek, Competition, DaySession } from '@/types/training';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -117,14 +117,15 @@ export function MonthlySection() {
             };
             
             dbSessions.forEach(s => {
-              // Convert DB key (week-1-day-1-session-1) to store key (W1-Senin)
-              const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-\d+$/);
+              // Convert DB key (week-1-day-1-session-N) to store key (W1-Senin-SN)
+              const match = s.session_key.match(/^week-(\d+)-day-(\d+)-session-(\d+)$/);
               if (match) {
                 const weekNum = match[1];
                 const dayIdx = parseInt(match[2]);
+                const sessionNum = match[3];
                 const dayName = dayIndexToName[dayIdx];
                 if (dayName) {
-                  const storeKey = `W${weekNum}-${dayName}`;
+                  const storeKey = `W${weekNum}-${dayName}-S${sessionNum}`;
                   updateSession(storeKey, {
                     warmup: s.warmup || '',
                     exercises: (s.exercises as any) || [],
@@ -184,7 +185,27 @@ export function MonthlySection() {
 
   const currentMonthWeeks = months[selectedMonth]?.weeks || [];
 
-  const getSessionKey = (wk: number, day: string) => `W${wk}-${day}`;
+  const getSessionKey = (wk: number, day: string) => `W${wk}-${day}-S1`;
+
+  // Get all sessions for a specific day (multi-session support)
+  const getSessionsForDay = (wk: number, day: string) => {
+    const prefix = `W${wk}-${day}-S`;
+    const results: { key: string; session: DaySession; number: number }[] = [];
+    Object.keys(sessions).forEach(k => {
+      if (k.startsWith(prefix)) {
+        const match = k.match(/-S(\d+)$/);
+        if (match) {
+          results.push({ key: k, session: sessions[k], number: parseInt(match[1]) });
+        }
+      }
+    });
+    // Check old format for backward compatibility
+    const oldKey = `W${wk}-${day}`;
+    if (sessions[oldKey] && results.length === 0) {
+      results.push({ key: oldKey, session: sessions[oldKey], number: 1 });
+    }
+    return results.sort((a, b) => a.number - b.number);
+  };
 
   // Calculate biomotor targets per week based on volume
   const calculateWeekBiomotorTargets = (volume: number) => {
@@ -197,7 +218,7 @@ export function MonthlySection() {
     };
   };
 
-  // Calculate actual biomotor achieved from completed sessions
+  // Calculate actual biomotor achieved from completed sessions (multi-session)
   const calculateActualBiomotor = (wk: number) => {
     const actual = {
       strength: 0,
@@ -208,34 +229,33 @@ export function MonthlySection() {
     };
 
     days.forEach(day => {
-      const key = getSessionKey(wk, day);
-      const session = sessions[key];
-      if (session?.isDone && session?.exercises) {
-        session.exercises.forEach(ex => {
-          const load = ex.load * ex.set * ex.rep;
-          // Categorize based on exercise cat field
-          switch (ex.cat) {
-            case 'strength':
-              actual.strength += load;
-              break;
-            case 'speed':
-              actual.speed += load;
-              break;
-            case 'endurance':
-              actual.endurance += load / 1000; // Convert to approximate km
-              break;
-            case 'technique':
-              actual.technique += ex.rep * ex.set;
-              break;
-            case 'tactic':
-              actual.tactic += ex.rep * ex.set;
-              break;
-            default:
-              // Default to strength for unspecified
-              actual.strength += load;
-          }
-        });
-      }
+      const daySessions = getSessionsForDay(wk, day);
+      daySessions.forEach(({ session }) => {
+        if (session?.isDone && session?.exercises) {
+          session.exercises.forEach(ex => {
+            const load = ex.load * ex.set * ex.rep;
+            switch (ex.cat) {
+              case 'strength':
+                actual.strength += load;
+                break;
+              case 'speed':
+                actual.speed += load;
+                break;
+              case 'endurance':
+                actual.endurance += load / 1000;
+                break;
+              case 'technique':
+                actual.technique += ex.rep * ex.set;
+                break;
+              case 'tactic':
+                actual.tactic += ex.rep * ex.set;
+                break;
+              default:
+                actual.strength += load;
+            }
+          });
+        }
+      });
     });
 
     return actual;
@@ -709,7 +729,7 @@ export function MonthlySection() {
                     6: 70, 7: 80, 8: 100, 9: 120, 10: 140,
                   };
 
-                  // Calculate weekly internal load total (from database and calculated TSS)
+                  // Calculate weekly internal load total (from database and calculated TSS) - multi-session
                   const weeklyInternalLoad = days.reduce((total, day, dayIndex) => {
                     const dayDate = getDateForDay(wk, dayIndex);
                     if (!dayDate) return total;
@@ -718,12 +738,14 @@ export function MonthlySection() {
                     // Get load from database
                     const dayDbLoad = loads.filter(l => l.session_date === dayDateStr).reduce((sum, l) => sum + (l.session_load || 0), 0);
                     
-                    // Calculate from session RPE/Duration if no database load
-                    const sessionKey = getSessionKey(wk, day);
-                    const sessionData = sessions[sessionKey];
-                    const sessionTSS = sessionData?.rpe && sessionData?.duration 
-                      ? Math.round((sessionData.duration / 60) * (RPE_LOAD_MAP_WEEKLY[Math.min(10, Math.max(1, Math.round(sessionData.rpe)))] || 60))
-                      : 0;
+                    // Calculate from all sessions' RPE/Duration if no database load
+                    const daySessions = getSessionsForDay(wk, day);
+                    const sessionTSS = daySessions.reduce((sum, { session: s }) => {
+                      if (s?.rpe && s?.duration) {
+                        return sum + Math.round((s.duration / 60) * (RPE_LOAD_MAP_WEEKLY[Math.min(10, Math.max(1, Math.round(s.rpe)))] || 60));
+                      }
+                      return sum;
+                    }, 0);
                     
                     return total + (dayDbLoad > 0 ? dayDbLoad : sessionTSS);
                   }, 0);
@@ -778,27 +800,30 @@ export function MonthlySection() {
 
                 {/* Days */}
                 {days.map((day, dayIndex) => {
-                  const key = getSessionKey(wk, day);
-                  const session = sessions[key];
-                  const hasContent = session?.exercises?.length > 0;
-                  const isDone = session?.isDone;
-                  const intensity = session?.int || 'Rest';
+                  // Multi-session support: get all sessions for this day
+                  const daySessions = getSessionsForDay(wk, day);
+                  const sessionCount = daySessions.length;
+                  const firstSession = daySessions[0]?.session;
+                  const hasContent = daySessions.some(s => s.session?.exercises?.length > 0);
+                  const isDone = daySessions.some(s => s.session?.isDone);
+                  const intensity = firstSession?.int || 'Rest';
                   const dayDate = getDateForDay(wk, dayIndex);
                   const dayDateStr = dayDate ? format(dayDate, 'yyyy-MM-dd') : null;
 
-                  // Calculate total load from completed exercises
-                  const totalLoad = session?.exercises?.reduce((sum, ex) => sum + (ex.load * ex.set * ex.rep), 0) || 0;
+                  // Calculate total load from all sessions' completed exercises
+                  const totalLoad = daySessions.reduce((sum, { session: s }) => {
+                    return sum + (s?.exercises?.reduce((exSum, ex) => exSum + (ex.load * ex.set * ex.rep), 0) || 0);
+                  }, 0);
 
-                  // Calculate load from session exercises by category (speed in m, endurance in km)
-                  const exerciseLoadByCategory = session?.exercises?.reduce((acc, ex) => {
-                    const totalReps = ex.set * ex.rep;
-                    if (ex.cat === 'speed') {
-                      acc.speed += ex.load * totalReps; // Load in meters
-                    } else if (ex.cat === 'endurance') {
-                      acc.endurance += (ex.load * totalReps) / 1000; // Convert to km
-                    }
+                  // Calculate load from all sessions by category
+                  const exerciseLoadByCategory = daySessions.reduce((acc, { session: s }) => {
+                    s?.exercises?.forEach(ex => {
+                      const totalReps = ex.set * ex.rep;
+                      if (ex.cat === 'speed') acc.speed += ex.load * totalReps;
+                      else if (ex.cat === 'endurance') acc.endurance += (ex.load * totalReps) / 1000;
+                    });
                     return acc;
-                  }, { speed: 0, endurance: 0 }) || { speed: 0, endurance: 0 };
+                  }, { speed: 0, endurance: 0 });
 
                   // Get internal load (TSS) from training_loads table for this day
                   const dayDbLoads = dayDateStr 
@@ -806,34 +831,26 @@ export function MonthlySection() {
                     : [];
                   const dayInternalLoad = dayDbLoads.reduce((sum, l) => sum + (l.session_load || 0), 0);
                   
-                  // Check if this session is synced to training_loads
-                  const hasSessionData = isDone && session?.rpe && session?.duration;
+                  // Check sync status across all sessions
+                  const hasSessionData = daySessions.some(s => s.session?.isDone && s.session?.rpe && s.session?.duration);
                   const isSyncedToDb = dayDbLoads.length > 0;
 
-                  // RPE-based Load Map: Base load for 60 minutes at each RPE level
+                  // RPE-based Load Map
                   const RPE_LOAD_MAP: Record<number, number> = {
-                    1: 20,   // Very light
-                    2: 30,   // Light
-                    3: 40,   // Light-moderate
-                    4: 50,   // Moderate
-                    5: 60,   // Moderate
-                    6: 70,   // Moderate-hard
-                    7: 80,   // Hard
-                    8: 100,  // Very hard
-                    9: 120,  // Very very hard
-                    10: 140, // Maximum
+                    1: 20, 2: 30, 3: 40, 4: 50, 5: 60,
+                    6: 70, 7: 80, 8: 100, 9: 120, 10: 140,
                   };
 
-                  // Calculate TSS from RPE and Duration using proper formula
-                  // Base load is for 60 min, scale by actual duration
-                  const calculatedTSS = session?.rpe && session?.duration 
-                    ? Math.round((session.duration / 60) * (RPE_LOAD_MAP[Math.min(10, Math.max(1, Math.round(session.rpe)))] || 60))
-                    : 0;
+                  // Calculate TSS from all sessions' RPE and Duration
+                  const calculatedTSS = daySessions.reduce((sum, { session: s }) => {
+                    if (s?.rpe && s?.duration) {
+                      return sum + Math.round((s.duration / 60) * (RPE_LOAD_MAP[Math.min(10, Math.max(1, Math.round(s.rpe)))] || 60));
+                    }
+                    return sum;
+                  }, 0);
 
-                  // Get TSS value for color gradient
                   const tssValue = dayInternalLoad > 0 ? dayInternalLoad : calculatedTSS;
                   
-                  // Determine TSS color gradient: green=low (<50), yellow=medium (50-100), red=high (>100)
                   const getTSSColorClass = (tss: number) => {
                     if (tss === 0) return '';
                     if (tss < 50) return 'bg-gradient-to-br from-green-500/20 to-green-600/30 border-green-500/50';
@@ -902,16 +919,27 @@ export function MonthlySection() {
                         </div>
                       )}
                       
+                      {/* Session count badge */}
+                      {sessionCount > 1 && (
+                        <div className="mt-5">
+                          <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-primary/50 text-primary">
+                            {sessionCount} Sesi
+                          </Badge>
+                        </div>
+                      )}
+
                       {hasContent && (
-                        <div className="mt-4 space-y-1">
-                          {session.exercises.slice(0, 2).map((ex, i) => (
-                            <div key={i} className="text-[10px] font-semibold truncate">
-                              {ex.name}
-                            </div>
-                          ))}
-                          {session.exercises.length > 2 && (
+                        <div className={cn("space-y-1", sessionCount > 1 ? "mt-1" : "mt-4")}>
+                          {daySessions.map(({ session: s, number: num }) => (
+                            s?.exercises?.slice(0, 1).map((ex, i) => (
+                              <div key={`${num}-${i}`} className="text-[10px] font-semibold truncate">
+                                {sessionCount > 1 ? `S${num}: ` : ''}{ex.name}
+                              </div>
+                            ))
+                          )).flat()}
+                          {daySessions.reduce((sum, { session: s }) => sum + (s?.exercises?.length || 0), 0) > (sessionCount > 1 ? sessionCount : 2) && (
                             <div className="text-[9px] text-muted-foreground">
-                              +{session.exercises.length - 2} lainnya
+                              +{daySessions.reduce((sum, { session: s }) => sum + (s?.exercises?.length || 0), 0) - (sessionCount > 1 ? sessionCount : 2)} lainnya
                             </div>
                           )}
                         </div>
@@ -940,7 +968,7 @@ export function MonthlySection() {
                         </div>
                       )}
 
-                      {/* TSS/Load Display - calculated from RPE and Duration */}
+                      {/* TSS/Load Display - accumulated from all sessions */}
                       {(calculatedTSS > 0 || dayInternalLoad > 0) && (
                         <div className="absolute bottom-8 left-2 right-2">
                           <div className="flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded">
@@ -952,16 +980,19 @@ export function MonthlySection() {
                         </div>
                       )}
 
-                      {/* RPE & Duration display */}
+                      {/* RPE & Duration display - show summary for multi-session */}
                       <div className="absolute bottom-2 left-2 flex gap-1.5">
-                        {session?.rpe && (
+                        {daySessions.some(s => s.session?.rpe) && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">
-                            RPE {session.rpe}
+                            {sessionCount > 1 
+                              ? `RPE ${daySessions.filter(s => s.session?.rpe).map(s => s.session.rpe).join('/')}`
+                              : `RPE ${firstSession?.rpe || ''}`
+                            }
                           </span>
                         )}
-                        {session?.duration && (
+                        {daySessions.some(s => s.session?.duration) && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-                            {session.duration}m
+                            {daySessions.reduce((sum, s) => sum + (s.session?.duration || 0), 0)}m
                           </span>
                         )}
                       </div>

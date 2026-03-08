@@ -64,21 +64,36 @@ export function WeeklySyncSummary({
     const monday = startOfWeek(programStartDate, { weekStartsOn: 1 });
     
     return days.map((day, dayIndex) => {
-      const sessionKey = `W${weekNumber}-${day}`;
-      const session = sessions[sessionKey];
+      // Get all sessions for this day (multi-session support)
+      const prefix = `W${weekNumber}-${day}-S`;
+      const daySessions: { key: string; session: DaySession }[] = [];
+      Object.keys(sessions).forEach(k => {
+        if (k.startsWith(prefix)) {
+          daySessions.push({ key: k, session: sessions[k] });
+        }
+      });
+      // Check old format
+      const oldKey = `W${weekNumber}-${day}`;
+      if (sessions[oldKey] && daySessions.length === 0) {
+        daySessions.push({ key: oldKey, session: sessions[oldKey] });
+      }
+      
       const dayDate = addDays(monday, (weekNumber - 1) * 7 + dayIndex);
       const dayDateStr = format(dayDate, 'yyyy-MM-dd');
       
       // Find matching load in database
       const dbLoad = loads.find(l => l.session_date === dayDateStr);
       
-      // Calculate expected TSS from session
-      const expectedTSS = session?.rpe && session?.duration 
-        ? calculateTSS(session.rpe, session.duration)
-        : 0;
+      // Calculate expected TSS from all sessions
+      const expectedTSS = daySessions.reduce((sum, { session: s }) => {
+        if (s?.rpe && s?.duration) {
+          return sum + calculateTSS(s.rpe, s.duration);
+        }
+        return sum;
+      }, 0);
       
       // Determine sync status
-      const hasSession = session?.isDone && session?.rpe && session?.duration;
+      const hasSession = daySessions.some(s => s.session?.isDone && s.session?.rpe && s.session?.duration);
       const isSynced = !!dbLoad;
       const loadValue = dbLoad?.session_load || expectedTSS;
       
@@ -86,7 +101,8 @@ export function WeeklySyncSummary({
         day,
         date: dayDate,
         dateStr: dayDateStr,
-        session,
+        session: daySessions[0]?.session || null,
+        sessionCount: daySessions.length,
         dbLoad,
         expectedTSS,
         actualLoad: loadValue,

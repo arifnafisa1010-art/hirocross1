@@ -27,25 +27,49 @@ export function ProgramMonitoringSection() {
     let intensityCounts = { High: 0, Med: 0, Low: 0, Rest: 0 };
     let totalReal = { str: 0, spd: 0, end: 0, tek: 0, tak: 0 };
 
-    Object.values(sessions).forEach((s) => {
-      if (s.exercises && s.exercises.length > 0) planCount++;
-      
-      if (s.isDone) {
-        realCount++;
-        s.exercises.forEach((ex) => {
-          const st = ex.set || 0;
-          const rp = ex.rep || 1;
-          const ld = ex.load || 0;
-          
-          if (ex.cat === 'strength') totalReal.str += st * rp * ld;
-          if (ex.cat === 'speed') totalReal.spd += st * ld;
-          if (ex.cat === 'endurance') totalReal.end += st * ld;
-          if (ex.cat === 'technique') totalReal.tek += st * rp;
-          if (ex.cat === 'tactic') totalReal.tak += st * rp;
-        });
+    // Helper to get all sessions for a day
+    const getSessionsForDay = (wk: number, day: string) => {
+      const prefix = `W${wk}-${day}-S`;
+      const results: { key: string; session: typeof sessions[string] }[] = [];
+      Object.keys(sessions).forEach(k => {
+        if (k.startsWith(prefix)) {
+          results.push({ key: k, session: sessions[k] });
+        }
+      });
+      const oldKey = `W${wk}-${day}`;
+      if (sessions[oldKey] && results.length === 0) {
+        results.push({ key: oldKey, session: sessions[oldKey] });
       }
+      return results;
+    };
 
-      if (s.int) intensityCounts[s.int]++;
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    
+    planData.forEach((pw) => {
+      days.forEach((d) => {
+        const daySessions = getSessionsForDay(pw.wk, d);
+        
+        daySessions.forEach(({ session: s }) => {
+          if (s.exercises && s.exercises.length > 0) planCount++;
+          
+          if (s.isDone) {
+            realCount++;
+            s.exercises.forEach((ex) => {
+              const st = ex.set || 0;
+              const rp = ex.rep || 1;
+              const ld = ex.load || 0;
+              
+              if (ex.cat === 'strength') totalReal.str += st * rp * ld;
+              if (ex.cat === 'speed') totalReal.spd += st * ld;
+              if (ex.cat === 'endurance') totalReal.end += st * ld;
+              if (ex.cat === 'technique') totalReal.tek += st * rp;
+              if (ex.cat === 'tactic') totalReal.tak += st * rp;
+            });
+          }
+
+          if (s.int) intensityCounts[s.int]++;
+        });
+      });
     });
 
     const index = planCount > 0 ? Math.round((realCount / planCount) * 100) : 0;
@@ -71,14 +95,15 @@ export function ProgramMonitoringSection() {
       let totalDur = 0;
       
       days.forEach((d) => {
-        const session = sessions[`W${pw.wk}-${d}`];
-        if (session?.rpe) {
-          totalRpe += session.rpe;
-          rpeCount++;
-        }
-        if (session?.duration) {
-          totalDur += session.duration;
-        }
+        const prefix = `W${pw.wk}-${d}-S`;
+        const daySessions = Object.keys(sessions).filter(k => k.startsWith(prefix)).map(k => sessions[k]);
+        const oldKey = `W${pw.wk}-${d}`;
+        if (sessions[oldKey] && daySessions.length === 0) daySessions.push(sessions[oldKey]);
+        
+        daySessions.forEach(s => {
+          if (s?.rpe) { totalRpe += s.rpe; rpeCount++; }
+          if (s?.duration) { totalDur += s.duration; }
+        });
       });
       
       data.push({

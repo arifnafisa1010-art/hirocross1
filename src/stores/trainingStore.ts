@@ -62,6 +62,7 @@ interface TrainingStore {
   
   sessions: Record<string, DaySession>;
   updateSession: (key: string, session: DaySession) => void;
+  removeSession: (key: string) => void;
   
   tests: TestResult[];
   addTest: (test: TestResult) => void;
@@ -147,6 +148,11 @@ export const useTrainingStore = create<TrainingStore>()(
       updateSession: (key, session) => set((state) => ({
         sessions: { ...state.sessions, [key]: session },
       })),
+      removeSession: (key) => set((state) => {
+        const newSessions = { ...state.sessions };
+        delete newSessions[key];
+        return { sessions: newSessions };
+      }),
       
       tests: [],
       addTest: (test) => set((state) => ({ tests: [...state.tests, test] })),
