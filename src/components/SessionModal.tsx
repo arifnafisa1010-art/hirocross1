@@ -279,8 +279,69 @@ export function SessionModal({ open, onOpenChange, week, day, athleteId, initial
     return 'bg-red-500';
   };
 
+  // Auto-save current session to store + DB when modal closes or tab switches
+  const autoSaveCurrentSession = async () => {
+    const currentKey = getStoreKey(activeSessionNum);
+    
+    // Migrate old key if needed
+    const oldKey = `W${week}-${day}`;
+    if (sessions[oldKey] && activeSessionNum === 1) {
+      removeSession(oldKey);
+    }
+
+    // Update local store
+    updateSession(currentKey, session);
+
+    // Persist to DB if program exists
+    if (currentProgram) {
+      await saveSessionToDb(currentKey, session);
+    }
+
+    // If marked done with RPE + duration, sync to training_loads
+    if (session.isDone && session.rpe && session.duration && sessionDate && user) {
+      const getTrainingType = (): string => {
+        if (session.exercises.length === 0) return 'training';
+        const firstCat = session.exercises[0].cat;
+        switch (firstCat) {
+          case 'strength': return 'strength';
+          case 'endurance': return 'conditioning';
+          case 'technique': return 'technical';
+          case 'tactic': return 'tactical';
+          case 'speed': return 'conditioning';
+          default: return 'training';
+        }
+      };
+
+      const notes = [
+        `W${week} ${day} Sesi-${activeSessionNum}`,
+        session.warmup ? `Warmup: ${session.warmup.substring(0, 50)}` : '',
+        session.exercises.length > 0 ? `${session.exercises.length} exercises` : '',
+      ].filter(Boolean).join(' | ');
+
+      const targetAthleteId = athleteId || (selectedAthleteIds.length === 1 ? selectedAthleteIds[0] : undefined);
+
+      await addLoad({
+        session_date: sessionDate,
+        duration_minutes: session.duration,
+        rpe: session.rpe,
+        training_type: getTrainingType(),
+        notes: notes,
+        athlete_id: targetAthleteId,
+      });
+    }
+  };
+
+  const handleModalClose = async (isOpen: boolean) => {
+    if (!isOpen && open) {
+      // Modal is closing — auto-save
+      await autoSaveCurrentSession();
+      toast.success(`Sesi ${activeSessionNum} tersimpan otomatis`);
+    }
+    onOpenChange(isOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
