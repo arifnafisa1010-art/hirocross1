@@ -185,7 +185,27 @@ export function MonthlySection() {
 
   const currentMonthWeeks = months[selectedMonth]?.weeks || [];
 
-  const getSessionKey = (wk: number, day: string) => `W${wk}-${day}`;
+  const getSessionKey = (wk: number, day: string) => `W${wk}-${day}-S1`;
+
+  // Get all sessions for a specific day (multi-session support)
+  const getSessionsForDay = (wk: number, day: string) => {
+    const prefix = `W${wk}-${day}-S`;
+    const results: { key: string; session: DaySession; number: number }[] = [];
+    Object.keys(sessions).forEach(k => {
+      if (k.startsWith(prefix)) {
+        const match = k.match(/-S(\d+)$/);
+        if (match) {
+          results.push({ key: k, session: sessions[k], number: parseInt(match[1]) });
+        }
+      }
+    });
+    // Check old format for backward compatibility
+    const oldKey = `W${wk}-${day}`;
+    if (sessions[oldKey] && results.length === 0) {
+      results.push({ key: oldKey, session: sessions[oldKey], number: 1 });
+    }
+    return results.sort((a, b) => a.number - b.number);
+  };
 
   // Calculate biomotor targets per week based on volume
   const calculateWeekBiomotorTargets = (volume: number) => {
