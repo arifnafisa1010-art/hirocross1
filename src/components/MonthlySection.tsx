@@ -218,7 +218,7 @@ export function MonthlySection() {
     };
   };
 
-  // Calculate actual biomotor achieved from completed sessions
+  // Calculate actual biomotor achieved from completed sessions (multi-session)
   const calculateActualBiomotor = (wk: number) => {
     const actual = {
       strength: 0,
@@ -229,34 +229,33 @@ export function MonthlySection() {
     };
 
     days.forEach(day => {
-      const key = getSessionKey(wk, day);
-      const session = sessions[key];
-      if (session?.isDone && session?.exercises) {
-        session.exercises.forEach(ex => {
-          const load = ex.load * ex.set * ex.rep;
-          // Categorize based on exercise cat field
-          switch (ex.cat) {
-            case 'strength':
-              actual.strength += load;
-              break;
-            case 'speed':
-              actual.speed += load;
-              break;
-            case 'endurance':
-              actual.endurance += load / 1000; // Convert to approximate km
-              break;
-            case 'technique':
-              actual.technique += ex.rep * ex.set;
-              break;
-            case 'tactic':
-              actual.tactic += ex.rep * ex.set;
-              break;
-            default:
-              // Default to strength for unspecified
-              actual.strength += load;
-          }
-        });
-      }
+      const daySessions = getSessionsForDay(wk, day);
+      daySessions.forEach(({ session }) => {
+        if (session?.isDone && session?.exercises) {
+          session.exercises.forEach(ex => {
+            const load = ex.load * ex.set * ex.rep;
+            switch (ex.cat) {
+              case 'strength':
+                actual.strength += load;
+                break;
+              case 'speed':
+                actual.speed += load;
+                break;
+              case 'endurance':
+                actual.endurance += load / 1000;
+                break;
+              case 'technique':
+                actual.technique += ex.rep * ex.set;
+                break;
+              case 'tactic':
+                actual.tactic += ex.rep * ex.set;
+                break;
+              default:
+                actual.strength += load;
+            }
+          });
+        }
+      });
     });
 
     return actual;
