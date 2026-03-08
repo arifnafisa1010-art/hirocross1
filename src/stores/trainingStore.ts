@@ -146,6 +146,7 @@ export const useTrainingStore = create<TrainingStore>()(
       })),
       
       sessions: {},
+      setSessions: (sessions) => set({ sessions }),
       updateSession: (key, session) => set((state) => ({
         sessions: { ...state.sessions, [key]: session },
       })),
