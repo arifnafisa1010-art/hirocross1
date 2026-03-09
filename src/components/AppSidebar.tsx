@@ -23,13 +23,10 @@ const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'tests', label: 'Tes & Pengukuran', icon: ClipboardList },
 ];
 
-const extraItems = [
-  { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
-];
-
 const premiumItems = [
   { path: '/monitoring-atlet', label: 'Monitoring Atlet', icon: Crown },
   { path: '/monitoring-plan', label: 'Monitoring Plan', icon: Activity },
+  { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
 ];
 
 export function AppSidebar() {
