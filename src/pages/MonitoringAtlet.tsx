@@ -333,6 +333,9 @@ export default function MonitoringAtlet() {
             </Card>
           </div>
 
+          {/* Readiness Status */}
+          <ReadinessMonitoringWidget athleteId={selectedAthleteId} />
+
           {/* Recommendations */}
           <TrainingRecommendation acwrData={acwrData} currentMetrics={currentMetrics} />
 
