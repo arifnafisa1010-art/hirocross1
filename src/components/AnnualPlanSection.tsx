@@ -348,6 +348,12 @@ export function AnnualPlanSection() {
 
     if (totalWks <= 0) return;
 
+    // Build a map of existing week data to preserve vol/int values
+    const existingWeekMap = new Map<number, { vol: number; int: number; fase: string; competitionId?: string }>();
+    planData.forEach((w) => {
+      existingWeekMap.set(w.wk, { vol: w.vol, int: w.int, fase: w.fase, competitionId: w.competitionId });
+    });
+
     // Apply current mesocycles structure
     const plan: typeof planData = [];
     let wkCount = 1;
@@ -355,29 +361,43 @@ export function AnnualPlanSection() {
     mesocycles.forEach((m) => {
       for (let i = 1; i <= m.weeks; i++) {
         if (wkCount > totalWks) break;
-        const prog = wkCount / totalWks * 100;
 
-        let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi' | 'Transisi';
-        let vol: number;
-        let int: number;
+        const existing = existingWeekMap.get(wkCount);
 
-        if (prog <= phaseSettings.umum) {
-          fase = 'Umum'; vol = 90; int = 30;
-        } else if (prog <= phaseSettings.umum + phaseSettings.khusus) {
-          fase = 'Khusus'; vol = 75; int = 60;
-        } else if (prog <= phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp) {
-          fase = 'Pra-Komp'; vol = 55; int = 85;
+        if (existing) {
+          // Preserve existing vol/int/fase values
+          plan.push({ 
+            wk: wkCount, 
+            meso: m.name, 
+            fase: existing.fase as any, 
+            vol: existing.vol, 
+            int: existing.int,
+            competitionId: existing.competitionId,
+          });
         } else {
-          fase = 'Kompetisi'; vol = 35; int = 100;
-        }
+          // Only generate defaults for NEW weeks
+          const prog = wkCount / totalWks * 100;
+          let fase: 'Umum' | 'Khusus' | 'Pra-Komp' | 'Kompetisi' | 'Transisi';
+          let vol: number;
+          let int: number;
 
-        // Deload on last week of mesocycle
-        if (i === m.weeks) {
-          vol -= 15;
-          int -= 5;
-        }
+          if (prog <= phaseSettings.umum) {
+            fase = 'Umum'; vol = 90; int = 30;
+          } else if (prog <= phaseSettings.umum + phaseSettings.khusus) {
+            fase = 'Khusus'; vol = 75; int = 60;
+          } else if (prog <= phaseSettings.umum + phaseSettings.khusus + phaseSettings.prakomp) {
+            fase = 'Pra-Komp'; vol = 55; int = 85;
+          } else {
+            fase = 'Kompetisi'; vol = 35; int = 100;
+          }
 
-        plan.push({ wk: wkCount, meso: m.name, fase, vol, int });
+          if (i === m.weeks) {
+            vol -= 15;
+            int -= 5;
+          }
+
+          plan.push({ wk: wkCount, meso: m.name, fase, vol, int });
+        }
         wkCount++;
       }
     });
