@@ -155,6 +155,17 @@ const AthletePortal = () => {
             />
           )}
 
+          {/* Readiness Tab */}
+          {activeTab === 'readiness' && athleteProfile && (
+            <AthleteReadinessSection
+              athleteId={athleteProfile.id}
+              athleteName={athleteProfile.name}
+              restingHr={athleteProfile.resting_hr}
+              coachHasPremium={coachHasPremium}
+              premiumLoading={premiumLoading}
+            />
+          )}
+
           {/* Calendar Tab */}
           {activeTab === 'kalender' && (
             <AthleteTrainingCalendar
