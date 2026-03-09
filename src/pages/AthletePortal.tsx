@@ -77,6 +77,7 @@ const AthletePortal = () => {
   const tabs = [
     { id: 'profil' as const, label: 'Profil', icon: User },
     { id: 'performa' as const, label: 'Performa', icon: Activity },
+    { id: 'readiness' as const, label: 'Readiness', icon: HeartPulse },
     { id: 'kalender' as const, label: 'Kalender', icon: Calendar },
   ];
 
