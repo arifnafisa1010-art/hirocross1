@@ -13,6 +13,8 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Header } from '@/components/Header';
+import { AppSidebar } from '@/components/AppSidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 
 function getReadinessInfo(score: number) {
@@ -74,7 +76,10 @@ export default function Readiness() {
   const prevScore = entries[1]?.readiness_score ? Number(entries[1].readiness_score) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider defaultOpen={false}>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
       <Header />
       <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
         {/* Header */}
@@ -354,6 +359,8 @@ export default function Readiness() {
           </CardContent>
         </Card>
       </div>
+      </div>
     </div>
+    </SidebarProvider>
   );
 }
