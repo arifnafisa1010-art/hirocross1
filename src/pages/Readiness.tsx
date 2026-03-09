@@ -359,6 +359,8 @@ export default function Readiness() {
           </CardContent>
         </Card>
       </div>
+      </div>
     </div>
+    </SidebarProvider>
   );
 }
