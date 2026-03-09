@@ -47,6 +47,66 @@ export type Database = {
         }
         Relationships: []
       }
+      athlete_readiness: {
+        Row: {
+          athlete_id: string | null
+          check_date: string
+          created_at: string
+          hr_baseline: number
+          hr_today: number
+          id: string
+          notes: string | null
+          readiness_score: number | null
+          updated_at: string
+          user_id: string
+          vj_baseline: number
+          vj_today: number
+        }
+        Insert: {
+          athlete_id?: string | null
+          check_date?: string
+          created_at?: string
+          hr_baseline: number
+          hr_today: number
+          id?: string
+          notes?: string | null
+          readiness_score?: number | null
+          updated_at?: string
+          user_id: string
+          vj_baseline: number
+          vj_today: number
+        }
+        Update: {
+          athlete_id?: string | null
+          check_date?: string
+          created_at?: string
+          hr_baseline?: number
+          hr_today?: number
+          id?: string
+          notes?: string | null
+          readiness_score?: number | null
+          updated_at?: string
+          user_id?: string
+          vj_baseline?: number
+          vj_today?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_readiness_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_readiness_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes_pending_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athletes: {
         Row: {
           birth_date: string | null
