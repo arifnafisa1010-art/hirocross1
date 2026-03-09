@@ -77,6 +77,14 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/readiness" 
+                element={
+                  <ProtectedRoute>
+                    <Readiness />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
