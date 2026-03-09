@@ -13,6 +13,7 @@ import AdminPanel from "./pages/AdminPanel";
 import PremiumDashboard from "./pages/PremiumDashboard";
 import MonitoringAtlet from "./pages/MonitoringAtlet";
 import MonitoringPlan from "./pages/MonitoringPlan";
+import Readiness from "./pages/Readiness";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MonitoringPlan />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/readiness" 
+                element={
+                  <ProtectedRoute>
+                    <Readiness />
                   </ProtectedRoute>
                 } 
               />

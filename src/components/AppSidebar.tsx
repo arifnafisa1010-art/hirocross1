@@ -1,4 +1,4 @@
-import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity } from 'lucide-react';
+import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity, HeartPulse } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { TabId } from '@/types/training';
@@ -21,6 +21,10 @@ const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'annual', label: 'Annual Plan', icon: Calendar },
   { id: 'monthly', label: 'Bulanan', icon: CalendarDays },
   { id: 'tests', label: 'Tes & Pengukuran', icon: ClipboardList },
+];
+
+const extraItems = [
+  { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
 ];
 
 const premiumItems = [
@@ -53,6 +57,33 @@ export function AppSidebar() {
                     className={cn(
                       "transition-all",
                       activeTab === item.id && "bg-primary/10 text-primary font-medium"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Extra Tools */}
+        <SidebarGroup className="mt-2">
+          <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
+            Tools
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {extraItems.map((item) => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton
+                    onClick={() => navigate(item.path)}
+                    isActive={location.pathname === item.path}
+                    tooltip={item.label}
+                    className={cn(
+                      "transition-all",
+                      location.pathname === item.path && "bg-primary/10 text-primary font-medium"
                     )}
                   >
                     <item.icon className="h-4 w-4" />
