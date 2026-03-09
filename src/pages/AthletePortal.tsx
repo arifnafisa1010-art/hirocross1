@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCoachPremiumStatus } from '@/hooks/useCoachPremiumStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, LogOut, Dumbbell, Activity, Calendar } from 'lucide-react';
+import { User, LogOut, Dumbbell, Activity, Calendar, HeartPulse } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AthleteProfileSection } from '@/components/athlete-portal/AthleteProfileSection';
