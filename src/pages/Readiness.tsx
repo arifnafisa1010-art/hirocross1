@@ -76,7 +76,10 @@ export default function Readiness() {
   const prevScore = entries[1]?.readiness_score ? Number(entries[1].readiness_score) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider defaultOpen={false}>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
       <Header />
       <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
         {/* Header */}
