@@ -12,8 +12,9 @@ import { cn } from '@/lib/utils';
 import { AthleteProfileSection } from '@/components/athlete-portal/AthleteProfileSection';
 import { AthletePerformanceSection } from '@/components/athlete-portal/AthletePerformanceSection';
 import { AthleteTrainingCalendar } from '@/components/athlete-portal/AthleteTrainingCalendar';
+import { AthleteReadinessSection } from '@/components/athlete-portal/AthleteReadinessSection';
 
-type TabType = 'profil' | 'performa' | 'kalender';
+type TabType = 'profil' | 'performa' | 'kalender' | 'readiness';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete, refetch } = useAthletePortal();
