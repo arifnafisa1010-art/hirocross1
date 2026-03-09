@@ -135,7 +135,7 @@ export default function Home() {
               className="w-10 h-10 rounded-lg object-contain" />
             
             <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent hidden sm:block">
-
+              HIROCROSS
             </span>
           </motion.div>
 
