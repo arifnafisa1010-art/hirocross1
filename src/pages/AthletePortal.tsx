@@ -6,14 +6,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCoachPremiumStatus } from '@/hooks/useCoachPremiumStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, LogOut, Dumbbell, Activity, Calendar } from 'lucide-react';
+import { User, LogOut, Dumbbell, Activity, Calendar, HeartPulse } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AthleteProfileSection } from '@/components/athlete-portal/AthleteProfileSection';
 import { AthletePerformanceSection } from '@/components/athlete-portal/AthletePerformanceSection';
 import { AthleteTrainingCalendar } from '@/components/athlete-portal/AthleteTrainingCalendar';
+import { AthleteReadinessSection } from '@/components/athlete-portal/AthleteReadinessSection';
 
-type TabType = 'profil' | 'performa' | 'kalender';
+type TabType = 'profil' | 'performa' | 'kalender' | 'readiness';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete, refetch } = useAthletePortal();
@@ -76,6 +77,7 @@ const AthletePortal = () => {
   const tabs = [
     { id: 'profil' as const, label: 'Profil', icon: User },
     { id: 'performa' as const, label: 'Performa', icon: Activity },
+    { id: 'readiness' as const, label: 'Readiness', icon: HeartPulse },
     { id: 'kalender' as const, label: 'Kalender', icon: Calendar },
   ];
 
@@ -148,6 +150,17 @@ const AthletePortal = () => {
               acwrData={acwrData}
               currentMetrics={currentMetrics}
               loading={metricsLoading}
+              coachHasPremium={coachHasPremium}
+              premiumLoading={premiumLoading}
+            />
+          )}
+
+          {/* Readiness Tab */}
+          {activeTab === 'readiness' && athleteProfile && (
+            <AthleteReadinessSection
+              athleteId={athleteProfile.id}
+              athleteName={athleteProfile.name}
+              restingHr={athleteProfile.resting_hr}
               coachHasPremium={coachHasPremium}
               premiumLoading={premiumLoading}
             />
