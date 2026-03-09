@@ -24,6 +24,7 @@ import { MultiAthleteComparison } from '@/components/MultiAthleteComparison';
 import { TeamSnapshotComparison } from '@/components/TeamSnapshotComparison';
 import { TrainingLoadRadar } from '@/components/TrainingLoadRadar';
 import { PremiumPricingPackages } from '@/components/PremiumPricingPackages';
+import { ReadinessMonitoringWidget } from '@/components/readiness/ReadinessMonitoringWidget';
 import { Athlete } from '@/hooks/useAthletes';
 
 export default function MonitoringAtlet() {
