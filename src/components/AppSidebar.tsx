@@ -1,4 +1,4 @@
-import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity } from 'lucide-react';
+import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity, HeartPulse } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { TabId } from '@/types/training';
