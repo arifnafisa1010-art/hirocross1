@@ -65,33 +65,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Extra Tools */}
-        <SidebarGroup className="mt-2">
-          <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
-            Tools
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {extraItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    onClick={() => navigate(item.path)}
-                    isActive={location.pathname === item.path}
-                    tooltip={item.label}
-                    className={cn(
-                      "transition-all",
-                      location.pathname === item.path && "bg-primary/10 text-primary font-medium"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         {/* Premium Section */}
         <SidebarGroup className="mt-4">
           <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
