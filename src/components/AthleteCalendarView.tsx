@@ -434,8 +434,10 @@ export function AthleteCalendarView({
 
               {/* Days Grid */}
               <div className="grid grid-cols-7 gap-2">
-                {days.map((day, dayIndex) => {
+              {days.map((day, dayIndex) => {
                   const session = getSession(wk, dayIndex);
+                  const allDaySessions = getSessionsForDay(wk, dayIndex);
+                  const sessionCount = allDaySessions.length;
                   const dayDate = getDateForDay(wk, dayIndex);
                   const isSessionToday = isToday(dayDate);
                   const isPast = isBefore(dayDate, new Date()) && !isSessionToday;
