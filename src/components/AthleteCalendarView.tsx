@@ -85,8 +85,13 @@ export function AthleteCalendarView({
   const [selectedSessionDate, setSelectedSessionDate] = useState<string>('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [updatingSession, setUpdatingSession] = useState<string | null>(null);
+  const [activeSessionTab, setActiveSessionTab] = useState<number>(0);
   
-  // RPE and Duration input state per session
+  // RPE and Duration input state per session slot (always 2 slots)
+  const [sessionSlots, setSessionSlots] = useState<Array<{ rpe: number; duration: number; enabled: boolean }>>([
+    { rpe: 5, duration: 60, enabled: true },
+    { rpe: 5, duration: 60, enabled: false },
+  ]);
   const [sessionInputs, setSessionInputs] = useState<Record<string, { rpe: number; duration: number }>>({});
   const [rpe, setRpe] = useState<number>(5);
   const [duration, setDuration] = useState<number>(60);
