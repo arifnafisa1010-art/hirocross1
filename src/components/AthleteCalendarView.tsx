@@ -470,9 +470,16 @@ export function AthleteCalendarView({
                             {format(dayDate, 'd MMM', { locale: idLocale })}
                           </div>
                         </div>
-                        {isDone && (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        )}
+                        <div className="flex items-center gap-1">
+                          {sessionCount > 1 && (
+                            <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4">
+                              {sessionCount}x
+                            </Badge>
+                          )}
+                          {isDone && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
                       </div>
 
                       {/* Competition badge */}
