@@ -578,42 +578,82 @@ export function AthleteCalendarView({
         })}
       </div>
 
-      {/* Session Detail Dialog with Multi-Session RPE Input */}
+      {/* Session Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Dumbbell className="h-5 w-5 text-primary" />
-              Detail Sesi Latihan
-              {selectedSessions.length > 1 && (
-                <Badge variant="secondary">{selectedSessions.length} Sesi</Badge>
-              )}
+              Catat Latihan
+              <span className="text-sm font-normal text-muted-foreground">
+                {selectedSessionDate && format(parseISO(selectedSessionDate), 'd MMMM yyyy', { locale: idLocale })}
+              </span>
             </DialogTitle>
           </DialogHeader>
 
-          {selectedSessions.length > 0 ? (
-            <div className="space-y-4">
-              {/* Date info */}
-              <div className="flex items-center justify-end">
-                <span className="text-sm text-muted-foreground">
-                  {selectedSessionDate && format(parseISO(selectedSessionDate), 'd MMMM yyyy', { locale: idLocale })}
-                </span>
-              </div>
-
-              {/* Render each session stacked vertically */}
-              {selectedSessions.map((session, sessionIdx) => {
-                const input = sessionInputs[session.id] || { rpe: 5, duration: 60 };
-                const sessionTSS = calculateSessionLoad(input.rpe, input.duration);
-                const hasContent = session.exercises && session.exercises.length > 0;
-
+          <div className="space-y-4">
+            {/* Session Tab Selector - always 2 tabs */}
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1].map((idx) => {
+                const slot = sessionSlots[idx];
+                const session = selectedSessions[idx];
                 return (
-                  <div key={session.id} className="space-y-3">
-                    {/* Session header */}
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="font-bold">
-                          Sesi {sessionIdx + 1}
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setActiveSessionTab(idx);
+                      if (!slot.enabled) {
+                        setSessionSlots(prev => prev.map((s, i) => i === idx ? { ...s, enabled: true } : s));
+                      }
+                    }}
+                    className={cn(
+                      "p-3 rounded-lg border-2 text-left transition-all",
+                      activeSessionTab === idx
+                        ? "border-primary bg-primary/10"
+                        : slot.enabled
+                          ? "border-border bg-muted/50 hover:bg-muted"
+                          : "border-dashed border-muted-foreground/30 hover:border-muted-foreground/50"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm">Sesi {idx + 1}</span>
+                      {slot.enabled ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          RPE {slot.rpe} · {slot.duration}m
                         </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                          Tap untuk isi
+                        </Badge>
+                      )}
+                    </div>
+                    {slot.enabled && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        TSS: {calculateSessionLoad(slot.rpe, slot.duration)} AU
+                      </div>
+                    )}
+                    {session && session.exercises && session.exercises.length > 0 && (
+                      <div className="text-[10px] text-muted-foreground/70 mt-1 truncate">
+                        {session.exercises.slice(0, 2).map(e => e.name).join(', ')}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Session Content */}
+            {(() => {
+              const idx = activeSessionTab;
+              const slot = sessionSlots[idx];
+              const session = selectedSessions[idx] || null;
+
+              return (
+                <div className="space-y-4">
+                  {/* Session detail from coach (if exists) */}
+                  {session && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
                         <Badge variant={session.is_done ? "default" : "outline"}>
                           {session.is_done ? (
                             <><CheckCircle2 className="h-3 w-3 mr-1" />Selesai</>
@@ -633,237 +673,177 @@ export function AthleteCalendarView({
                           {session.intensity || 'Rest'}
                         </Badge>
                       </div>
-                    </div>
 
-                    {/* Warmup */}
-                    {session.warmup && (
-                      <div className="space-y-1">
-                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                          <Activity className="h-4 w-4 text-orange-500" />
-                          Pemanasan
-                        </h4>
-                        <p className="text-sm text-muted-foreground pl-6">{session.warmup}</p>
-                      </div>
-                    )}
+                      {session.warmup && (
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-orange-500" />Pemanasan
+                          </h4>
+                          <p className="text-sm text-muted-foreground pl-6">{session.warmup}</p>
+                        </div>
+                      )}
 
-                    {/* Exercises */}
-                    {hasContent && (
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                          <Dumbbell className="h-4 w-4 text-primary" />
-                          Latihan Inti
-                        </h4>
-                        <div className="space-y-2 pl-6">
-                          {session.exercises!.map((ex, idx) => (
-                            <div key={idx} className="p-3 bg-muted/50 rounded-lg">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <p className="font-medium text-sm">{ex.name}</p>
-                                  <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                                    <span>{ex.set} set</span>
-                                    <span>{ex.rep} reps</span>
-                                    {ex.load > 0 && <span>{ex.load} kg</span>}
+                      {session.exercises && session.exercises.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Dumbbell className="h-4 w-4 text-primary" />Latihan Inti
+                          </h4>
+                          <div className="space-y-2 pl-6">
+                            {session.exercises.map((ex, i) => (
+                              <div key={i} className="p-2 bg-muted/50 rounded-lg">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <p className="font-medium text-sm">{ex.name}</p>
+                                    <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                      <span>{ex.set} set</span>
+                                      <span>{ex.rep} reps</span>
+                                      {ex.load > 0 && <span>{ex.load} kg</span>}
+                                    </div>
                                   </div>
+                                  <Badge variant="outline" className="text-[10px]">
+                                    {ex.cat === 'strength' && 'Kekuatan'}
+                                    {ex.cat === 'speed' && 'Kecepatan'}
+                                    {ex.cat === 'endurance' && 'Daya Tahan'}
+                                    {ex.cat === 'technique' && 'Teknik'}
+                                    {ex.cat === 'tactic' && 'Taktik'}
+                                  </Badge>
                                 </div>
-                                <Badge variant="outline" className="text-[10px]">
-                                  {ex.cat === 'strength' && 'Kekuatan'}
-                                  {ex.cat === 'speed' && 'Kecepatan'}
-                                  {ex.cat === 'endurance' && 'Daya Tahan'}
-                                  {ex.cat === 'technique' && 'Teknik'}
-                                  {ex.cat === 'tactic' && 'Taktik'}
-                                </Badge>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Cooldown */}
-                    {session.cooldown && (
-                      <div className="space-y-1">
-                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                          <Activity className="h-4 w-4 text-blue-500" />
-                          Pendinginan
-                        </h4>
-                        <p className="text-sm text-muted-foreground pl-6">{session.cooldown}</p>
-                      </div>
-                    )}
-
-                    {/* Recovery */}
-                    {session.recovery && (
-                      <div className="space-y-1">
-                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-green-500" />
-                          Pemulihan
-                        </h4>
-                        <p className="text-sm text-muted-foreground pl-6">{session.recovery}</p>
-                      </div>
-                    )}
-
-                    {/* RPE & Duration Input for this session */}
-                    <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-3">
-                      <h4 className="font-semibold text-sm flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-primary" />
-                        Catat Beban - Sesi {sessionIdx + 1}
-                      </h4>
-                      
-                      {/* RPE Slider */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm">RPE</Label>
-                          <Badge variant="outline" className="font-bold">{input.rpe}</Badge>
-                        </div>
-                        <Slider
-                          value={[input.rpe]}
-                          onValueChange={(v) => setSessionInputs(prev => ({
-                            ...prev,
-                            [session.id]: { ...prev[session.id], rpe: v[0] }
-                          }))}
-                          min={1}
-                          max={10}
-                          step={1}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-[10px] text-muted-foreground">
-                          <span>1 Ringan</span>
-                          <span>5 Sedang</span>
-                          <span>10 Maks</span>
-                        </div>
-                      </div>
-
-                      {/* Duration Input */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Durasi (menit)</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            value={input.duration}
-                            onChange={(e) => setSessionInputs(prev => ({
-                              ...prev,
-                              [session.id]: { ...prev[session.id], duration: parseInt(e.target.value) || 0 }
-                            }))}
-                            min={0}
-                            max={480}
-                            className="w-24"
-                          />
-                          <div className="flex gap-1">
-                            {[30, 60, 90].map(d => (
-                              <Button 
-                                key={d} 
-                                size="sm" 
-                                variant={input.duration === d ? "default" : "outline"}
-                                onClick={() => setSessionInputs(prev => ({
-                                  ...prev,
-                                  [session.id]: { ...prev[session.id], duration: d }
-                                }))}
-                                className="text-xs h-8 px-2"
-                              >
-                                {d}m
-                              </Button>
                             ))}
                           </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* TSS Preview */}
-                      <div className="flex items-center justify-between p-2 bg-background rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Activity className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">TSS Sesi {sessionIdx + 1}</span>
+                      {session.cooldown && (
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-blue-500" />Pendinginan
+                          </h4>
+                          <p className="text-sm text-muted-foreground pl-6">{session.cooldown}</p>
                         </div>
-                        <Badge className="font-bold">{sessionTSS} AU</Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {!session && (
+                    <div className="text-center py-3 text-sm text-muted-foreground">
+                      Tidak ada program dari pelatih untuk sesi ini. Anda tetap bisa mencatat beban latihan.
+                    </div>
+                  )}
+
+                  {/* RPE & Duration Input */}
+                  <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-3">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" />
+                      Catat Beban - Sesi {idx + 1}
+                    </h4>
+                    
+                    {/* RPE Slider */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">RPE (Rating of Perceived Exertion)</Label>
+                        <Badge variant="outline" className="font-bold">{slot.rpe}</Badge>
+                      </div>
+                      <Slider
+                        value={[slot.rpe]}
+                        onValueChange={(v) => setSessionSlots(prev => prev.map((s, i) => i === idx ? { ...s, rpe: v[0] } : s))}
+                        min={1}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>1 Sangat Ringan</span>
+                        <span>5 Sedang</span>
+                        <span>10 Maksimal</span>
                       </div>
                     </div>
 
-                    {/* Separator between sessions */}
-                    {sessionIdx < selectedSessions.length - 1 && (
-                      <div className="border-t border-dashed border-muted-foreground/30 my-2" />
+                    {/* Duration Input */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Durasi (menit)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={slot.duration}
+                          onChange={(e) => setSessionSlots(prev => prev.map((s, i) => i === idx ? { ...s, duration: parseInt(e.target.value) || 0 } : s))}
+                          min={0}
+                          max={480}
+                          className="w-24"
+                        />
+                        <div className="flex gap-1">
+                          {[30, 45, 60, 90].map(d => (
+                            <Button 
+                              key={d} 
+                              size="sm" 
+                              variant={slot.duration === d ? "default" : "outline"}
+                              onClick={() => setSessionSlots(prev => prev.map((s, i) => i === idx ? { ...s, duration: d } : s))}
+                              className="text-xs h-8 px-2"
+                            >
+                              {d}m
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* TSS Preview */}
+                    <div className="flex items-center justify-between p-2 bg-background rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">TSS Sesi {idx + 1}</span>
+                      </div>
+                      <Badge className="font-bold">{calculateSessionLoad(slot.rpe, slot.duration)} AU</Badge>
+                    </div>
+
+                    {/* Toggle off button for session 2 */}
+                    {idx === 1 && slot.enabled && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs text-muted-foreground"
+                        onClick={() => setSessionSlots(prev => prev.map((s, i) => i === 1 ? { ...s, enabled: false } : s))}
+                      >
+                        Hapus Sesi 2
+                      </Button>
                     )}
                   </div>
-                );
-              })}
-
-              {/* Total TSS for multi-session */}
-              {selectedSessions.length > 1 && (
-                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Total TSS Hari Ini</span>
-                  </div>
-                  <Badge className="text-lg font-bold">
-                    {selectedSessions.reduce((total, s) => {
-                      const input = sessionInputs[s.id] || { rpe: 5, duration: 60 };
-                      return total + calculateSessionLoad(input.rpe, input.duration);
-                    }, 0)} AU
-                  </Badge>
                 </div>
-              )}
+              );
+            })()}
 
-              {/* Save Button */}
-              <Button 
-                className="w-full" 
-                onClick={saveAllTrainingLoads}
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Simpan {selectedSessions.length > 1 ? `${selectedSessions.length} Sesi` : '& Tandai Selesai'}
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : selectedSession ? (
-            /* Fallback for single session without multi-session data */
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <Badge variant={selectedSession.is_done ? "default" : "outline"}>
-                  {selectedSession.is_done ? 'Selesai' : 'Belum Selesai'}
+            {/* Total TSS summary */}
+            {sessionSlots.filter(s => s.enabled).length > 1 && (
+              <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">Total TSS Hari Ini</span>
+                </div>
+                <Badge className="text-lg font-bold">
+                  {sessionSlots.filter(s => s.enabled).reduce((total, s) => total + calculateSessionLoad(s.rpe, s.duration), 0)} AU
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {selectedSessionDate && format(parseISO(selectedSessionDate), 'd MMM yyyy', { locale: idLocale })}
-                </span>
               </div>
+            )}
 
-              {/* Single session RPE input */}
-              <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-3">
-                <h4 className="font-semibold text-sm flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  Catat Beban Latihan
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">RPE</Label>
-                    <Badge variant="outline" className="font-bold">{rpe}</Badge>
-                  </div>
-                  <Slider value={[rpe]} onValueChange={(v) => setRpe(v[0])} min={1} max={10} step={1} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Durasi (menit)</Label>
-                  <Input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value) || 0)} min={0} max={480} className="w-24" />
-                </div>
-                <div className="flex items-center justify-between p-2 bg-background rounded-lg">
-                  <span className="text-sm font-medium">TSS</span>
-                  <Badge className="font-bold">{calculateSessionLoad(rpe, duration)} AU</Badge>
-                </div>
-                <Button className="w-full" onClick={saveAllTrainingLoads} disabled={saving}>
-                  {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Menyimpan...</> : <><Save className="h-4 w-4 mr-2" />Simpan & Tandai Selesai</>}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="py-8 text-center text-muted-foreground">
-              <Clock className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Tidak ada sesi untuk tanggal ini</p>
-              <p className="text-sm mt-1">{selectedSessionDate && format(parseISO(selectedSessionDate), 'd MMMM yyyy', { locale: idLocale })}</p>
-            </div>
-          )}
+            {/* Save Button */}
+            <Button 
+              className="w-full" 
+              onClick={saveAllTrainingLoads}
+              disabled={saving || !sessionSlots.some(s => s.enabled)}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Simpan {sessionSlots.filter(s => s.enabled).length > 1 ? '2 Sesi' : 'Sesi'} & Tandai Selesai
+                </>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
