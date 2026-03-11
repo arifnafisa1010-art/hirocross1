@@ -323,35 +323,27 @@ export function AthleteCalendarView({
 
   // Open session detail with date - now supports multi-session
   const openSessionDetail = (session: Session | null, dayDate: Date) => {
-    const dayIndex = days.indexOf(format(dayDate, 'EEEE', { locale: idLocale }).replace(/^\w/, c => c.toUpperCase()));
-    // Find the week number for this date
+    const dayOfWeek = dayDate.getDay();
+    const actualDayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const programStart = parseISO(startDate);
     const diffWeeks = Math.floor((dayDate.getTime() - startOfWeek(programStart, { weekStartsOn: 1 }).getTime()) / (7 * 24 * 60 * 60 * 1000));
     const wk = Math.max(1, diffWeeks + 1);
-    
-    // Get actual day index from the date
-    const dayOfWeek = dayDate.getDay();
-    const actualDayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Monday-based index
     
     const allDaySessions = getSessionsForDay(wk, actualDayIndex);
     
     setSelectedSession(session || allDaySessions[0] || null);
     setSelectedSessions(allDaySessions);
     setSelectedSessionDate(format(dayDate, 'yyyy-MM-dd'));
-    setRpe(5);
-    setDuration(60);
+    setActiveSessionTab(0);
     
-    // Initialize per-session inputs
-    const inputs: Record<string, { rpe: number; duration: number }> = {};
-    allDaySessions.forEach(s => {
-      inputs[s.id] = { rpe: 5, duration: 60 };
-    });
-    setSessionInputs(inputs);
+    // Always initialize 2 slots
+    setSessionSlots([
+      { rpe: 5, duration: 60, enabled: true },
+      { rpe: 5, duration: 60, enabled: allDaySessions.length > 1 },
+    ]);
     
     setDetailOpen(true);
   };
-
-  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
