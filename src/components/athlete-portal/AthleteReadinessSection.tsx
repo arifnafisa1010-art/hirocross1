@@ -32,7 +32,7 @@ export function AthleteReadinessSection({
   premiumLoading,
 }: AthleteReadinessSectionProps) {
   const { user } = useAuth();
-  const { entries, loading, addEntry } = useReadiness(athleteId);
+  const { entries, loading, addEntry, refetch } = useReadiness(athleteId);
   const [formOpen, setFormOpen] = useState(false);
 
   const autoVjBaseline = useMemo(() => {
