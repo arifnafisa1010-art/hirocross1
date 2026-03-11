@@ -80,12 +80,14 @@ export function AthleteCalendarView({
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<number>(0);
+  const [selectedSessions, setSelectedSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [selectedSessionDate, setSelectedSessionDate] = useState<string>('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [updatingSession, setUpdatingSession] = useState<string | null>(null);
   
-  // RPE and Duration input state
+  // RPE and Duration input state per session
+  const [sessionInputs, setSessionInputs] = useState<Record<string, { rpe: number; duration: number }>>({});
   const [rpe, setRpe] = useState<number>(5);
   const [duration, setDuration] = useState<number>(60);
   const [saving, setSaving] = useState(false);
@@ -164,43 +166,40 @@ export function AthleteCalendarView({
     return addDays(weekStart, dayIndex);
   };
 
-  // Save training load to database
-  const saveTrainingLoad = async () => {
-    if (!user || !selectedSessionDate) {
-      toast.error('Data tidak lengkap');
-      return;
-    }
+  // Save training load to database for a specific session
+  const saveTrainingLoadForSession = async (session: Session, sessionRpe: number, sessionDuration: number, sessionIndex: number) => {
+    if (!user || !selectedSessionDate) return false;
 
-    setSaving(true);
+    const sessionLoad = calculateSessionLoad(sessionRpe, sessionDuration);
 
-    const sessionLoad = calculateSessionLoad(rpe, duration);
-
-    // Determine training type from session's first exercise category
     let trainingType = 'training';
-    if (selectedSession?.exercises && selectedSession.exercises.length > 0) {
-      const firstCat = selectedSession.exercises[0].cat;
+    if (session.exercises && session.exercises.length > 0) {
+      const firstCat = session.exercises[0].cat;
       if (firstCat === 'strength') trainingType = 'strength';
       else if (firstCat === 'endurance') trainingType = 'conditioning';
       else if (firstCat === 'technique') trainingType = 'technical';
       else if (firstCat === 'tactic') trainingType = 'tactical';
     }
 
-    // Check if load already exists for this date
+    // Use date + session index as unique key
+    const sessionDateKey = `${selectedSessionDate}-S${sessionIndex + 1}`;
+
+    // Check if load already exists for this date+session
     const { data: existing } = await supabase
       .from('training_loads')
       .select('id')
       .eq('session_date', selectedSessionDate)
       .eq('athlete_id', athleteId || null)
+      .eq('notes', `session-${sessionIndex + 1}`)
       .maybeSingle();
 
     let error;
     if (existing) {
-      // Update existing
       const result = await supabase
         .from('training_loads')
         .update({
-          rpe,
-          duration_minutes: duration,
+          rpe: sessionRpe,
+          duration_minutes: sessionDuration,
           session_load: sessionLoad,
           training_type: trainingType,
           updated_at: new Date().toISOString(),
@@ -208,35 +207,77 @@ export function AthleteCalendarView({
         .eq('id', existing.id);
       error = result.error;
     } else {
-      // Insert new
       const result = await supabase
         .from('training_loads')
         .insert({
           user_id: user.id,
           athlete_id: athleteId || null,
           session_date: selectedSessionDate,
-          rpe,
-          duration_minutes: duration,
+          rpe: sessionRpe,
+          duration_minutes: sessionDuration,
           session_load: sessionLoad,
           training_type: trainingType,
+          notes: `session-${sessionIndex + 1}`,
         });
       error = result.error;
     }
 
     if (error) {
       console.error('Error saving training load:', error);
-      toast.error('Gagal menyimpan data latihan');
-    } else {
-      toast.success(`Data latihan tersimpan! TSS: ${sessionLoad} AU`);
-      
-      // Also mark session as done if not already
-      if (selectedSession && !selectedSession.is_done) {
-        await toggleSessionDone(selectedSession);
+      return false;
+    }
+
+    // Mark session as done
+    if (!session.is_done) {
+      await toggleSessionDone(session);
+    }
+
+    return true;
+  };
+
+  // Save all sessions
+  const saveAllTrainingLoads = async () => {
+    if (!user || !selectedSessionDate) {
+      toast.error('Data tidak lengkap');
+      return;
+    }
+
+    setSaving(true);
+
+    // If single session (no multi-session)
+    if (selectedSessions.length <= 1 && selectedSession) {
+      const success = await saveTrainingLoadForSession(selectedSession, rpe, duration, 0);
+      if (success) {
+        const tss = calculateSessionLoad(rpe, duration);
+        toast.success(`Data latihan tersimpan! TSS: ${tss} AU`);
         setSelectedSession(prev => prev ? { ...prev, is_done: true } : null);
+      } else {
+        toast.error('Gagal menyimpan data latihan');
+      }
+    } else {
+      // Multi-session save
+      let allSuccess = true;
+      let totalTSS = 0;
+      for (let i = 0; i < selectedSessions.length; i++) {
+        const s = selectedSessions[i];
+        const input = sessionInputs[s.id] || { rpe: 5, duration: 60 };
+        const success = await saveTrainingLoadForSession(s, input.rpe, input.duration, i);
+        if (success) {
+          totalTSS += calculateSessionLoad(input.rpe, input.duration);
+        } else {
+          allSuccess = false;
+        }
+      }
+      if (allSuccess) {
+        toast.success(`Semua sesi tersimpan! Total TSS: ${totalTSS} AU`);
+        setSelectedSessions(prev => prev.map(s => ({ ...s, is_done: true })));
+      } else {
+        toast.error('Beberapa sesi gagal disimpan');
       }
     }
 
     setSaving(false);
+    fetchSessions();
   };
 
   // Toggle session done status
@@ -275,12 +316,33 @@ export function AthleteCalendarView({
     });
   };
 
-  // Open session detail with date
+  // Open session detail with date - now supports multi-session
   const openSessionDetail = (session: Session | null, dayDate: Date) => {
-    setSelectedSession(session);
+    const dayIndex = days.indexOf(format(dayDate, 'EEEE', { locale: idLocale }).replace(/^\w/, c => c.toUpperCase()));
+    // Find the week number for this date
+    const programStart = parseISO(startDate);
+    const diffWeeks = Math.floor((dayDate.getTime() - startOfWeek(programStart, { weekStartsOn: 1 }).getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const wk = Math.max(1, diffWeeks + 1);
+    
+    // Get actual day index from the date
+    const dayOfWeek = dayDate.getDay();
+    const actualDayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Monday-based index
+    
+    const allDaySessions = getSessionsForDay(wk, actualDayIndex);
+    
+    setSelectedSession(session || allDaySessions[0] || null);
+    setSelectedSessions(allDaySessions);
     setSelectedSessionDate(format(dayDate, 'yyyy-MM-dd'));
     setRpe(5);
     setDuration(60);
+    
+    // Initialize per-session inputs
+    const inputs: Record<string, { rpe: number; duration: number }> = {};
+    allDaySessions.forEach(s => {
+      inputs[s.id] = { rpe: 5, duration: 60 };
+    });
+    setSessionInputs(inputs);
+    
     setDetailOpen(true);
   };
 
@@ -372,8 +434,10 @@ export function AthleteCalendarView({
 
               {/* Days Grid */}
               <div className="grid grid-cols-7 gap-2">
-                {days.map((day, dayIndex) => {
+              {days.map((day, dayIndex) => {
                   const session = getSession(wk, dayIndex);
+                  const allDaySessions = getSessionsForDay(wk, dayIndex);
+                  const sessionCount = allDaySessions.length;
                   const dayDate = getDateForDay(wk, dayIndex);
                   const isSessionToday = isToday(dayDate);
                   const isPast = isBefore(dayDate, new Date()) && !isSessionToday;
@@ -406,9 +470,16 @@ export function AthleteCalendarView({
                             {format(dayDate, 'd MMM', { locale: idLocale })}
                           </div>
                         </div>
-                        {isDone && (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        )}
+                        <div className="flex items-center gap-1">
+                          {sessionCount > 1 && (
+                            <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4">
+                              {sessionCount}x
+                            </Badge>
+                          )}
+                          {isDone && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
                       </div>
 
                       {/* Competition badge */}
@@ -470,214 +541,282 @@ export function AthleteCalendarView({
         })}
       </div>
 
-      {/* Session Detail Dialog with RPE Input */}
+      {/* Session Detail Dialog with Multi-Session RPE Input */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Dumbbell className="h-5 w-5 text-primary" />
               Detail Sesi Latihan
+              {selectedSessions.length > 1 && (
+                <Badge variant="secondary">{selectedSessions.length} Sesi</Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
 
-          {selectedSession ? (
+          {selectedSessions.length > 0 ? (
             <div className="space-y-4">
-              {/* Session info */}
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Badge variant={selectedSession.is_done ? "default" : "outline"}>
-                    {selectedSession.is_done ? (
-                      <>
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Selesai
-                      </>
-                    ) : (
-                      <>
-                        <Circle className="h-3 w-3 mr-1" />
-                        Belum Selesai
-                      </>
+              {/* Date info */}
+              <div className="flex items-center justify-end">
+                <span className="text-sm text-muted-foreground">
+                  {selectedSessionDate && format(parseISO(selectedSessionDate), 'd MMMM yyyy', { locale: idLocale })}
+                </span>
+              </div>
+
+              {/* Render each session stacked vertically */}
+              {selectedSessions.map((session, sessionIdx) => {
+                const input = sessionInputs[session.id] || { rpe: 5, duration: 60 };
+                const sessionTSS = calculateSessionLoad(input.rpe, input.duration);
+                const hasContent = session.exercises && session.exercises.length > 0;
+
+                return (
+                  <div key={session.id} className="space-y-3">
+                    {/* Session header */}
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="font-bold">
+                          Sesi {sessionIdx + 1}
+                        </Badge>
+                        <Badge variant={session.is_done ? "default" : "outline"}>
+                          {session.is_done ? (
+                            <><CheckCircle2 className="h-3 w-3 mr-1" />Selesai</>
+                          ) : (
+                            <><Circle className="h-3 w-3 mr-1" />Belum</>
+                          )}
+                        </Badge>
+                        <Badge 
+                          variant="outline"
+                          className={cn(
+                            session.intensity === 'High' && 'border-red-500 text-red-600',
+                            session.intensity === 'Med' && 'border-yellow-500 text-yellow-600',
+                            session.intensity === 'Low' && 'border-green-500 text-green-600',
+                          )}
+                        >
+                          <Flame className="h-3 w-3 mr-1" />
+                          {session.intensity || 'Rest'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Warmup */}
+                    {session.warmup && (
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-orange-500" />
+                          Pemanasan
+                        </h4>
+                        <p className="text-sm text-muted-foreground pl-6">{session.warmup}</p>
+                      </div>
                     )}
-                  </Badge>
-                  <Badge 
-                    variant="outline"
-                    className={cn(
-                      selectedSession.intensity === 'High' && 'border-red-500 text-red-600',
-                      selectedSession.intensity === 'Med' && 'border-yellow-500 text-yellow-600',
-                      selectedSession.intensity === 'Low' && 'border-green-500 text-green-600',
+
+                    {/* Exercises */}
+                    {hasContent && (
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Dumbbell className="h-4 w-4 text-primary" />
+                          Latihan Inti
+                        </h4>
+                        <div className="space-y-2 pl-6">
+                          {session.exercises!.map((ex, idx) => (
+                            <div key={idx} className="p-3 bg-muted/50 rounded-lg">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-medium text-sm">{ex.name}</p>
+                                  <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                    <span>{ex.set} set</span>
+                                    <span>{ex.rep} reps</span>
+                                    {ex.load > 0 && <span>{ex.load} kg</span>}
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {ex.cat === 'strength' && 'Kekuatan'}
+                                  {ex.cat === 'speed' && 'Kecepatan'}
+                                  {ex.cat === 'endurance' && 'Daya Tahan'}
+                                  {ex.cat === 'technique' && 'Teknik'}
+                                  {ex.cat === 'tactic' && 'Taktik'}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                  >
-                    <Flame className="h-3 w-3 mr-1" />
-                    {selectedSession.intensity || 'Rest'}
+
+                    {/* Cooldown */}
+                    {session.cooldown && (
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-blue-500" />
+                          Pendinginan
+                        </h4>
+                        <p className="text-sm text-muted-foreground pl-6">{session.cooldown}</p>
+                      </div>
+                    )}
+
+                    {/* Recovery */}
+                    {session.recovery && (
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-green-500" />
+                          Pemulihan
+                        </h4>
+                        <p className="text-sm text-muted-foreground pl-6">{session.recovery}</p>
+                      </div>
+                    )}
+
+                    {/* RPE & Duration Input for this session */}
+                    <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" />
+                        Catat Beban - Sesi {sessionIdx + 1}
+                      </h4>
+                      
+                      {/* RPE Slider */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm">RPE</Label>
+                          <Badge variant="outline" className="font-bold">{input.rpe}</Badge>
+                        </div>
+                        <Slider
+                          value={[input.rpe]}
+                          onValueChange={(v) => setSessionInputs(prev => ({
+                            ...prev,
+                            [session.id]: { ...prev[session.id], rpe: v[0] }
+                          }))}
+                          min={1}
+                          max={10}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                          <span>1 Ringan</span>
+                          <span>5 Sedang</span>
+                          <span>10 Maks</span>
+                        </div>
+                      </div>
+
+                      {/* Duration Input */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">Durasi (menit)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={input.duration}
+                            onChange={(e) => setSessionInputs(prev => ({
+                              ...prev,
+                              [session.id]: { ...prev[session.id], duration: parseInt(e.target.value) || 0 }
+                            }))}
+                            min={0}
+                            max={480}
+                            className="w-24"
+                          />
+                          <div className="flex gap-1">
+                            {[30, 60, 90].map(d => (
+                              <Button 
+                                key={d} 
+                                size="sm" 
+                                variant={input.duration === d ? "default" : "outline"}
+                                onClick={() => setSessionInputs(prev => ({
+                                  ...prev,
+                                  [session.id]: { ...prev[session.id], duration: d }
+                                }))}
+                                className="text-xs h-8 px-2"
+                              >
+                                {d}m
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* TSS Preview */}
+                      <div className="flex items-center justify-between p-2 bg-background rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">TSS Sesi {sessionIdx + 1}</span>
+                        </div>
+                        <Badge className="font-bold">{sessionTSS} AU</Badge>
+                      </div>
+                    </div>
+
+                    {/* Separator between sessions */}
+                    {sessionIdx < selectedSessions.length - 1 && (
+                      <div className="border-t border-dashed border-muted-foreground/30 my-2" />
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Total TSS for multi-session */}
+              {selectedSessions.length > 1 && (
+                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Total TSS Hari Ini</span>
+                  </div>
+                  <Badge className="text-lg font-bold">
+                    {selectedSessions.reduce((total, s) => {
+                      const input = sessionInputs[s.id] || { rpe: 5, duration: 60 };
+                      return total + calculateSessionLoad(input.rpe, input.duration);
+                    }, 0)} AU
                   </Badge>
                 </div>
+              )}
+
+              {/* Save Button */}
+              <Button 
+                className="w-full" 
+                onClick={saveAllTrainingLoads}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Simpan {selectedSessions.length > 1 ? `${selectedSessions.length} Sesi` : '& Tandai Selesai'}
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : selectedSession ? (
+            /* Fallback for single session without multi-session data */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <Badge variant={selectedSession.is_done ? "default" : "outline"}>
+                  {selectedSession.is_done ? 'Selesai' : 'Belum Selesai'}
+                </Badge>
                 <span className="text-sm text-muted-foreground">
                   {selectedSessionDate && format(parseISO(selectedSessionDate), 'd MMM yyyy', { locale: idLocale })}
                 </span>
               </div>
 
-              {/* Warmup */}
-              {selectedSession.warmup && (
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-orange-500" />
-                    Pemanasan
-                  </h4>
-                  <p className="text-sm text-muted-foreground pl-6">{selectedSession.warmup}</p>
-                </div>
-              )}
-
-              {/* Exercises */}
-              {selectedSession.exercises && selectedSession.exercises.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Dumbbell className="h-4 w-4 text-primary" />
-                    Latihan Inti
-                  </h4>
-                  <div className="space-y-2 pl-6">
-                    {selectedSession.exercises.map((ex, idx) => (
-                      <div 
-                        key={idx}
-                        className="p-3 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-medium text-sm">{ex.name}</p>
-                            <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                              <span>{ex.set} set</span>
-                              <span>{ex.rep} reps</span>
-                              {ex.load > 0 && <span>{ex.load} kg</span>}
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-[10px]">
-                            {ex.cat === 'strength' && 'Kekuatan'}
-                            {ex.cat === 'speed' && 'Kecepatan'}
-                            {ex.cat === 'endurance' && 'Daya Tahan'}
-                            {ex.cat === 'technique' && 'Teknik'}
-                            {ex.cat === 'tactic' && 'Taktik'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Cooldown */}
-              {selectedSession.cooldown && (
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-blue-500" />
-                    Pendinginan
-                  </h4>
-                  <p className="text-sm text-muted-foreground pl-6">{selectedSession.cooldown}</p>
-                </div>
-              )}
-
-              {/* Recovery */}
-              {selectedSession.recovery && (
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-green-500" />
-                    Pemulihan
-                  </h4>
-                  <p className="text-sm text-muted-foreground pl-6">{selectedSession.recovery}</p>
-                </div>
-              )}
-
-              {/* Empty state */}
-              {!selectedSession.warmup && 
-               !selectedSession.exercises?.length && 
-               !selectedSession.cooldown && 
-               !selectedSession.recovery && (
-                <div className="text-center py-4 text-muted-foreground">
-                  {selectedSession.intensity === 'Rest' 
-                    ? 'Hari istirahat - tidak ada latihan' 
-                    : 'Detail sesi belum diisi oleh pelatih'}
-                </div>
-              )}
-
-              {/* RPE & Duration Input */}
-              <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-4">
+              {/* Single session RPE input */}
+              <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-3">
                 <h4 className="font-semibold text-sm flex items-center gap-2">
                   <Zap className="h-4 w-4 text-primary" />
                   Catat Beban Latihan
                 </h4>
-                
-                {/* RPE Slider */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm">RPE (Rating of Perceived Exertion)</Label>
+                    <Label className="text-sm">RPE</Label>
                     <Badge variant="outline" className="font-bold">{rpe}</Badge>
                   </div>
-                  <Slider
-                    value={[rpe]}
-                    onValueChange={(v) => setRpe(v[0])}
-                    min={1}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>1 Sangat Ringan</span>
-                    <span>5 Sedang</span>
-                    <span>10 Maksimal</span>
-                  </div>
+                  <Slider value={[rpe]} onValueChange={(v) => setRpe(v[0])} min={1} max={10} step={1} />
                 </div>
-
-                {/* Duration Input */}
                 <div className="space-y-2">
                   <Label className="text-sm">Durasi (menit)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={duration}
-                      onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
-                      min={0}
-                      max={480}
-                      className="w-24"
-                    />
-                    <div className="flex gap-1">
-                      {[30, 45, 60, 90].map(d => (
-                        <Button 
-                          key={d} 
-                          size="sm" 
-                          variant={duration === d ? "default" : "outline"}
-                          onClick={() => setDuration(d)}
-                          className="text-xs h-8 px-2"
-                        >
-                          {d}m
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
+                  <Input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value) || 0)} min={0} max={480} className="w-24" />
                 </div>
-
-                {/* TSS Preview */}
-                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Session Load (TSS)</span>
-                  </div>
-                  <Badge className="text-lg font-bold">{calculatedTSS} AU</Badge>
+                <div className="flex items-center justify-between p-2 bg-background rounded-lg">
+                  <span className="text-sm font-medium">TSS</span>
+                  <Badge className="font-bold">{calculateSessionLoad(rpe, duration)} AU</Badge>
                 </div>
-
-                {/* Save Button */}
-                <Button 
-                  className="w-full" 
-                  onClick={saveTrainingLoad}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Simpan & Tandai Selesai
-                    </>
-                  )}
+                <Button className="w-full" onClick={saveAllTrainingLoads} disabled={saving}>
+                  {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Menyimpan...</> : <><Save className="h-4 w-4 mr-2" />Simpan & Tandai Selesai</>}
                 </Button>
               </div>
             </div>
