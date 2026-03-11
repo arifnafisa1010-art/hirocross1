@@ -316,12 +316,33 @@ export function AthleteCalendarView({
     });
   };
 
-  // Open session detail with date
+  // Open session detail with date - now supports multi-session
   const openSessionDetail = (session: Session | null, dayDate: Date) => {
-    setSelectedSession(session);
+    const dayIndex = days.indexOf(format(dayDate, 'EEEE', { locale: idLocale }).replace(/^\w/, c => c.toUpperCase()));
+    // Find the week number for this date
+    const programStart = parseISO(startDate);
+    const diffWeeks = Math.floor((dayDate.getTime() - startOfWeek(programStart, { weekStartsOn: 1 }).getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const wk = Math.max(1, diffWeeks + 1);
+    
+    // Get actual day index from the date
+    const dayOfWeek = dayDate.getDay();
+    const actualDayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Monday-based index
+    
+    const allDaySessions = getSessionsForDay(wk, actualDayIndex);
+    
+    setSelectedSession(session || allDaySessions[0] || null);
+    setSelectedSessions(allDaySessions);
     setSelectedSessionDate(format(dayDate, 'yyyy-MM-dd'));
     setRpe(5);
     setDuration(60);
+    
+    // Initialize per-session inputs
+    const inputs: Record<string, { rpe: number; duration: number }> = {};
+    allDaySessions.forEach(s => {
+      inputs[s.id] = { rpe: 5, duration: 60 };
+    });
+    setSessionInputs(inputs);
+    
     setDetailOpen(true);
   };
 
