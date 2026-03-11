@@ -32,7 +32,7 @@ export function AthleteReadinessSection({
   premiumLoading,
 }: AthleteReadinessSectionProps) {
   const { user } = useAuth();
-  const { entries, loading, addEntry } = useReadiness(athleteId);
+  const { entries, loading, addEntry, refetch } = useReadiness(athleteId);
   const [formOpen, setFormOpen] = useState(false);
 
   const autoVjBaseline = useMemo(() => {
@@ -56,26 +56,13 @@ export function AthleteReadinessSection({
 
   const handleSubmit = async (data: any) => {
     if (!user) return;
-    // Athletes insert with their own user_id
-    const { error } = await supabase
-      .from('athlete_readiness')
-      .insert({
-        ...data,
-        athlete_id: athleteId,
-        user_id: user.id,
-      } as any);
-    
-    if (error) {
-      const { toast } = await import('sonner');
-      toast.error('Gagal menyimpan data readiness');
-      console.error(error);
-      return;
+    const result = await addEntry({
+      ...data,
+      athlete_id: athleteId,
+    });
+    if (result) {
+      setFormOpen(false);
     }
-    const { toast } = await import('sonner');
-    toast.success('Data readiness berhasil disimpan!');
-    setFormOpen(false);
-    // Trigger refetch via the hook
-    window.location.reload();
   };
 
   return (
