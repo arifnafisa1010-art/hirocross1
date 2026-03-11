@@ -166,43 +166,40 @@ export function AthleteCalendarView({
     return addDays(weekStart, dayIndex);
   };
 
-  // Save training load to database
-  const saveTrainingLoad = async () => {
-    if (!user || !selectedSessionDate) {
-      toast.error('Data tidak lengkap');
-      return;
-    }
+  // Save training load to database for a specific session
+  const saveTrainingLoadForSession = async (session: Session, sessionRpe: number, sessionDuration: number, sessionIndex: number) => {
+    if (!user || !selectedSessionDate) return false;
 
-    setSaving(true);
+    const sessionLoad = calculateSessionLoad(sessionRpe, sessionDuration);
 
-    const sessionLoad = calculateSessionLoad(rpe, duration);
-
-    // Determine training type from session's first exercise category
     let trainingType = 'training';
-    if (selectedSession?.exercises && selectedSession.exercises.length > 0) {
-      const firstCat = selectedSession.exercises[0].cat;
+    if (session.exercises && session.exercises.length > 0) {
+      const firstCat = session.exercises[0].cat;
       if (firstCat === 'strength') trainingType = 'strength';
       else if (firstCat === 'endurance') trainingType = 'conditioning';
       else if (firstCat === 'technique') trainingType = 'technical';
       else if (firstCat === 'tactic') trainingType = 'tactical';
     }
 
-    // Check if load already exists for this date
+    // Use date + session index as unique key
+    const sessionDateKey = `${selectedSessionDate}-S${sessionIndex + 1}`;
+
+    // Check if load already exists for this date+session
     const { data: existing } = await supabase
       .from('training_loads')
       .select('id')
       .eq('session_date', selectedSessionDate)
       .eq('athlete_id', athleteId || null)
+      .eq('notes', `session-${sessionIndex + 1}`)
       .maybeSingle();
 
     let error;
     if (existing) {
-      // Update existing
       const result = await supabase
         .from('training_loads')
         .update({
-          rpe,
-          duration_minutes: duration,
+          rpe: sessionRpe,
+          duration_minutes: sessionDuration,
           session_load: sessionLoad,
           training_type: trainingType,
           updated_at: new Date().toISOString(),
@@ -210,35 +207,77 @@ export function AthleteCalendarView({
         .eq('id', existing.id);
       error = result.error;
     } else {
-      // Insert new
       const result = await supabase
         .from('training_loads')
         .insert({
           user_id: user.id,
           athlete_id: athleteId || null,
           session_date: selectedSessionDate,
-          rpe,
-          duration_minutes: duration,
+          rpe: sessionRpe,
+          duration_minutes: sessionDuration,
           session_load: sessionLoad,
           training_type: trainingType,
+          notes: `session-${sessionIndex + 1}`,
         });
       error = result.error;
     }
 
     if (error) {
       console.error('Error saving training load:', error);
-      toast.error('Gagal menyimpan data latihan');
-    } else {
-      toast.success(`Data latihan tersimpan! TSS: ${sessionLoad} AU`);
-      
-      // Also mark session as done if not already
-      if (selectedSession && !selectedSession.is_done) {
-        await toggleSessionDone(selectedSession);
+      return false;
+    }
+
+    // Mark session as done
+    if (!session.is_done) {
+      await toggleSessionDone(session);
+    }
+
+    return true;
+  };
+
+  // Save all sessions
+  const saveAllTrainingLoads = async () => {
+    if (!user || !selectedSessionDate) {
+      toast.error('Data tidak lengkap');
+      return;
+    }
+
+    setSaving(true);
+
+    // If single session (no multi-session)
+    if (selectedSessions.length <= 1 && selectedSession) {
+      const success = await saveTrainingLoadForSession(selectedSession, rpe, duration, 0);
+      if (success) {
+        const tss = calculateSessionLoad(rpe, duration);
+        toast.success(`Data latihan tersimpan! TSS: ${tss} AU`);
         setSelectedSession(prev => prev ? { ...prev, is_done: true } : null);
+      } else {
+        toast.error('Gagal menyimpan data latihan');
+      }
+    } else {
+      // Multi-session save
+      let allSuccess = true;
+      let totalTSS = 0;
+      for (let i = 0; i < selectedSessions.length; i++) {
+        const s = selectedSessions[i];
+        const input = sessionInputs[s.id] || { rpe: 5, duration: 60 };
+        const success = await saveTrainingLoadForSession(s, input.rpe, input.duration, i);
+        if (success) {
+          totalTSS += calculateSessionLoad(input.rpe, input.duration);
+        } else {
+          allSuccess = false;
+        }
+      }
+      if (allSuccess) {
+        toast.success(`Semua sesi tersimpan! Total TSS: ${totalTSS} AU`);
+        setSelectedSessions(prev => prev.map(s => ({ ...s, is_done: true })));
+      } else {
+        toast.error('Beberapa sesi gagal disimpan');
       }
     }
 
     setSaving(false);
+    fetchSessions();
   };
 
   // Toggle session done status
