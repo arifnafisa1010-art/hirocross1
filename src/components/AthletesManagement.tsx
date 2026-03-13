@@ -110,6 +110,11 @@ export function AthletesManagement() {
       return;
     }
 
+    if (!canAddMore) {
+      toast.error('Batas maksimal 5 atlet untuk akun gratis. Upgrade ke Premium untuk menambah lebih banyak.');
+      return;
+    }
+
     const result = await addAthlete({
       name: formData.name,
       sport: formData.sport || null,
