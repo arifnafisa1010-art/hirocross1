@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAthletes, Athlete } from '@/hooks/useAthletes';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,13 +9,19 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LinkAthleteDialog } from '@/components/LinkAthleteDialog';
-import { Users, Plus, Pencil, Trash2, Link2, Clock, CheckCircle, Upload, Camera, Loader2 } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Link2, Clock, CheckCircle, Upload, Camera, Loader2, Crown, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+
+const MAX_FREE_ATHLETES = 5;
 
 export function AthletesManagement() {
   const { athletes, loading, addAthlete, updateAthlete, deleteAthlete, refetch } = useAthletes();
+  const { hasPremium } = usePremiumAccess();
+  const navigate = useNavigate();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const canAddMore = hasPremium || athletes.length < MAX_FREE_ATHLETES;
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -100,6 +107,11 @@ export function AthletesManagement() {
   const handleAdd = async () => {
     if (!formData.name.trim()) {
       toast.error('Nama atlet wajib diisi');
+      return;
+    }
+
+    if (!canAddMore) {
+      toast.error('Batas maksimal 5 atlet untuk akun gratis. Upgrade ke Premium untuk menambah lebih banyak.');
       return;
     }
 
@@ -335,26 +347,38 @@ export function AthletesManagement() {
           <Users className="h-5 w-5" />
           Manajemen Atlet
         </CardTitle>
-        <Dialog open={addDialogOpen} onOpenChange={(open) => { setAddDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Atlet
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="text-xs">
+            {athletes.length}/{hasPremium ? '∞' : MAX_FREE_ATHLETES} Atlet
+          </Badge>
+          {canAddMore ? (
+            <Dialog open={addDialogOpen} onOpenChange={(open) => { setAddDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Atlet
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Tambah Atlet Baru</DialogTitle>
+                </DialogHeader>
+                {athleteFormContent}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setAddDialogOpen(false); resetForm(); }}>
+                    Batal
+                  </Button>
+                  <Button onClick={handleAdd} disabled={uploading}>Simpan</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => navigate('/premium')} className="border-amber-500 text-amber-600 hover:bg-amber-50">
+              <Crown className="h-4 w-4 mr-2" />
+              Upgrade untuk Tambah Atlet
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Tambah Atlet Baru</DialogTitle>
-            </DialogHeader>
-            {athleteFormContent}
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => { setAddDialogOpen(false); resetForm(); }}>
-                Batal
-              </Button>
-              <Button onClick={handleAdd} disabled={uploading}>Simpan</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {athletes.length === 0 ? (
