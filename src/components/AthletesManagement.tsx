@@ -18,7 +18,10 @@ const MAX_FREE_ATHLETES = 5;
 
 export function AthletesManagement() {
   const { athletes, loading, addAthlete, updateAthlete, deleteAthlete, refetch } = useAthletes();
+  const { hasPremium } = usePremiumAccess();
+  const navigate = useNavigate();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const canAddMore = hasPremium || athletes.length < MAX_FREE_ATHLETES;
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
