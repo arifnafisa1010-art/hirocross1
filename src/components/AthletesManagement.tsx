@@ -342,26 +342,38 @@ export function AthletesManagement() {
           <Users className="h-5 w-5" />
           Manajemen Atlet
         </CardTitle>
-        <Dialog open={addDialogOpen} onOpenChange={(open) => { setAddDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Atlet
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="text-xs">
+            {athletes.length}/{hasPremium ? '∞' : MAX_FREE_ATHLETES} Atlet
+          </Badge>
+          {canAddMore ? (
+            <Dialog open={addDialogOpen} onOpenChange={(open) => { setAddDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Atlet
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Tambah Atlet Baru</DialogTitle>
+                </DialogHeader>
+                {athleteFormContent}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setAddDialogOpen(false); resetForm(); }}>
+                    Batal
+                  </Button>
+                  <Button onClick={handleAdd} disabled={uploading}>Simpan</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => navigate('/premium')} className="border-amber-500 text-amber-600 hover:bg-amber-50">
+              <Crown className="h-4 w-4 mr-2" />
+              Upgrade untuk Tambah Atlet
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Tambah Atlet Baru</DialogTitle>
-            </DialogHeader>
-            {athleteFormContent}
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => { setAddDialogOpen(false); resetForm(); }}>
-                Batal
-              </Button>
-              <Button onClick={handleAdd} disabled={uploading}>Simpan</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {athletes.length === 0 ? (
