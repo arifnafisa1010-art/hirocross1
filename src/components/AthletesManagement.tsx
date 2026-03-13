@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAthletes, Athlete } from '@/hooks/useAthletes';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,9 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LinkAthleteDialog } from '@/components/LinkAthleteDialog';
-import { Users, Plus, Pencil, Trash2, Link2, Clock, CheckCircle, Upload, Camera, Loader2 } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Link2, Clock, CheckCircle, Upload, Camera, Loader2, Crown, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+
+const MAX_FREE_ATHLETES = 5;
 
 export function AthletesManagement() {
   const { athletes, loading, addAthlete, updateAthlete, deleteAthlete, refetch } = useAthletes();
