@@ -6,13 +6,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCoachPremiumStatus } from '@/hooks/useCoachPremiumStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, LogOut, Dumbbell, Activity, Calendar, HeartPulse } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { User, LogOut, Activity, Calendar, HeartPulse, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AthleteProfileSection } from '@/components/athlete-portal/AthleteProfileSection';
 import { AthletePerformanceSection } from '@/components/athlete-portal/AthletePerformanceSection';
 import { AthleteTrainingCalendar } from '@/components/athlete-portal/AthleteTrainingCalendar';
 import { AthleteReadinessSection } from '@/components/athlete-portal/AthleteReadinessSection';
+import { motion, AnimatePresence } from 'framer-motion';
+import hirocrossLogo from '@/assets/hirocross-logo-new.png';
 
 type TabType = 'profil' | 'performa' | 'kalender' | 'readiness';
 
@@ -22,7 +25,6 @@ const AthletePortal = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profil');
 
-  // Fetch training loads for the current athlete
   const { 
     dailyMetrics, 
     acwrData, 
@@ -30,7 +32,6 @@ const AthletePortal = () => {
     loading: metricsLoading 
   } = useAthleteTrainingLoads(athleteProfile?.id || null);
 
-  // Check if the coach has premium access
   const { 
     coachHasPremium, 
     loading: premiumLoading 
@@ -44,7 +45,12 @@ const AthletePortal = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="h-12 w-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground animate-pulse">Memuat portal atlet...</p>
+        </div>
       </div>
     );
   }
@@ -52,24 +58,26 @@ const AthletePortal = () => {
   if (!isAthlete) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Portal Atlet
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Akun Anda ({user?.email}) belum terhubung dengan profil atlet. 
-              Hubungi pelatih Anda untuk menghubungkan akun.
-            </p>
-            <Button onClick={handleSignOut} variant="outline" className="w-full">
-              <LogOut className="h-4 w-4 mr-2" />
-              Keluar
-            </Button>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="max-w-md w-full border-none shadow-2xl">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <User className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-xl">Portal Atlet</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-muted-foreground text-sm">
+                Akun Anda ({user?.email}) belum terhubung dengan profil atlet. 
+                Hubungi pelatih Anda untuk menghubungkan akun.
+              </p>
+              <Button onClick={handleSignOut} variant="outline" className="w-full">
+                <LogOut className="h-4 w-4 mr-2" />
+                Keluar
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
@@ -81,6 +89,13 @@ const AthletePortal = () => {
     { id: 'kalender' as const, label: 'Kalender', icon: Calendar },
   ];
 
+  const initials = athleteProfile?.name
+    ?.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'AT';
+
   return (
     <>
       <Helmet>
@@ -89,42 +104,60 @@ const AthletePortal = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b bg-card sticky top-0 z-50">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        {/* Modern Header */}
+        <header className="sticky top-0 z-50 backdrop-blur-xl bg-card/80 border-b border-border/50">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Dumbbell className="h-6 w-6 text-primary" />
-              <div>
-                <h1 className="font-bold text-lg">Portal Atlet</h1>
-                <p className="text-sm text-muted-foreground">{athleteProfile?.name}</p>
+              <img src={hirocrossLogo} alt="HiroCross" className="h-8 w-8 rounded-lg" />
+              <div className="hidden sm:block">
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Portal Atlet</p>
               </div>
             </div>
-            <Button onClick={handleSignOut} variant="ghost" size="sm">
-              <LogOut className="h-4 w-4 mr-2" />
-              Keluar
-            </Button>
+            
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-muted/50">
+                <Avatar className="h-7 w-7 border border-border">
+                  <AvatarImage src={athleteProfile?.photo_url || undefined} />
+                  <AvatarFallback className="text-[10px] font-bold bg-primary text-primary-foreground">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hidden sm:inline">{athleteProfile?.name}</span>
+              </div>
+              <Button onClick={handleSignOut} variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-destructive/10 hover:text-destructive">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </header>
 
-        {/* Navigation Tabs */}
-        <div className="border-b bg-card sticky top-[73px] z-40">
+        {/* Modern Tab Navigation */}
+        <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b border-border/30">
           <div className="container mx-auto px-4">
-            <nav className="flex gap-1">
+            <nav className="flex gap-0.5 -mb-px">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
-                      activeTab === tab.id
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className={cn("h-4 w-4 transition-colors", isActive && "text-accent")} />
                     <span className="hidden sm:inline">{tab.label}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    )}
                   </button>
                 );
               })}
@@ -132,47 +165,53 @@ const AthletePortal = () => {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main Content with animation */}
         <main className="container mx-auto px-4 py-6">
-          {/* Profile Tab */}
-          {activeTab === 'profil' && athleteProfile && (
-            <AthleteProfileSection
-              athleteId={athleteProfile.id}
-              athleteData={athleteProfile}
-              onProfileUpdate={refetch}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === 'profil' && athleteProfile && (
+                <AthleteProfileSection
+                  athleteId={athleteProfile.id}
+                  athleteData={athleteProfile}
+                  onProfileUpdate={refetch}
+                />
+              )}
 
-          {/* Performance Tab */}
-          {activeTab === 'performa' && (
-            <AthletePerformanceSection
-              dailyMetrics={dailyMetrics}
-              acwrData={acwrData}
-              currentMetrics={currentMetrics}
-              loading={metricsLoading}
-              coachHasPremium={coachHasPremium}
-              premiumLoading={premiumLoading}
-            />
-          )}
+              {activeTab === 'performa' && (
+                <AthletePerformanceSection
+                  dailyMetrics={dailyMetrics}
+                  acwrData={acwrData}
+                  currentMetrics={currentMetrics}
+                  loading={metricsLoading}
+                  coachHasPremium={coachHasPremium}
+                  premiumLoading={premiumLoading}
+                />
+              )}
 
-          {/* Readiness Tab */}
-          {activeTab === 'readiness' && athleteProfile && (
-            <AthleteReadinessSection
-              athleteId={athleteProfile.id}
-              athleteName={athleteProfile.name}
-              restingHr={athleteProfile.resting_hr}
-              coachHasPremium={coachHasPremium}
-              premiumLoading={premiumLoading}
-            />
-          )}
+              {activeTab === 'readiness' && athleteProfile && (
+                <AthleteReadinessSection
+                  athleteId={athleteProfile.id}
+                  athleteName={athleteProfile.name}
+                  restingHr={athleteProfile.resting_hr}
+                  coachHasPremium={coachHasPremium}
+                  premiumLoading={premiumLoading}
+                />
+              )}
 
-          {/* Calendar Tab */}
-          {activeTab === 'kalender' && (
-            <AthleteTrainingCalendar
-              programs={programs}
-              athleteId={athleteProfile?.id}
-            />
-          )}
+              {activeTab === 'kalender' && (
+                <AthleteTrainingCalendar
+                  programs={programs}
+                  athleteId={athleteProfile?.id}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </>
