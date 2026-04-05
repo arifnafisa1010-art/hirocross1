@@ -904,6 +904,28 @@ export function MonthlySection() {
 
                 {/* Days */}
                 {days.map((day, dayIndex) => {
+                  // Check if this day is before the program start (only in monday mode, week 1)
+                  const isDisabledDay = isDayBeforeStart(new Date(setup.startDate), wk, dayIndex, weekMode);
+                  
+                  if (isDisabledDay) {
+                    const dayDate = getDateForDay(wk, dayIndex);
+                    return (
+                      <Card key={day} className="p-3 min-h-28 border-border/30 bg-muted/20 opacity-50 cursor-not-allowed">
+                        <div className="text-[10px] font-bold text-muted-foreground/50">
+                          {day.slice(0, 3)}
+                        </div>
+                        {dayDate && (
+                          <div className="text-[9px] text-muted-foreground/40">
+                            {format(dayDate, 'd MMM', { locale: idLocale })}
+                          </div>
+                        )}
+                        <div className="mt-4 text-[9px] text-muted-foreground/40 text-center italic">
+                          Sebelum mulai
+                        </div>
+                      </Card>
+                    );
+                  }
+
                   // Multi-session support: get all sessions for this day
                   const daySessions = getSessionsForDay(wk, day);
                   const sessionCount = daySessions.length;
@@ -913,9 +935,6 @@ export function MonthlySection() {
                   const intensity = firstSession?.int || 'Rest';
                   const dayDate = getDateForDay(wk, dayIndex);
                   const dayDateStr = dayDate ? format(dayDate, 'yyyy-MM-dd') : null;
-
-                  // Calculate total load from all sessions' completed exercises
-                  const totalLoad = daySessions.reduce((sum, { session: s }) => {
                     return sum + (s?.exercises?.reduce((exSum, ex) => exSum + (ex.load * ex.set * ex.rep), 0) || 0);
                   }, 0);
 
