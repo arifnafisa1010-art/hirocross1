@@ -3,7 +3,8 @@ import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingLoads, calculateSessionLoad } from '@/hooks/useTrainingLoads';
 import { useAuth } from '@/hooks/useAuth';
 import { DaySession, Exercise } from '@/types/training';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { getMondayOnOrAfter } from '@/lib/dateUtils';
 import {
   Dialog,
   DialogContent,
@@ -111,7 +112,7 @@ export function SessionModal({
   const getSessionDate = (): string | null => {
     if (!setup.startDate) return null;
     const startDate = new Date(setup.startDate);
-    const monday = startOfWeek(startDate, { weekStartsOn: 1 });
+    const monday = getMondayOnOrAfter(startDate);
     const dayIndex = dayToIndex[day] ?? 0;
     const sessionDate = addDays(monday, (week - 1) * 7 + dayIndex);
     return format(sessionDate, 'yyyy-MM-dd');

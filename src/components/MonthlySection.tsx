@@ -24,7 +24,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { getMondayOnOrAfter } from '@/lib/dateUtils';
 import { id as idLocale } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -268,8 +269,7 @@ export function MonthlySection() {
   const getDateForDay = (wk: number, dayIndex: number) => {
     if (!setup.startDate) return null;
     const startDate = new Date(setup.startDate);
-    // Snap to Monday of the start week so day labels always match
-    const monday = startOfWeek(startDate, { weekStartsOn: 1 });
+    const monday = getMondayOnOrAfter(startDate);
     const weekStart = addDays(monday, (wk - 1) * 7);
     return addDays(weekStart, dayIndex);
   };

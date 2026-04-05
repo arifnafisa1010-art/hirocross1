@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { getMondayOnOrAfter } from '@/lib/dateUtils';
 import { id as idLocale } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +62,7 @@ export function WeeklySyncSummary({
   // Calculate session sync status for each day
   const daySyncStatus = useMemo(() => {
     const programStartDate = new Date(startDate);
-    const monday = startOfWeek(programStartDate, { weekStartsOn: 1 });
+    const monday = getMondayOnOrAfter(programStartDate);
     
     return days.map((day, dayIndex) => {
       // Get all sessions for this day (multi-session support)
