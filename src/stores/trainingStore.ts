@@ -83,6 +83,9 @@ interface TrainingStore {
   addDayMarker: (marker: Omit<DayMarker, 'id'>) => void;
   removeDayMarker: (id: string) => void;
   
+  weekMode: WeekMode;
+  setWeekMode: (mode: WeekMode) => void;
+  
   generatePlan: () => void;
 }
 
