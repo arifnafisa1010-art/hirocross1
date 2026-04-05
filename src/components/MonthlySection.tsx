@@ -935,6 +935,9 @@ export function MonthlySection() {
                   const intensity = firstSession?.int || 'Rest';
                   const dayDate = getDateForDay(wk, dayIndex);
                   const dayDateStr = dayDate ? format(dayDate, 'yyyy-MM-dd') : null;
+
+                  // Calculate total load from all sessions' completed exercises
+                  const totalLoad = daySessions.reduce((sum, { session: s }) => {
                     return sum + (s?.exercises?.reduce((exSum, ex) => exSum + (ex.load * ex.set * ex.rep), 0) || 0);
                   }, 0);
 
