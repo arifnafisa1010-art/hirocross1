@@ -25,15 +25,15 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, addDays } from 'date-fns';
-import { getMondayOnOrAfter } from '@/lib/dateUtils';
+import { getWeekStartDate, getOrderedDays, isDayBeforeStart, WeekMode } from '@/lib/dateUtils';
 import { id as idLocale } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+const defaultDays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession, setSessions } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession, setSessions, weekMode, setWeekMode } = useTrainingStore();
   const { athletes } = useAthletes();
   const { saveProgram, saveSession, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram, renameProgram } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
@@ -67,6 +67,12 @@ export function MonthlySection() {
     }
     return DEFAULT_BASE_LOAD_PER_PHASE;
   });
+
+  // Compute days array based on week mode
+  const days = useMemo(() => {
+    if (!setup.startDate) return defaultDays;
+    return getOrderedDays(new Date(setup.startDate), weekMode);
+  }, [setup.startDate, weekMode]);
 
   // Auto-load latest program from DB and sync to store
   const [programSynced, setProgramSynced] = useState(false);
@@ -269,8 +275,7 @@ export function MonthlySection() {
   const getDateForDay = (wk: number, dayIndex: number) => {
     if (!setup.startDate) return null;
     const startDate = new Date(setup.startDate);
-    const monday = getMondayOnOrAfter(startDate);
-    const weekStart = addDays(monday, (wk - 1) * 7);
+    const weekStart = getWeekStartDate(startDate, wk, weekMode);
     return addDays(weekStart, dayIndex);
   };
 
@@ -762,6 +767,26 @@ export function MonthlySection() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Week Mode Toggle */}
+          <div className="flex items-center gap-2 border rounded-lg p-1">
+            <Button
+              size="sm"
+              variant={weekMode === 'monday' ? 'default' : 'ghost'}
+              className="h-7 text-xs"
+              onClick={() => setWeekMode('monday')}
+            >
+              Mulai Senin
+            </Button>
+            <Button
+              size="sm"
+              variant={weekMode === 'startDay' ? 'default' : 'ghost'}
+              className="h-7 text-xs"
+              onClick={() => setWeekMode('startDay')}
+            >
+              Mulai Hari Latihan
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -879,6 +904,28 @@ export function MonthlySection() {
 
                 {/* Days */}
                 {days.map((day, dayIndex) => {
+                  // Check if this day is before the program start (only in monday mode, week 1)
+                  const isDisabledDay = isDayBeforeStart(new Date(setup.startDate), wk, dayIndex, weekMode);
+                  
+                  if (isDisabledDay) {
+                    const dayDate = getDateForDay(wk, dayIndex);
+                    return (
+                      <Card key={day} className="p-3 min-h-28 border-border/30 bg-muted/20 opacity-50 cursor-not-allowed">
+                        <div className="text-[10px] font-bold text-muted-foreground/50">
+                          {day.slice(0, 3)}
+                        </div>
+                        {dayDate && (
+                          <div className="text-[9px] text-muted-foreground/40">
+                            {format(dayDate, 'd MMM', { locale: idLocale })}
+                          </div>
+                        )}
+                        <div className="mt-4 text-[9px] text-muted-foreground/40 text-center italic">
+                          Sebelum mulai
+                        </div>
+                      </Card>
+                    );
+                  }
+
                   // Multi-session support: get all sessions for this day
                   const daySessions = getSessionsForDay(wk, day);
                   const sessionCount = daySessions.length;

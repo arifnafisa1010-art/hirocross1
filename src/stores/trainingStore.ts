@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition } from '@/types/training';
+import { WeekMode } from '@/lib/dateUtils';
 
 export interface TrainingBlock {
   startWeek: number;
@@ -81,6 +82,9 @@ interface TrainingStore {
   dayMarkers: DayMarker[];
   addDayMarker: (marker: Omit<DayMarker, 'id'>) => void;
   removeDayMarker: (id: string) => void;
+  
+  weekMode: WeekMode;
+  setWeekMode: (mode: WeekMode) => void;
   
   generatePlan: () => void;
 }
@@ -184,6 +188,9 @@ export const useTrainingStore = create<TrainingStore>()(
       removeDayMarker: (id) => set((state) => ({
         dayMarkers: state.dayMarkers.filter((m) => m.id !== id),
       })),
+      
+      weekMode: 'monday' as WeekMode,
+      setWeekMode: (mode) => set({ weekMode: mode }),
       
       generatePlan: () => {
         const state = get();

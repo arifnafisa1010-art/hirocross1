@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { format, addDays } from 'date-fns';
-import { getMondayOnOrAfter } from '@/lib/dateUtils';
+import { getWeekStartDate, getOrderedDays } from '@/lib/dateUtils';
+import { useTrainingStore } from '@/stores/trainingStore';
 import { id as idLocale } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,7 @@ interface WeeklySyncSummaryProps {
   intensityPercent: number;
 }
 
-const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+const defaultDays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 // RPE-based Load Map for calculating TSS
 const RPE_LOAD_MAP: Record<number, number> = {
@@ -62,7 +63,9 @@ export function WeeklySyncSummary({
   // Calculate session sync status for each day
   const daySyncStatus = useMemo(() => {
     const programStartDate = new Date(startDate);
-    const monday = getMondayOnOrAfter(programStartDate);
+    const { weekMode } = useTrainingStore.getState();
+    const days = getOrderedDays(programStartDate, weekMode);
+    const weekStart = getWeekStartDate(programStartDate, weekNumber, weekMode);
     
     return days.map((day, dayIndex) => {
       // Get all sessions for this day (multi-session support)
@@ -79,7 +82,7 @@ export function WeeklySyncSummary({
         daySessions.push({ key: oldKey, session: sessions[oldKey] });
       }
       
-      const dayDate = addDays(monday, (weekNumber - 1) * 7 + dayIndex);
+      const dayDate = addDays(weekStart, dayIndex);
       const dayDateStr = format(dayDate, 'yyyy-MM-dd');
       
       // Find matching load in database
