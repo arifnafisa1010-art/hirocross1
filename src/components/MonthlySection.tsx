@@ -25,15 +25,15 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, addDays } from 'date-fns';
-import { getMondayOnOrAfter } from '@/lib/dateUtils';
+import { getWeekStartDate, getOrderedDays, isDayBeforeStart, WeekMode } from '@/lib/dateUtils';
 import { id as idLocale } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+const defaultDays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export function MonthlySection() {
-  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession, setSessions } = useTrainingStore();
+  const { planData, setup, sessions, mesocycles, competitions, selectedAthleteIds, setSelectedAthleteIds, dayMarkers, addDayMarker, removeDayMarker, setSetup, setMesocycles, setPlanData, setTotalWeeks, setCompetitions, updateSession, setSessions, weekMode, setWeekMode } = useTrainingStore();
   const { athletes } = useAthletes();
   const { saveProgram, saveSession, currentProgram, programs, loading: programLoading, loadProgram, resyncSessions, deleteProgram, duplicateProgram, renameProgram } = useTrainingPrograms();
   const { hasPremium } = usePremiumAccess();
