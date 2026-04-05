@@ -3,7 +3,8 @@ import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingLoads, calculateSessionLoad } from '@/hooks/useTrainingLoads';
 import { useAuth } from '@/hooks/useAuth';
 import { DaySession, Exercise } from '@/types/training';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { getMondayOnOrAfter } from '@/lib/dateUtils';
 import {
   Dialog,
   DialogContent,

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { getMondayOnOrAfter } from '@/lib/dateUtils';
 import { id as idLocale } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

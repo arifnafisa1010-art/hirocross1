@@ -15,7 +15,8 @@ import {
   Calendar, Activity, Trophy, Zap, Save, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, parseISO, addWeeks, addDays, isToday, isBefore, startOfWeek } from 'date-fns';
+import { format, parseISO, addWeeks, addDays, isToday, isBefore } from 'date-fns';
+import { getMondayOnOrAfter } from '@/lib/dateUtils';
 import { id as idLocale } from 'date-fns/locale';
 
 interface Exercise {
