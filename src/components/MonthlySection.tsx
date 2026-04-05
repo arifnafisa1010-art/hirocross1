@@ -269,8 +269,7 @@ export function MonthlySection() {
   const getDateForDay = (wk: number, dayIndex: number) => {
     if (!setup.startDate) return null;
     const startDate = new Date(setup.startDate);
-    const monday = getMondayOnOrAfter(startDate);
-    const weekStart = addDays(monday, (wk - 1) * 7);
+    const weekStart = getWeekStartDate(startDate, wk, weekMode);
     return addDays(weekStart, dayIndex);
   };
 
