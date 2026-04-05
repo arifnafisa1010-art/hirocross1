@@ -189,6 +189,9 @@ export const useTrainingStore = create<TrainingStore>()(
         dayMarkers: state.dayMarkers.filter((m) => m.id !== id),
       })),
       
+      weekMode: 'monday' as WeekMode,
+      setWeekMode: (mode) => set({ weekMode: mode }),
+      
       generatePlan: () => {
         const state = get();
         const { startDate } = state.setup;
