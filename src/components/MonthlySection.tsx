@@ -68,6 +68,12 @@ export function MonthlySection() {
     return DEFAULT_BASE_LOAD_PER_PHASE;
   });
 
+  // Compute days array based on week mode
+  const days = useMemo(() => {
+    if (!setup.startDate) return defaultDays;
+    return getOrderedDays(new Date(setup.startDate), weekMode);
+  }, [setup.startDate, weekMode]);
+
   // Auto-load latest program from DB and sync to store
   const [programSynced, setProgramSynced] = useState(false);
   
