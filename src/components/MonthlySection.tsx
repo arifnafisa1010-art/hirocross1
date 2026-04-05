@@ -268,8 +268,16 @@ export function MonthlySection() {
   const getDateForDay = (wk: number, dayIndex: number) => {
     if (!setup.startDate) return null;
     const startDate = new Date(setup.startDate);
-    // Snap to Monday of the start week so day labels always match
-    const monday = startOfWeek(startDate, { weekStartsOn: 1 });
+    // Snap to the Monday on or after the start date so week 1 never shows dates before training begins
+    const dayOfWeek = startDate.getDay(); // 0=Sun, 1=Mon, ...
+    let monday: Date;
+    if (dayOfWeek === 1) {
+      monday = startDate; // Already Monday
+    } else if (dayOfWeek === 0) {
+      monday = addDays(startDate, 1); // Sunday → next Monday
+    } else {
+      monday = addDays(startDate, 8 - dayOfWeek); // Snap forward to next Monday
+    }
     const weekStart = addDays(monday, (wk - 1) * 7);
     return addDays(weekStart, dayIndex);
   };
