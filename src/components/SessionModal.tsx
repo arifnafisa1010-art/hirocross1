@@ -111,7 +111,7 @@ export function SessionModal({
   const getSessionDate = (): string | null => {
     if (!setup.startDate) return null;
     const startDate = new Date(setup.startDate);
-    const monday = startOfWeek(startDate, { weekStartsOn: 1 });
+    const monday = getMondayOnOrAfter(startDate);
     const dayIndex = dayToIndex[day] ?? 0;
     const sessionDate = addDays(monday, (week - 1) * 7 + dayIndex);
     return format(sessionDate, 'yyyy-MM-dd');
