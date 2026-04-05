@@ -767,6 +767,26 @@ export function MonthlySection() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Week Mode Toggle */}
+          <div className="flex items-center gap-2 border rounded-lg p-1">
+            <Button
+              size="sm"
+              variant={weekMode === 'monday' ? 'default' : 'ghost'}
+              className="h-7 text-xs"
+              onClick={() => setWeekMode('monday')}
+            >
+              Mulai Senin
+            </Button>
+            <Button
+              size="sm"
+              variant={weekMode === 'startDay' ? 'default' : 'ghost'}
+              className="h-7 text-xs"
+              onClick={() => setWeekMode('startDay')}
+            >
+              Mulai Hari Latihan
+            </Button>
+          </div>
         </div>
       </div>
 
