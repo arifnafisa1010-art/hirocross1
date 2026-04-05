@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Mesocycle, PlanWeek, DaySession, ProgramSetup, TestResult, TabId, Competition } from '@/types/training';
+import { WeekMode } from '@/lib/dateUtils';
 
 export interface TrainingBlock {
   startWeek: number;
