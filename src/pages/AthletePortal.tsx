@@ -7,23 +7,24 @@ import { useCoachPremiumStatus } from '@/hooks/useCoachPremiumStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, LogOut, Activity, Calendar, HeartPulse, ChevronRight } from 'lucide-react';
+import { User, LogOut, Activity, Calendar, HeartPulse, LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AthleteProfileSection } from '@/components/athlete-portal/AthleteProfileSection';
 import { AthletePerformanceSection } from '@/components/athlete-portal/AthletePerformanceSection';
 import { AthleteTrainingCalendar } from '@/components/athlete-portal/AthleteTrainingCalendar';
 import { AthleteReadinessSection } from '@/components/athlete-portal/AthleteReadinessSection';
+import { AthleteDashboardSection } from '@/components/athlete-portal/AthleteDashboardSection';
 import { motion, AnimatePresence } from 'framer-motion';
 import hirocrossLogo from '@/assets/hirocross-logo-new.png';
 
-type TabType = 'profil' | 'performa' | 'kalender' | 'readiness';
+type TabType = 'dashboard' | 'profil' | 'performa' | 'kalender' | 'readiness';
 
 const AthletePortal = () => {
   const { athleteProfile, programs, loading, isAthlete, refetch } = useAthletePortal();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>('profil');
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
 
   const { 
     dailyMetrics, 
@@ -83,6 +84,7 @@ const AthletePortal = () => {
   }
 
   const tabs = [
+    { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'profil' as const, label: 'Profil', icon: User },
     { id: 'performa' as const, label: 'Performa', icon: Activity },
     { id: 'readiness' as const, label: 'Readiness', icon: HeartPulse },
@@ -175,6 +177,25 @@ const AthletePortal = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
+              {activeTab === 'dashboard' && athleteProfile && (
+                <AthleteDashboardSection
+                  athleteId={athleteProfile.id}
+                  athleteData={{
+                    name: athleteProfile.name,
+                    sport: athleteProfile.sport,
+                    position: athleteProfile.position,
+                    weight: athleteProfile.weight,
+                    height: athleteProfile.height,
+                  }}
+                  dailyMetrics={dailyMetrics}
+                  acwrData={acwrData}
+                  currentMetrics={currentMetrics}
+                  metricsLoading={metricsLoading}
+                  coachHasPremium={coachHasPremium}
+                  premiumLoading={premiumLoading}
+                />
+              )}
+
               {activeTab === 'profil' && athleteProfile && (
                 <AthleteProfileSection
                   athleteId={athleteProfile.id}
