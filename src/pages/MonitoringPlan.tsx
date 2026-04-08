@@ -227,8 +227,66 @@ export default function MonitoringPlan() {
             </div>
           </div>
 
+          {/* Program Selector */}
+          <Card className="border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold">Program Latihan:</span>
+                </div>
+                {loadingPrograms ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                ) : programs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Belum ada program. Buat program di halaman Setup.</p>
+                ) : (
+                  <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                    <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
+                      <SelectTrigger className="w-full sm:w-[320px]">
+                        <SelectValue placeholder="Pilih program..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {programs.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{p.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({format(new Date(p.start_date), 'MMM yyyy', { locale: localeId })})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedProgram && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs">
+                          {format(new Date(selectedProgram.start_date), 'dd MMM yyyy', { locale: localeId })} — {format(new Date(selectedProgram.match_date), 'dd MMM yyyy', { locale: localeId })}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {(externalPlanData as any[])?.length || 0} minggu
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Program Monitoring Content */}
-          <ProgramMonitoringSection />
+          {loadingSessions ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <span className="ml-2 text-sm text-muted-foreground">Memuat data program...</span>
+            </div>
+          ) : (
+            <ProgramMonitoringSection 
+              externalPlanData={externalPlanData}
+              externalSessions={programSessions}
+              externalSetup={externalSetup}
+            />
+          )}
         </div>
       </div>
     </>
