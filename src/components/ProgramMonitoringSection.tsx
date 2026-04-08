@@ -18,8 +18,17 @@ import {
 
 const COLORS = ['#fee2e2', '#fef9c3', '#dcfce7', '#f1f5f9'];
 
-export function ProgramMonitoringSection() {
-  const { planData, sessions, setup } = useTrainingStore();
+interface ProgramMonitoringSectionProps {
+  externalPlanData?: any[];
+  externalSessions?: Record<string, any>;
+  externalSetup?: any;
+}
+
+export function ProgramMonitoringSection({ externalPlanData, externalSessions, externalSetup }: ProgramMonitoringSectionProps = {}) {
+  const store = useTrainingStore();
+  const planData = externalPlanData || store.planData;
+  const sessions = externalSessions || store.sessions;
+  const setup = externalSetup || store.setup;
 
   const stats = useMemo(() => {
     let planCount = 0;
