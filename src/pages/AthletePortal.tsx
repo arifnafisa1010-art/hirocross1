@@ -186,6 +186,7 @@ const AthletePortal = () => {
                     position: athleteProfile.position,
                     weight: athleteProfile.weight,
                     height: athleteProfile.height,
+                    photo_url: athleteProfile.photo_url,
                   }}
                   dailyMetrics={dailyMetrics}
                   acwrData={acwrData}

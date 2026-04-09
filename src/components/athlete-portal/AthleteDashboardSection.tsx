@@ -15,6 +15,7 @@ import { getReadinessInfo } from '@/components/readiness/readinessUtils';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface DailyMetric {
   date: string;
@@ -45,6 +46,7 @@ interface AthleteDashboardSectionProps {
     position: string | null;
     weight: number | null;
     height: number | null;
+    photo_url: string | null;
   };
   dailyMetrics: DailyMetric[];
   acwrData: ACWRData;
@@ -191,12 +193,19 @@ export function AthleteDashboardSection({
           <div className="bg-gradient-to-br from-primary/5 via-accent/5 to-transparent p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <LayoutDashboard className="h-5 w-5 text-primary" />
-                </div>
+                <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-md">
+                  <AvatarImage src={athleteData.photo_url || undefined} alt={athleteData.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+                    {athleteData.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
-                  <h2 className="text-lg font-bold">Kondisi Saat Ini</h2>
-                  <p className="text-xs text-muted-foreground">{format(new Date(), 'EEEE, dd MMMM yyyy', { locale: localeId })}</p>
+                  <h2 className="text-lg font-bold">{athleteData.name}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {athleteData.sport && athleteData.position 
+                      ? `${athleteData.sport} • ${athleteData.position}` 
+                      : athleteData.sport || format(new Date(), 'EEEE, dd MMMM yyyy', { locale: localeId })}
+                  </p>
                 </div>
               </div>
               {!isLoading && (
