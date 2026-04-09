@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  LayoutDashboard, Zap, Flame, Gauge, HeartPulse, Activity,
+  Zap, Flame, Gauge, HeartPulse, Activity,
   Brain, RefreshCw, TrendingUp, TrendingDown, Minus, Shield,
   AlertTriangle, CheckCircle2, XCircle
 } from 'lucide-react';
