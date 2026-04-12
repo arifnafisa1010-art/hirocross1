@@ -928,8 +928,8 @@ export function TestsSection() {
                               <th className="px-3 py-1.5 text-left font-semibold text-muted-foreground">Zona</th>
                               <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">%</th>
                               <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Kecepatan (m/s)</th>
-                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap 400m (detik)</th>
-                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap 400m (mm:ss)</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap {lapDist}m (detik)</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap {lapDist}m (mm:ss)</th>
                             </tr>
                           </thead>
                           <tbody>
