@@ -282,6 +282,7 @@ export function TestsSection() {
   }, [form.item]);
 
   // Calculate VCr when inputs change
+  const lapDist = parseFloat(vcrLapDistance) || 400;
   useEffect(() => {
     if (form.item === 'VCr (Critical Velocity)' && vcrDistanceKm && vcrDurationMin) {
       const distKm = parseFloat(vcrDistanceKm);
@@ -290,7 +291,7 @@ export function TestsSection() {
         const distM = distKm * 1000;
         const durS = durMin * 60;
         const vcr = Math.round((distM / durS) * 100) / 100;
-        const lapTime = Math.round((400 / vcr) * 100) / 100;
+        const lapTime = Math.round((lapDist / vcr) * 100) / 100;
         setVcrResult({ vcr, lapTime });
       } else {
         setVcrResult(null);
@@ -298,7 +299,7 @@ export function TestsSection() {
     } else {
       setVcrResult(null);
     }
-  }, [vcrDistanceKm, vcrDurationMin, form.item]);
+  }, [vcrDistanceKm, vcrDurationMin, form.item, lapDist]);
 
   // Calculate ratio when lifted weight changes
   useEffect(() => {
