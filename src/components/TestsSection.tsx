@@ -62,7 +62,7 @@ const items: Record<string, string[]> = {
     'Leg Press', 'Bench Press', 'Squat', 'Deadlift', 'Back Extension', 'Plank', 
     'Dips', 'Leg Dynamometer', 'Back Dynamometer', 'Arm Dynamometer'
   ],
-  'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m'],
+  'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m', 'VCr (Critical Velocity)'],
   'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m'],
   'Fleksibilitas': ['Sit and Reach', 'Shoulder Flexibility', 'Trunk Rotation'],
   'Power': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw'],
