@@ -233,6 +233,7 @@ export function TestsSection() {
   // VCr calculator states
   const [vcrDistanceKm, setVcrDistanceKm] = useState<string>('');
   const [vcrDurationMin, setVcrDurationMin] = useState<string>('');
+  const [vcrLapDistance, setVcrLapDistance] = useState<string>('400');
   const [vcrResult, setVcrResult] = useState<{ vcr: number; lapTime: number } | null>(null);
 
   // Get current athlete gender and age for norm lookup
@@ -281,6 +282,7 @@ export function TestsSection() {
   }, [form.item]);
 
   // Calculate VCr when inputs change
+  const lapDist = parseFloat(vcrLapDistance) || 400;
   useEffect(() => {
     if (form.item === 'VCr (Critical Velocity)' && vcrDistanceKm && vcrDurationMin) {
       const distKm = parseFloat(vcrDistanceKm);
@@ -289,7 +291,7 @@ export function TestsSection() {
         const distM = distKm * 1000;
         const durS = durMin * 60;
         const vcr = Math.round((distM / durS) * 100) / 100;
-        const lapTime = Math.round((400 / vcr) * 100) / 100;
+        const lapTime = Math.round((lapDist / vcr) * 100) / 100;
         setVcrResult({ vcr, lapTime });
       } else {
         setVcrResult(null);
@@ -297,7 +299,7 @@ export function TestsSection() {
     } else {
       setVcrResult(null);
     }
-  }, [vcrDistanceKm, vcrDurationMin, form.item]);
+  }, [vcrDistanceKm, vcrDurationMin, form.item, lapDist]);
 
   // Calculate ratio when lifted weight changes
   useEffect(() => {
@@ -885,7 +887,18 @@ export function TestsSection() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Lap 400m</Label>
+                    <Label className="text-[10px] text-muted-foreground">Jarak Lap (m)</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      value={vcrLapDistance}
+                      onChange={(e) => setVcrLapDistance(e.target.value)}
+                      placeholder="400"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Lap {lapDist}m (detik)</Label>
                     <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
                       vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
                     }`}>
@@ -893,7 +906,7 @@ export function TestsSection() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Lap 400m (mm:ss)</Label>
+                    <Label className="text-[10px] text-muted-foreground">Lap {lapDist}m (mm:ss)</Label>
                     <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
                       vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
                     }`}>
@@ -915,8 +928,8 @@ export function TestsSection() {
                               <th className="px-3 py-1.5 text-left font-semibold text-muted-foreground">Zona</th>
                               <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">%</th>
                               <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Kecepatan (m/s)</th>
-                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap 400m (detik)</th>
-                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap 400m (mm:ss)</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap {lapDist}m (detik)</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap {lapDist}m (mm:ss)</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -932,7 +945,7 @@ export function TestsSection() {
                               { zone: 'Sprint', pct: 110, color: 'text-pink-600' },
                             ].map(({ zone, pct, color }) => {
                               const speed = Math.round((vcrResult.vcr * pct / 100) * 100) / 100;
-                              const lap = speed > 0 ? Math.round((400 / speed) * 100) / 100 : 0;
+                              const lap = speed > 0 ? Math.round((lapDist / speed) * 100) / 100 : 0;
                               const lapMin = Math.floor(lap / 60);
                               const lapSec = Math.round(lap % 60);
                               return (
