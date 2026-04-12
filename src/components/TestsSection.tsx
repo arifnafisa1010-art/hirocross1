@@ -902,15 +902,63 @@ export function TestsSection() {
                   </div>
                 </div>
                 {vcrResult && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 w-full h-7 text-xs"
-                    onClick={() => setForm({ ...form, value: String(vcrResult.vcr) })}
-                  >
-                    Gunakan VCr {vcrResult.vcr} m/s sebagai Nilai
-                  </Button>
+                  <>
+                    {/* Zona Intensitas Table */}
+                    <div className="mt-4">
+                      <Label className="text-[10px] font-extrabold text-accent uppercase mb-2 block">
+                        Tabel Zona Intensitas VCr
+                      </Label>
+                      <div className="overflow-x-auto rounded-md border border-border">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-muted/50">
+                              <th className="px-3 py-1.5 text-left font-semibold text-muted-foreground">Zona</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">%</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Kecepatan (m/s)</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap 400m (detik)</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Lap 400m (mm:ss)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { zone: 'Recovery', pct: 60, color: 'text-blue-600' },
+                              { zone: 'Easy', pct: 70, color: 'text-green-600' },
+                              { zone: 'Aerobic', pct: 80, color: 'text-emerald-600' },
+                              { zone: 'Tempo', pct: 85, color: 'text-yellow-600' },
+                              { zone: 'Threshold', pct: 90, color: 'text-orange-500' },
+                              { zone: 'VO₂max', pct: 95, color: 'text-red-500' },
+                              { zone: 'VCr (100%)', pct: 100, color: 'text-red-700 font-bold' },
+                              { zone: 'Anaerobic', pct: 105, color: 'text-purple-600' },
+                              { zone: 'Sprint', pct: 110, color: 'text-pink-600' },
+                            ].map(({ zone, pct, color }) => {
+                              const speed = Math.round((vcrResult.vcr * pct / 100) * 100) / 100;
+                              const lap = speed > 0 ? Math.round((400 / speed) * 100) / 100 : 0;
+                              const lapMin = Math.floor(lap / 60);
+                              const lapSec = Math.round(lap % 60);
+                              return (
+                                <tr key={pct} className={`border-t border-border ${pct === 100 ? 'bg-accent/10' : 'hover:bg-muted/30'}`}>
+                                  <td className={`px-3 py-1.5 ${color}`}>{zone}</td>
+                                  <td className="px-3 py-1.5 text-center font-medium">{pct}%</td>
+                                  <td className="px-3 py-1.5 text-center font-mono">{speed}</td>
+                                  <td className="px-3 py-1.5 text-center font-mono">{lap}</td>
+                                  <td className="px-3 py-1.5 text-center font-mono">{lapMin}:{String(lapSec).padStart(2, '0')}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full h-7 text-xs"
+                      onClick={() => setForm({ ...form, value: String(vcrResult.vcr) })}
+                    >
+                      Gunakan VCr {vcrResult.vcr} m/s sebagai Nilai
+                    </Button>
+                  </>
                 )}
               </div>
             )}
