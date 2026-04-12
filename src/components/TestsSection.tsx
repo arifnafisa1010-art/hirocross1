@@ -233,6 +233,7 @@ export function TestsSection() {
   // VCr calculator states
   const [vcrDistanceKm, setVcrDistanceKm] = useState<string>('');
   const [vcrDurationMin, setVcrDurationMin] = useState<string>('');
+  const [vcrLapDistance, setVcrLapDistance] = useState<string>('400');
   const [vcrResult, setVcrResult] = useState<{ vcr: number; lapTime: number } | null>(null);
 
   // Get current athlete gender and age for norm lookup
