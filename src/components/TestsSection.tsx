@@ -274,7 +274,30 @@ export function TestsSection() {
     // Reset ratio calculator when item changes
     setLiftedWeight('');
     setCalculatedRatio(null);
+    // Reset VCr calculator
+    setVcrDistanceKm('');
+    setVcrDurationMin('');
+    setVcrResult(null);
   }, [form.item]);
+
+  // Calculate VCr when inputs change
+  useEffect(() => {
+    if (form.item === 'VCr (Critical Velocity)' && vcrDistanceKm && vcrDurationMin) {
+      const distKm = parseFloat(vcrDistanceKm);
+      const durMin = parseFloat(vcrDurationMin);
+      if (!isNaN(distKm) && !isNaN(durMin) && distKm > 0 && durMin > 0) {
+        const distM = distKm * 1000;
+        const durS = durMin * 60;
+        const vcr = Math.round((distM / durS) * 100) / 100;
+        const lapTime = Math.round((400 / vcr) * 100) / 100;
+        setVcrResult({ vcr, lapTime });
+      } else {
+        setVcrResult(null);
+      }
+    } else {
+      setVcrResult(null);
+    }
+  }, [vcrDistanceKm, vcrDurationMin, form.item]);
 
   // Calculate ratio when lifted weight changes
   useEffect(() => {
