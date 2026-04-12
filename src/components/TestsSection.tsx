@@ -887,7 +887,18 @@ export function TestsSection() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Lap 400m</Label>
+                    <Label className="text-[10px] text-muted-foreground">Jarak Lap (m)</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      value={vcrLapDistance}
+                      onChange={(e) => setVcrLapDistance(e.target.value)}
+                      placeholder="400"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Lap {lapDist}m (detik)</Label>
                     <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
                       vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
                     }`}>
@@ -895,7 +906,7 @@ export function TestsSection() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Lap 400m (mm:ss)</Label>
+                    <Label className="text-[10px] text-muted-foreground">Lap {lapDist}m (mm:ss)</Label>
                     <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
                       vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
                     }`}>
