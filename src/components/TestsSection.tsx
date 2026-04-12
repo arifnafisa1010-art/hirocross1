@@ -834,6 +834,87 @@ export function TestsSection() {
               </div>
             )}
 
+            {/* VCr Calculator */}
+            {form.item === 'VCr (Critical Velocity)' && (
+              <div className="col-span-2 md:col-span-4 lg:col-span-6 p-4 bg-accent/10 rounded-lg border border-accent/30">
+                <Label className="text-xs font-extrabold text-accent uppercase">
+                  Kalkulator VCr (Critical Velocity)
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-1 mb-3">
+                  Masukkan jarak lari (km) dan durasi (menit). VCr = Jarak(m) ÷ Waktu(detik)
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Jarak (km)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={vcrDistanceKm}
+                      onChange={(e) => setVcrDistanceKm(e.target.value)}
+                      placeholder="Contoh: 8"
+                      className="mt-1 h-8 text-sm"
+                    />
+                    {vcrDistanceKm && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        = {(parseFloat(vcrDistanceKm) * 1000 || 0).toLocaleString()} m
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Durasi (menit)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={vcrDurationMin}
+                      onChange={(e) => setVcrDurationMin(e.target.value)}
+                      placeholder="Contoh: 30"
+                      className="mt-1 h-8 text-sm"
+                    />
+                    {vcrDurationMin && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        = {(parseFloat(vcrDurationMin) * 60 || 0).toLocaleString()} detik
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">VCr (100%)</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      vcrResult ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {vcrResult ? `${vcrResult.vcr} m/s` : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Lap 400m</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {vcrResult ? `${vcrResult.lapTime} detik` : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Lap 400m (mm:ss)</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {vcrResult ? `${Math.floor(vcrResult.lapTime / 60)}:${String(Math.round(vcrResult.lapTime % 60)).padStart(2, '0')}` : '-'}
+                    </div>
+                  </div>
+                </div>
+                {vcrResult && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full h-7 text-xs"
+                    onClick={() => setForm({ ...form, value: String(vcrResult.vcr) })}
+                  >
+                    Gunakan VCr {vcrResult.vcr} m/s sebagai Nilai
+                  </Button>
+                )}
+              </div>
+            )}
+
             <div>
               <Label className="text-xs font-extrabold text-muted-foreground uppercase">
                 Nilai ({form.unit})
