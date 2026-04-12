@@ -62,7 +62,7 @@ const items: Record<string, string[]> = {
     'Leg Press', 'Bench Press', 'Squat', 'Deadlift', 'Back Extension', 'Plank', 
     'Dips', 'Leg Dynamometer', 'Back Dynamometer', 'Arm Dynamometer'
   ],
-  'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m'],
+  'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m', 'VCr (Critical Velocity)'],
   'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m'],
   'Fleksibilitas': ['Sit and Reach', 'Shoulder Flexibility', 'Trunk Rotation'],
   'Power': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw'],
@@ -93,6 +93,7 @@ const defaultUnits: Record<string, string> = {
   'Bleep Test': 'level',
   'Yo-Yo IR1': 'level',
   'Lari 2400m': 'min',
+  'VCr (Critical Velocity)': 'm/s',
   // Kecepatan
   'Sprint 30m': 's',
   'Sprint 60m': 's',
@@ -145,6 +146,7 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Bleep Test': { min: 1, max: 21, hint: 'Level 1-21' },
   'Yo-Yo IR1': { min: 1, max: 23, hint: 'Level 1-23' },
   'Lari 2400m': { min: 6, max: 25, hint: '6-25 menit' },
+  'VCr (Critical Velocity)': { min: 1, max: 8, hint: '1-8 m/s' },
   // Kecepatan
   'Sprint 30m': { min: 3, max: 10, hint: '3-10 detik' },
   'Sprint 60m': { min: 6, max: 18, hint: '6-18 detik' },
@@ -228,6 +230,11 @@ export function TestsSection() {
   const [liftedWeight, setLiftedWeight] = useState<string>('');
   const [calculatedRatio, setCalculatedRatio] = useState<number | null>(null);
 
+  // VCr calculator states
+  const [vcrDistanceKm, setVcrDistanceKm] = useState<string>('');
+  const [vcrDurationMin, setVcrDurationMin] = useState<string>('');
+  const [vcrResult, setVcrResult] = useState<{ vcr: number; lapTime: number } | null>(null);
+
   // Get current athlete gender and age for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
   const currentGender = currentAthlete?.gender || 'M';
@@ -267,7 +274,30 @@ export function TestsSection() {
     // Reset ratio calculator when item changes
     setLiftedWeight('');
     setCalculatedRatio(null);
+    // Reset VCr calculator
+    setVcrDistanceKm('');
+    setVcrDurationMin('');
+    setVcrResult(null);
   }, [form.item]);
+
+  // Calculate VCr when inputs change
+  useEffect(() => {
+    if (form.item === 'VCr (Critical Velocity)' && vcrDistanceKm && vcrDurationMin) {
+      const distKm = parseFloat(vcrDistanceKm);
+      const durMin = parseFloat(vcrDurationMin);
+      if (!isNaN(distKm) && !isNaN(durMin) && distKm > 0 && durMin > 0) {
+        const distM = distKm * 1000;
+        const durS = durMin * 60;
+        const vcr = Math.round((distM / durS) * 100) / 100;
+        const lapTime = Math.round((400 / vcr) * 100) / 100;
+        setVcrResult({ vcr, lapTime });
+      } else {
+        setVcrResult(null);
+      }
+    } else {
+      setVcrResult(null);
+    }
+  }, [vcrDistanceKm, vcrDurationMin, form.item]);
 
   // Calculate ratio when lifted weight changes
   useEffect(() => {
@@ -800,6 +830,87 @@ export function TestsSection() {
                   <p className="text-[10px] text-destructive mt-2">
                     ⚠️ Berat badan atlet belum diisi. Silakan update data atlet terlebih dahulu.
                   </p>
+                )}
+              </div>
+            )}
+
+            {/* VCr Calculator */}
+            {form.item === 'VCr (Critical Velocity)' && (
+              <div className="col-span-2 md:col-span-4 lg:col-span-6 p-4 bg-accent/10 rounded-lg border border-accent/30">
+                <Label className="text-xs font-extrabold text-accent uppercase">
+                  Kalkulator VCr (Critical Velocity)
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-1 mb-3">
+                  Masukkan jarak lari (km) dan durasi (menit). VCr = Jarak(m) ÷ Waktu(detik)
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Jarak (km)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={vcrDistanceKm}
+                      onChange={(e) => setVcrDistanceKm(e.target.value)}
+                      placeholder="Contoh: 8"
+                      className="mt-1 h-8 text-sm"
+                    />
+                    {vcrDistanceKm && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        = {(parseFloat(vcrDistanceKm) * 1000 || 0).toLocaleString()} m
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Durasi (menit)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={vcrDurationMin}
+                      onChange={(e) => setVcrDurationMin(e.target.value)}
+                      placeholder="Contoh: 30"
+                      className="mt-1 h-8 text-sm"
+                    />
+                    {vcrDurationMin && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        = {(parseFloat(vcrDurationMin) * 60 || 0).toLocaleString()} detik
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">VCr (100%)</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      vcrResult ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {vcrResult ? `${vcrResult.vcr} m/s` : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Lap 400m</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {vcrResult ? `${vcrResult.lapTime} detik` : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Lap 400m (mm:ss)</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      vcrResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {vcrResult ? `${Math.floor(vcrResult.lapTime / 60)}:${String(Math.round(vcrResult.lapTime % 60)).padStart(2, '0')}` : '-'}
+                    </div>
+                  </div>
+                </div>
+                {vcrResult && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full h-7 text-xs"
+                    onClick={() => setForm({ ...form, value: String(vcrResult.vcr) })}
+                  >
+                    Gunakan VCr {vcrResult.vcr} m/s sebagai Nilai
+                  </Button>
                 )}
               </div>
             )}
