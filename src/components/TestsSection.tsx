@@ -945,7 +945,7 @@ export function TestsSection() {
                               { zone: 'Sprint', pct: 110, color: 'text-pink-600' },
                             ].map(({ zone, pct, color }) => {
                               const speed = Math.round((vcrResult.vcr * pct / 100) * 100) / 100;
-                              const lap = speed > 0 ? Math.round((400 / speed) * 100) / 100 : 0;
+                              const lap = speed > 0 ? Math.round((lapDist / speed) * 100) / 100 : 0;
                               const lapMin = Math.floor(lap / 60);
                               const lapSec = Math.round(lap % 60);
                               return (
