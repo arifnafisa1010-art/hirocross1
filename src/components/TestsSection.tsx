@@ -60,7 +60,8 @@ const items: Record<string, string[]> = {
   'Kekuatan': [
     'Push Up', 'Pull Up', 'Sit Up 60s', 'Hand Grip', 'Grip Strength Dynamometer',
     'Leg Press', 'Bench Press', 'Squat', 'Deadlift', 'Back Extension', 'Plank', 
-    'Dips', 'Leg Dynamometer', 'Back Dynamometer', 'Arm Dynamometer'
+    'Dips', 'Leg Dynamometer', 'Back Dynamometer', 'Arm Dynamometer',
+    'Estimasi 1RM'
   ],
   'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m', 'VCr (Critical Velocity)'],
   'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m'],
@@ -94,6 +95,7 @@ const defaultUnits: Record<string, string> = {
   'Yo-Yo IR1': 'level',
   'Lari 2400m': 'min',
   'VCr (Critical Velocity)': 'm/s',
+  'Estimasi 1RM': 'kg',
   // Kecepatan
   'Sprint 30m': 's',
   'Sprint 60m': 's',
@@ -122,6 +124,7 @@ const defaultUnits: Record<string, string> = {
 
 // Body weight ratio tests - need special handling
 const bodyWeightRatioTests = ['Bench Press', 'Squat', 'Deadlift'];
+const oneRMTests = ['Estimasi 1RM'];
 
 // Validation ranges for test items
 const testValueRanges: Record<string, { min: number; max: number; hint: string }> = {
@@ -147,6 +150,7 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Yo-Yo IR1': { min: 1, max: 23, hint: 'Level 1-23' },
   'Lari 2400m': { min: 6, max: 25, hint: '6-25 menit' },
   'VCr (Critical Velocity)': { min: 1, max: 8, hint: '1-8 m/s' },
+  'Estimasi 1RM': { min: 5, max: 500, hint: '5-500 kg (hasil estimasi)' },
   // Kecepatan
   'Sprint 30m': { min: 3, max: 10, hint: '3-10 detik' },
   'Sprint 60m': { min: 6, max: 18, hint: '6-18 detik' },
@@ -236,6 +240,12 @@ export function TestsSection() {
   const [vcrLapDistance, setVcrLapDistance] = useState<string>('400');
   const [vcrResult, setVcrResult] = useState<{ vcr: number; lapTime: number } | null>(null);
 
+  // 1RM Calculator states
+  const [oneRMWeight, setOneRMWeight] = useState<string>('');
+  const [oneRMReps, setOneRMReps] = useState<string>('');
+  const [oneRMExerciseName, setOneRMExerciseName] = useState<string>('');
+  const [oneRMResult, setOneRMResult] = useState<number | null>(null);
+
   // Get current athlete gender and age for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
   const currentGender = currentAthlete?.gender || 'M';
@@ -279,7 +289,32 @@ export function TestsSection() {
     setVcrDistanceKm('');
     setVcrDurationMin('');
     setVcrResult(null);
+    // Reset 1RM calculator
+    setOneRMWeight('');
+    setOneRMReps('');
+    setOneRMExerciseName('');
+    setOneRMResult(null);
   }, [form.item]);
+
+  // Calculate 1RM when inputs change (Epley formula: 1RM = weight × (1 + reps/30))
+  useEffect(() => {
+    if (form.item === 'Estimasi 1RM' && oneRMWeight && oneRMReps) {
+      const weight = parseFloat(oneRMWeight);
+      const reps = parseInt(oneRMReps);
+      if (!isNaN(weight) && !isNaN(reps) && weight > 0 && reps > 0 && reps <= 30) {
+        if (reps === 1) {
+          setOneRMResult(Math.round(weight * 100) / 100);
+        } else {
+          const estimated = Math.round(weight * (1 + reps / 30) * 100) / 100;
+          setOneRMResult(estimated);
+        }
+      } else {
+        setOneRMResult(null);
+      }
+    } else {
+      setOneRMResult(null);
+    }
+  }, [oneRMWeight, oneRMReps, form.item]);
 
   // Calculate VCr when inputs change
   const lapDist = parseFloat(vcrLapDistance) || 400;
@@ -972,6 +1007,122 @@ export function TestsSection() {
                       Gunakan VCr {vcrResult.vcr} m/s sebagai Nilai
                     </Button>
                   </>
+                )}
+              </div>
+            )}
+
+            {/* 1RM Calculator */}
+            {form.item === 'Estimasi 1RM' && (
+              <div className="col-span-2 md:col-span-4 lg:col-span-6 p-4 bg-accent/10 rounded-lg border border-accent/30">
+                <Label className="text-xs font-extrabold text-accent uppercase">
+                  Kalkulator Estimasi 1RM (Epley Formula)
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-1 mb-3">
+                  Rumus: 1RM = Berat × (1 + Repetisi ÷ 30). Masukkan berat angkat dan jumlah repetisi.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Nama Latihan</Label>
+                    <Input
+                      type="text"
+                      value={oneRMExerciseName}
+                      onChange={(e) => setOneRMExerciseName(e.target.value)}
+                      placeholder="Contoh: Bench Press, Squat"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Berat Angkat (kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={oneRMWeight}
+                      onChange={(e) => setOneRMWeight(e.target.value)}
+                      placeholder="Contoh: 80"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Repetisi (1-30)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={oneRMReps}
+                      onChange={(e) => setOneRMReps(e.target.value)}
+                      placeholder="Contoh: 5"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Estimasi 1RM</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      oneRMResult ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {oneRMResult ? `${oneRMResult} kg` : '-'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Intensity Zone Table for 1RM */}
+                {oneRMResult && (
+                  <div className="mt-4">
+                    <Label className="text-[10px] font-extrabold text-accent uppercase mb-2 block">
+                      Tabel Zona Intensitas 1RM {oneRMExerciseName ? `(${oneRMExerciseName})` : ''}
+                    </Label>
+                    <div className="overflow-x-auto rounded-md border border-border">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-muted/50">
+                            <th className="px-3 py-1.5 text-left font-semibold text-muted-foreground">Zona</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">%1RM</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Beban (kg)</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Rep Range</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Tujuan</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { zone: 'Daya Tahan Otot', pct: 50, reps: '15-20+', purpose: 'Endurance', color: 'text-blue-600' },
+                            { zone: 'Daya Tahan Otot', pct: 60, reps: '12-15', purpose: 'Endurance', color: 'text-blue-600' },
+                            { zone: 'Hipertrofi', pct: 65, reps: '10-12', purpose: 'Hypertrophy', color: 'text-green-600' },
+                            { zone: 'Hipertrofi', pct: 70, reps: '8-10', purpose: 'Hypertrophy', color: 'text-green-600' },
+                            { zone: 'Hipertrofi/Kekuatan', pct: 75, reps: '6-8', purpose: 'Hypertrophy/Strength', color: 'text-yellow-600' },
+                            { zone: 'Kekuatan', pct: 80, reps: '4-6', purpose: 'Strength', color: 'text-orange-500' },
+                            { zone: 'Kekuatan', pct: 85, reps: '3-5', purpose: 'Strength', color: 'text-orange-600' },
+                            { zone: 'Kekuatan Maks', pct: 90, reps: '2-3', purpose: 'Max Strength', color: 'text-red-500' },
+                            { zone: 'Kekuatan Maks', pct: 95, reps: '1-2', purpose: 'Max Strength', color: 'text-red-600' },
+                            { zone: '1RM', pct: 100, reps: '1', purpose: '1RM', color: 'text-red-700 font-bold' },
+                          ].map(({ zone, pct, reps, purpose, color }) => {
+                            const load = Math.round((oneRMResult * pct / 100) * 10) / 10;
+                            return (
+                              <tr key={pct} className={`border-t border-border ${pct === 100 ? 'bg-accent/10' : 'hover:bg-muted/30'}`}>
+                                <td className={`px-3 py-1.5 ${color}`}>{zone}</td>
+                                <td className="px-3 py-1.5 text-center font-medium">{pct}%</td>
+                                <td className="px-3 py-1.5 text-center font-mono font-bold">{load}</td>
+                                <td className="px-3 py-1.5 text-center font-mono">{reps}</td>
+                                <td className="px-3 py-1.5 text-center text-muted-foreground">{purpose}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {oneRMResult && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full h-7 text-xs"
+                    onClick={() => {
+                      setForm({ ...form, value: String(oneRMResult), notes: oneRMExerciseName ? `${oneRMExerciseName} - ${oneRMWeight}kg × ${oneRMReps} reps (Epley)` : `${oneRMWeight}kg × ${oneRMReps} reps (Epley)` });
+                    }}
+                  >
+                    Gunakan Estimasi 1RM {oneRMResult} kg sebagai Nilai
+                  </Button>
                 )}
               </div>
             )}
