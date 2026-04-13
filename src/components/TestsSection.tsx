@@ -150,6 +150,7 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Yo-Yo IR1': { min: 1, max: 23, hint: 'Level 1-23' },
   'Lari 2400m': { min: 6, max: 25, hint: '6-25 menit' },
   'VCr (Critical Velocity)': { min: 1, max: 8, hint: '1-8 m/s' },
+  'Estimasi 1RM': { min: 5, max: 500, hint: '5-500 kg (hasil estimasi)' },
   // Kecepatan
   'Sprint 30m': { min: 3, max: 10, hint: '3-10 detik' },
   'Sprint 60m': { min: 6, max: 18, hint: '6-18 detik' },
