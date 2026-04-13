@@ -384,6 +384,139 @@ export function SessionModal({
         </div>
 
         <div className="space-y-4 mt-2">
+          {/* Training Recommendations based on test results + annual plan intensity */}
+          {(() => {
+            const weekPlan = planData.find(p => p.wk === week);
+            const intensityPct = weekPlan?.int || 0;
+            const targetAthleteId = athleteId || (selectedAthleteIds.length === 1 ? selectedAthleteIds[0] : undefined);
+            
+            // Get latest VCr result for this athlete
+            const vcrResult = testResults
+              .filter(r => r.item === 'VCr (Critical Velocity)' && r.athlete_id === targetAthleteId)
+              .sort((a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime())[0];
+            
+            // Get latest 1RM results for this athlete
+            const oneRMResults = testResults
+              .filter(r => r.item === 'Estimasi 1RM' && r.athlete_id === targetAthleteId)
+              .sort((a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime());
+            
+            // Get unique 1RM exercises (latest per exercise name from notes)
+            const uniqueOneRM: { name: string; value: number; date: string }[] = [];
+            const seenExercises = new Set<string>();
+            oneRMResults.forEach(r => {
+              const exerciseName = r.notes?.split(' - ')[0] || 'Unknown';
+              if (!seenExercises.has(exerciseName)) {
+                seenExercises.add(exerciseName);
+                uniqueOneRM.push({ name: exerciseName, value: r.value, date: r.test_date });
+              }
+            });
+
+            if (!weekPlan || ((!vcrResult || vcrResult.value <= 0) && uniqueOneRM.length === 0)) return null;
+
+            return (
+              <div className="p-3 bg-accent/5 border border-accent/20 rounded-xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-accent" />
+                  <Label className="text-xs font-extrabold text-accent uppercase">
+                    Rekomendasi Latihan — W{week} ({weekPlan.fase}) — Intensitas {intensityPct}%
+                  </Label>
+                </div>
+
+                {/* VCr Endurance Recommendation */}
+                {vcrResult && vcrResult.value > 0 && (
+                  <div className="p-2 bg-card rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold text-blue-600">🏃 Daya Tahan (VCr)</span>
+                      <Badge variant="outline" className="text-[10px]">VCr: {vcrResult.value} m/s</Badge>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[10px]">
+                        <thead>
+                          <tr className="text-muted-foreground">
+                            <th className="text-left px-2 py-1">Zona Target</th>
+                            <th className="text-center px-2 py-1">Kecepatan</th>
+                            <th className="text-center px-2 py-1">Lap 400m</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            // Map intensity % to appropriate VCr zone
+                            const targetSpeed = Math.round((vcrResult.value * intensityPct / 100) * 100) / 100;
+                            const lap400 = targetSpeed > 0 ? Math.round((400 / targetSpeed) * 100) / 100 : 0;
+                            const lapMin = Math.floor(lap400 / 60);
+                            const lapSec = Math.round(lap400 % 60);
+                            
+                            // Show target zone ± nearby zones
+                            const zones = [
+                              { name: 'Target Hari Ini', pct: intensityPct, highlight: true },
+                              { name: intensityPct >= 90 ? 'Recovery (60%)' : 'Zona Atas', pct: intensityPct >= 90 ? 60 : Math.min(intensityPct + 10, 110), highlight: false },
+                            ];
+                            
+                            return zones.map(z => {
+                              const spd = Math.round((vcrResult.value * z.pct / 100) * 100) / 100;
+                              const lp = spd > 0 ? Math.round((400 / spd) * 100) / 100 : 0;
+                              const lm = Math.floor(lp / 60);
+                              const ls = Math.round(lp % 60);
+                              return (
+                                <tr key={z.name} className={z.highlight ? 'bg-accent/10 font-bold' : ''}>
+                                  <td className="px-2 py-1">{z.name} ({z.pct}%)</td>
+                                  <td className="px-2 py-1 text-center font-mono">{spd} m/s</td>
+                                  <td className="px-2 py-1 text-center font-mono">{lm}:{String(ls).padStart(2, '0')}</td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1RM Strength Recommendation */}
+                {uniqueOneRM.length > 0 && (
+                  <div className="p-2 bg-card rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold text-orange-600">💪 Kekuatan (1RM)</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[10px]">
+                        <thead>
+                          <tr className="text-muted-foreground">
+                            <th className="text-left px-2 py-1">Latihan</th>
+                            <th className="text-center px-2 py-1">1RM</th>
+                            <th className="text-center px-2 py-1">Target ({intensityPct}%)</th>
+                            <th className="text-center px-2 py-1">Rep Range</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {uniqueOneRM.slice(0, 5).map(rm => {
+                            const targetLoad = Math.round((rm.value * intensityPct / 100) * 10) / 10;
+                            let repRange = '1';
+                            if (intensityPct <= 60) repRange = '12-15';
+                            else if (intensityPct <= 70) repRange = '8-10';
+                            else if (intensityPct <= 75) repRange = '6-8';
+                            else if (intensityPct <= 80) repRange = '4-6';
+                            else if (intensityPct <= 85) repRange = '3-5';
+                            else if (intensityPct <= 90) repRange = '2-3';
+                            else if (intensityPct <= 95) repRange = '1-2';
+                            return (
+                              <tr key={rm.name} className="bg-accent/5">
+                                <td className="px-2 py-1 font-medium">{rm.name}</td>
+                                <td className="px-2 py-1 text-center font-mono">{rm.value} kg</td>
+                                <td className="px-2 py-1 text-center font-mono font-bold">{targetLoad} kg</td>
+                                <td className="px-2 py-1 text-center font-mono">{repRange}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Warmup */}
           <div>
             <Label className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-2">
