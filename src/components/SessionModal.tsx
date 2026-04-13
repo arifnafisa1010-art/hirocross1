@@ -92,9 +92,10 @@ export function SessionModal({
   hasSavedProgram = false,
   saveSessionToDb,
 }: SessionModalProps) {
-  const { sessions, updateSession, removeSession, setup, selectedAthleteIds } = useTrainingStore();
+  const { sessions, updateSession, removeSession, setup, selectedAthleteIds, planData } = useTrainingStore();
   const { addLoad } = useTrainingLoads(athleteId);
   const { user } = useAuth();
+  const { results: testResults } = useTestResults();
   const canPersistToDb = hasSavedProgram && typeof saveSessionToDb === 'function';
 
   const [activeSessionNum, setActiveSessionNum] = useState(1);
