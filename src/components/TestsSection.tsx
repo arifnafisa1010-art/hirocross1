@@ -1011,6 +1011,122 @@ export function TestsSection() {
               </div>
             )}
 
+            {/* 1RM Calculator */}
+            {form.item === 'Estimasi 1RM' && (
+              <div className="col-span-2 md:col-span-4 lg:col-span-6 p-4 bg-accent/10 rounded-lg border border-accent/30">
+                <Label className="text-xs font-extrabold text-accent uppercase">
+                  Kalkulator Estimasi 1RM (Epley Formula)
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-1 mb-3">
+                  Rumus: 1RM = Berat × (1 + Repetisi ÷ 30). Masukkan berat angkat dan jumlah repetisi.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Nama Latihan</Label>
+                    <Input
+                      type="text"
+                      value={oneRMExerciseName}
+                      onChange={(e) => setOneRMExerciseName(e.target.value)}
+                      placeholder="Contoh: Bench Press, Squat"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Berat Angkat (kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={oneRMWeight}
+                      onChange={(e) => setOneRMWeight(e.target.value)}
+                      placeholder="Contoh: 80"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Repetisi (1-30)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={oneRMReps}
+                      onChange={(e) => setOneRMReps(e.target.value)}
+                      placeholder="Contoh: 5"
+                      className="mt-1 h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Estimasi 1RM</Label>
+                    <div className={`mt-1 h-8 px-3 flex items-center justify-center rounded-md text-sm font-bold ${
+                      oneRMResult ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {oneRMResult ? `${oneRMResult} kg` : '-'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Intensity Zone Table for 1RM */}
+                {oneRMResult && (
+                  <div className="mt-4">
+                    <Label className="text-[10px] font-extrabold text-accent uppercase mb-2 block">
+                      Tabel Zona Intensitas 1RM {oneRMExerciseName ? `(${oneRMExerciseName})` : ''}
+                    </Label>
+                    <div className="overflow-x-auto rounded-md border border-border">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-muted/50">
+                            <th className="px-3 py-1.5 text-left font-semibold text-muted-foreground">Zona</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">%1RM</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Beban (kg)</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Rep Range</th>
+                            <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Tujuan</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { zone: 'Daya Tahan Otot', pct: 50, reps: '15-20+', purpose: 'Endurance', color: 'text-blue-600' },
+                            { zone: 'Daya Tahan Otot', pct: 60, reps: '12-15', purpose: 'Endurance', color: 'text-blue-600' },
+                            { zone: 'Hipertrofi', pct: 65, reps: '10-12', purpose: 'Hypertrophy', color: 'text-green-600' },
+                            { zone: 'Hipertrofi', pct: 70, reps: '8-10', purpose: 'Hypertrophy', color: 'text-green-600' },
+                            { zone: 'Hipertrofi/Kekuatan', pct: 75, reps: '6-8', purpose: 'Hypertrophy/Strength', color: 'text-yellow-600' },
+                            { zone: 'Kekuatan', pct: 80, reps: '4-6', purpose: 'Strength', color: 'text-orange-500' },
+                            { zone: 'Kekuatan', pct: 85, reps: '3-5', purpose: 'Strength', color: 'text-orange-600' },
+                            { zone: 'Kekuatan Maks', pct: 90, reps: '2-3', purpose: 'Max Strength', color: 'text-red-500' },
+                            { zone: 'Kekuatan Maks', pct: 95, reps: '1-2', purpose: 'Max Strength', color: 'text-red-600' },
+                            { zone: '1RM', pct: 100, reps: '1', purpose: '1RM', color: 'text-red-700 font-bold' },
+                          ].map(({ zone, pct, reps, purpose, color }) => {
+                            const load = Math.round((oneRMResult * pct / 100) * 10) / 10;
+                            return (
+                              <tr key={pct} className={`border-t border-border ${pct === 100 ? 'bg-accent/10' : 'hover:bg-muted/30'}`}>
+                                <td className={`px-3 py-1.5 ${color}`}>{zone}</td>
+                                <td className="px-3 py-1.5 text-center font-medium">{pct}%</td>
+                                <td className="px-3 py-1.5 text-center font-mono font-bold">{load}</td>
+                                <td className="px-3 py-1.5 text-center font-mono">{reps}</td>
+                                <td className="px-3 py-1.5 text-center text-muted-foreground">{purpose}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {oneRMResult && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full h-7 text-xs"
+                    onClick={() => {
+                      setForm({ ...form, value: String(oneRMResult), notes: oneRMExerciseName ? `${oneRMExerciseName} - ${oneRMWeight}kg × ${oneRMReps} reps (Epley)` : `${oneRMWeight}kg × ${oneRMReps} reps (Epley)` });
+                    }}
+                  >
+                    Gunakan Estimasi 1RM {oneRMResult} kg sebagai Nilai
+                  </Button>
+                )}
+              </div>
+            )}
+
             <div>
               <Label className="text-xs font-extrabold text-muted-foreground uppercase">
                 Nilai ({form.unit})
