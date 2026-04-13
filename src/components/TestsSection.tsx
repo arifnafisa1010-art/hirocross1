@@ -240,6 +240,12 @@ export function TestsSection() {
   const [vcrLapDistance, setVcrLapDistance] = useState<string>('400');
   const [vcrResult, setVcrResult] = useState<{ vcr: number; lapTime: number } | null>(null);
 
+  // 1RM Calculator states
+  const [oneRMWeight, setOneRMWeight] = useState<string>('');
+  const [oneRMReps, setOneRMReps] = useState<string>('');
+  const [oneRMExerciseName, setOneRMExerciseName] = useState<string>('');
+  const [oneRMResult, setOneRMResult] = useState<number | null>(null);
+
   // Get current athlete gender and age for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
   const currentGender = currentAthlete?.gender || 'M';
