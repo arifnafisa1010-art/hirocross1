@@ -95,6 +95,7 @@ const defaultUnits: Record<string, string> = {
   'Yo-Yo IR1': 'level',
   'Lari 2400m': 'min',
   'VCr (Critical Velocity)': 'm/s',
+  'Estimasi 1RM': 'kg',
   // Kecepatan
   'Sprint 30m': 's',
   'Sprint 60m': 's',
