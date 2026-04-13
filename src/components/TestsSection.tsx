@@ -124,6 +124,7 @@ const defaultUnits: Record<string, string> = {
 
 // Body weight ratio tests - need special handling
 const bodyWeightRatioTests = ['Bench Press', 'Squat', 'Deadlift'];
+const oneRMTests = ['Estimasi 1RM'];
 
 // Validation ranges for test items
 const testValueRanges: Record<string, { min: number; max: number; hint: string }> = {
