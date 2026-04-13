@@ -289,7 +289,32 @@ export function TestsSection() {
     setVcrDistanceKm('');
     setVcrDurationMin('');
     setVcrResult(null);
+    // Reset 1RM calculator
+    setOneRMWeight('');
+    setOneRMReps('');
+    setOneRMExerciseName('');
+    setOneRMResult(null);
   }, [form.item]);
+
+  // Calculate 1RM when inputs change (Epley formula: 1RM = weight × (1 + reps/30))
+  useEffect(() => {
+    if (form.item === 'Estimasi 1RM' && oneRMWeight && oneRMReps) {
+      const weight = parseFloat(oneRMWeight);
+      const reps = parseInt(oneRMReps);
+      if (!isNaN(weight) && !isNaN(reps) && weight > 0 && reps > 0 && reps <= 30) {
+        if (reps === 1) {
+          setOneRMResult(Math.round(weight * 100) / 100);
+        } else {
+          const estimated = Math.round(weight * (1 + reps / 30) * 100) / 100;
+          setOneRMResult(estimated);
+        }
+      } else {
+        setOneRMResult(null);
+      }
+    } else {
+      setOneRMResult(null);
+    }
+  }, [oneRMWeight, oneRMReps, form.item]);
 
   // Calculate VCr when inputs change
   const lapDist = parseFloat(vcrLapDistance) || 400;
