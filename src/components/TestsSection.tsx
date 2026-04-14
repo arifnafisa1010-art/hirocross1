@@ -265,18 +265,41 @@ export function TestsSection() {
   
   const currentAge = calculateAge(currentAthlete?.birth_date || null);
 
+  // Relative strength scoring for 1RM (based on BW ratio)
+  const calculate1RMLikertScore = (oneRM: number, bodyWeight: number | null): { ratio: number; score: number; label: string } => {
+    if (!bodyWeight || bodyWeight <= 0) return { ratio: 0, score: 3, label: 'Cukup' };
+    const ratio = Math.round((oneRM / bodyWeight) * 100) / 100;
+    let score: number;
+    let label: string;
+    if (ratio < 0.5) { score = 1; label = 'Sangat Kurang'; }
+    else if (ratio < 0.8) { score = 2; label = 'Kurang'; }
+    else if (ratio < 1.2) { score = 3; label = 'Cukup'; }
+    else if (ratio < 1.6) { score = 4; label = 'Baik'; }
+    else { score = 5; label = 'Baik Sekali'; }
+    return { ratio, score, label };
+  };
+
+  const oneRMLikert = oneRMResult && currentAthlete?.weight 
+    ? calculate1RMLikertScore(oneRMResult, currentAthlete.weight) 
+    : null;
+
   // Auto-calculate score when value changes
   useEffect(() => {
     if (form.value && !normsLoading) {
       const value = parseFloat(form.value);
       if (!isNaN(value)) {
-        const score = calculateScore(form.category, form.item, value, currentGender, currentAge);
-        setCalculatedScore(score);
+        // For 1RM items, use Likert scoring based on BW ratio
+        if (form.item === 'Estimasi 1RM' && oneRMLikert) {
+          setCalculatedScore(oneRMLikert.score);
+        } else {
+          const score = calculateScore(form.category, form.item, value, currentGender, currentAge);
+          setCalculatedScore(score);
+        }
       }
     } else {
       setCalculatedScore(null);
     }
-  }, [form.value, form.category, form.item, currentGender, currentAge, normsLoading, calculateScore]);
+  }, [form.value, form.category, form.item, currentGender, currentAge, normsLoading, calculateScore, oneRMLikert?.score]);
 
   // Auto-set unit when item changes
   useEffect(() => {
