@@ -318,6 +318,7 @@ export function TestsSection() {
     setOneRMWeight('');
     setOneRMReps('');
     setOneRMExerciseName('');
+    setOneRMExercisePreset('');
     setOneRMResult(null);
   }, [form.item]);
 
