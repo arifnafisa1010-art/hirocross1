@@ -381,28 +381,43 @@ export function TestsSection() {
       return;
     }
 
+    // For 1RM, require exercise name
+    if (form.item === 'Estimasi 1RM' && !oneRMExerciseName.trim()) {
+      toast.error('Nama latihan wajib diisi untuk tes 1RM!');
+      return;
+    }
+
     const value = parseFloat(form.value);
     
-    // Validate the value is a valid number
     if (isNaN(value)) {
       toast.error('Nilai harus berupa angka yang valid!');
       return;
     }
     
-    // Validate against realistic ranges
-    const validation = validateTestValue(form.item, value);
-    if (!validation.valid) {
-      toast.error(validation.error || 'Nilai tidak valid!');
-      return;
+    // Skip strict validation for dynamic 1RM items
+    if (form.item !== 'Estimasi 1RM') {
+      const validation = validateTestValue(form.item, value);
+      if (!validation.valid) {
+        toast.error(validation.error || 'Nilai tidak valid!');
+        return;
+      }
     }
     
-    const score = calculatedScore || 3;
+    // For 1RM, use Likert score; otherwise use calculated score
+    const score = form.item === 'Estimasi 1RM' && oneRMLikert 
+      ? oneRMLikert.score 
+      : (calculatedScore || 3);
+
+    // For 1RM, save with specific exercise name as item
+    const itemName = form.item === 'Estimasi 1RM' && oneRMExerciseName.trim()
+      ? `1RM ${oneRMExerciseName.trim()}`
+      : form.item;
 
     await addResult({
       athlete_id: form.athleteId,
       test_date: form.date,
       category: form.category,
-      item: form.item,
+      item: itemName,
       value,
       unit: form.unit,
       score,
