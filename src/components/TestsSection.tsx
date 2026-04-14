@@ -1102,7 +1102,54 @@ export function TestsSection() {
                   </div>
                 </div>
 
-                {/* Intensity Zone Table for 1RM */}
+                {/* BW Ratio & Likert Score Display */}
+                {oneRMResult && currentAthlete?.weight && oneRMLikert && (
+                  <div className="mt-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Berat Badan</p>
+                        <p className="text-sm font-bold">{currentAthlete.weight} kg</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Rasio 1RM/BB</p>
+                        <p className="text-sm font-bold">{oneRMLikert.ratio}x</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Skor</p>
+                        <p className={`text-sm font-bold ${
+                          oneRMLikert.score >= 4 ? 'text-green-600' :
+                          oneRMLikert.score === 3 ? 'text-amber-600' :
+                          'text-red-600'
+                        }`}>
+                          {oneRMLikert.score}/5 - {oneRMLikert.label}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex gap-1">
+                      {[
+                        { score: 1, label: 'Sangat Kurang', range: '<0.5x', color: 'bg-red-500' },
+                        { score: 2, label: 'Kurang', range: '0.5-0.8x', color: 'bg-orange-500' },
+                        { score: 3, label: 'Cukup', range: '0.8-1.2x', color: 'bg-amber-500' },
+                        { score: 4, label: 'Baik', range: '1.2-1.6x', color: 'bg-lime-500' },
+                        { score: 5, label: 'Baik Sekali', range: '>1.6x', color: 'bg-green-500' },
+                      ].map(item => (
+                        <div key={item.score} className={`flex-1 rounded-sm p-1 text-center ${
+                          oneRMLikert.score === item.score ? `${item.color} text-white` : 'bg-muted text-muted-foreground'
+                        }`}>
+                          <p className="text-[8px] font-bold">{item.label}</p>
+                          <p className="text-[7px]">{item.range}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {oneRMResult && !currentAthlete?.weight && (
+                  <p className="mt-2 text-[10px] text-destructive">
+                    ⚠️ Berat badan atlet belum diisi. Skor Likert memerlukan data berat badan untuk menghitung rasio kekuatan relatif.
+                  </p>
+                )}
+
+
                 {oneRMResult && (
                   <div className="mt-4">
                     <Label className="text-[10px] font-extrabold text-accent uppercase mb-2 block">
