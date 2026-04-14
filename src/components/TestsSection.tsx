@@ -245,6 +245,7 @@ export function TestsSection() {
   const [oneRMWeight, setOneRMWeight] = useState<string>('');
   const [oneRMReps, setOneRMReps] = useState<string>('');
   const [oneRMExerciseName, setOneRMExerciseName] = useState<string>('');
+  const [oneRMExercisePreset, setOneRMExercisePreset] = useState<string>('');
   const [oneRMResult, setOneRMResult] = useState<number | null>(null);
 
   // Get current athlete gender and age for norm lookup
