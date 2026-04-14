@@ -125,6 +125,7 @@ const defaultUnits: Record<string, string> = {
 // Body weight ratio tests - need special handling
 const bodyWeightRatioTests = ['Bench Press', 'Squat', 'Deadlift'];
 const oneRMTests = ['Estimasi 1RM'];
+const oneRMPresetExercises = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row'];
 
 // Validation ranges for test items
 const testValueRanges: Record<string, { min: number; max: number; hint: string }> = {
@@ -244,6 +245,7 @@ export function TestsSection() {
   const [oneRMWeight, setOneRMWeight] = useState<string>('');
   const [oneRMReps, setOneRMReps] = useState<string>('');
   const [oneRMExerciseName, setOneRMExerciseName] = useState<string>('');
+  const [oneRMExercisePreset, setOneRMExercisePreset] = useState<string>('');
   const [oneRMResult, setOneRMResult] = useState<number | null>(null);
 
   // Get current athlete gender and age for norm lookup
@@ -316,6 +318,7 @@ export function TestsSection() {
     setOneRMWeight('');
     setOneRMReps('');
     setOneRMExerciseName('');
+    setOneRMExercisePreset('');
     setOneRMResult(null);
   }, [form.item]);
 
@@ -1061,13 +1064,36 @@ export function TestsSection() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <Label className="text-[10px] text-muted-foreground">Nama Latihan</Label>
-                    <Input
-                      type="text"
-                      value={oneRMExerciseName}
-                      onChange={(e) => setOneRMExerciseName(e.target.value)}
-                      placeholder="Contoh: Bench Press, Squat"
-                      className="mt-1 h-8 text-sm"
-                    />
+                    <Select
+                      value={oneRMExercisePreset}
+                      onValueChange={(val) => {
+                        setOneRMExercisePreset(val);
+                        if (val !== 'custom') {
+                          setOneRMExerciseName(val);
+                        } else {
+                          setOneRMExerciseName('');
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="mt-1 h-8 text-sm">
+                        <SelectValue placeholder="Pilih latihan..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {oneRMPresetExercises.map(ex => (
+                          <SelectItem key={ex} value={ex}>{ex}</SelectItem>
+                        ))}
+                        <SelectItem value="custom">Lainnya...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {oneRMExercisePreset === 'custom' && (
+                      <Input
+                        type="text"
+                        value={oneRMExerciseName}
+                        onChange={(e) => setOneRMExerciseName(e.target.value)}
+                        placeholder="Nama latihan lain..."
+                        className="mt-2 h-8 text-sm"
+                      />
+                    )}
                   </div>
                   <div>
                     <Label className="text-[10px] text-muted-foreground">Berat Angkat (kg)</Label>
