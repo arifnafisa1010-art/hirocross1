@@ -1203,10 +1203,15 @@ export function TestsSection() {
                     size="sm"
                     className="mt-3 w-full h-7 text-xs"
                     onClick={() => {
-                      setForm({ ...form, value: String(oneRMResult), notes: oneRMExerciseName ? `${oneRMExerciseName} - ${oneRMWeight}kg × ${oneRMReps} reps (Epley)` : `${oneRMWeight}kg × ${oneRMReps} reps (Epley)` });
+                      const ratioInfo = oneRMLikert ? ` | Rasio: ${oneRMLikert.ratio}x BW | Skor: ${oneRMLikert.score}/5 (${oneRMLikert.label})` : '';
+                      setForm({ 
+                        ...form, 
+                        value: String(oneRMResult), 
+                        notes: `${oneRMExerciseName || 'Unknown'} - ${oneRMWeight}kg × ${oneRMReps} reps (Epley)${ratioInfo}` 
+                      });
                     }}
                   >
-                    Gunakan Estimasi 1RM {oneRMResult} kg sebagai Nilai
+                    Gunakan Estimasi 1RM {oneRMResult} kg sebagai Nilai {oneRMExerciseName ? `(${oneRMExerciseName})` : ''}
                   </Button>
                 )}
               </div>
