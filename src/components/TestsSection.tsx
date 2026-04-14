@@ -265,18 +265,41 @@ export function TestsSection() {
   
   const currentAge = calculateAge(currentAthlete?.birth_date || null);
 
+  // Relative strength scoring for 1RM (based on BW ratio)
+  const calculate1RMLikertScore = (oneRM: number, bodyWeight: number | null): { ratio: number; score: number; label: string } => {
+    if (!bodyWeight || bodyWeight <= 0) return { ratio: 0, score: 3, label: 'Cukup' };
+    const ratio = Math.round((oneRM / bodyWeight) * 100) / 100;
+    let score: number;
+    let label: string;
+    if (ratio < 0.5) { score = 1; label = 'Sangat Kurang'; }
+    else if (ratio < 0.8) { score = 2; label = 'Kurang'; }
+    else if (ratio < 1.2) { score = 3; label = 'Cukup'; }
+    else if (ratio < 1.6) { score = 4; label = 'Baik'; }
+    else { score = 5; label = 'Baik Sekali'; }
+    return { ratio, score, label };
+  };
+
+  const oneRMLikert = oneRMResult && currentAthlete?.weight 
+    ? calculate1RMLikertScore(oneRMResult, currentAthlete.weight) 
+    : null;
+
   // Auto-calculate score when value changes
   useEffect(() => {
     if (form.value && !normsLoading) {
       const value = parseFloat(form.value);
       if (!isNaN(value)) {
-        const score = calculateScore(form.category, form.item, value, currentGender, currentAge);
-        setCalculatedScore(score);
+        // For 1RM items, use Likert scoring based on BW ratio
+        if (form.item === 'Estimasi 1RM' && oneRMLikert) {
+          setCalculatedScore(oneRMLikert.score);
+        } else {
+          const score = calculateScore(form.category, form.item, value, currentGender, currentAge);
+          setCalculatedScore(score);
+        }
       }
     } else {
       setCalculatedScore(null);
     }
-  }, [form.value, form.category, form.item, currentGender, currentAge, normsLoading, calculateScore]);
+  }, [form.value, form.category, form.item, currentGender, currentAge, normsLoading, calculateScore, oneRMLikert?.score]);
 
   // Auto-set unit when item changes
   useEffect(() => {
@@ -358,28 +381,43 @@ export function TestsSection() {
       return;
     }
 
+    // For 1RM, require exercise name
+    if (form.item === 'Estimasi 1RM' && !oneRMExerciseName.trim()) {
+      toast.error('Nama latihan wajib diisi untuk tes 1RM!');
+      return;
+    }
+
     const value = parseFloat(form.value);
     
-    // Validate the value is a valid number
     if (isNaN(value)) {
       toast.error('Nilai harus berupa angka yang valid!');
       return;
     }
     
-    // Validate against realistic ranges
-    const validation = validateTestValue(form.item, value);
-    if (!validation.valid) {
-      toast.error(validation.error || 'Nilai tidak valid!');
-      return;
+    // Skip strict validation for dynamic 1RM items
+    if (form.item !== 'Estimasi 1RM') {
+      const validation = validateTestValue(form.item, value);
+      if (!validation.valid) {
+        toast.error(validation.error || 'Nilai tidak valid!');
+        return;
+      }
     }
     
-    const score = calculatedScore || 3;
+    // For 1RM, use Likert score; otherwise use calculated score
+    const score = form.item === 'Estimasi 1RM' && oneRMLikert 
+      ? oneRMLikert.score 
+      : (calculatedScore || 3);
+
+    // For 1RM, save with specific exercise name as item
+    const itemName = form.item === 'Estimasi 1RM' && oneRMExerciseName.trim()
+      ? `1RM ${oneRMExerciseName.trim()}`
+      : form.item;
 
     await addResult({
       athlete_id: form.athleteId,
       test_date: form.date,
       category: form.category,
-      item: form.item,
+      item: itemName,
       value,
       unit: form.unit,
       score,
@@ -1064,7 +1102,54 @@ export function TestsSection() {
                   </div>
                 </div>
 
-                {/* Intensity Zone Table for 1RM */}
+                {/* BW Ratio & Likert Score Display */}
+                {oneRMResult && currentAthlete?.weight && oneRMLikert && (
+                  <div className="mt-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Berat Badan</p>
+                        <p className="text-sm font-bold">{currentAthlete.weight} kg</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Rasio 1RM/BB</p>
+                        <p className="text-sm font-bold">{oneRMLikert.ratio}x</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Skor</p>
+                        <p className={`text-sm font-bold ${
+                          oneRMLikert.score >= 4 ? 'text-green-600' :
+                          oneRMLikert.score === 3 ? 'text-amber-600' :
+                          'text-red-600'
+                        }`}>
+                          {oneRMLikert.score}/5 - {oneRMLikert.label}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex gap-1">
+                      {[
+                        { score: 1, label: 'Sangat Kurang', range: '<0.5x', color: 'bg-red-500' },
+                        { score: 2, label: 'Kurang', range: '0.5-0.8x', color: 'bg-orange-500' },
+                        { score: 3, label: 'Cukup', range: '0.8-1.2x', color: 'bg-amber-500' },
+                        { score: 4, label: 'Baik', range: '1.2-1.6x', color: 'bg-lime-500' },
+                        { score: 5, label: 'Baik Sekali', range: '>1.6x', color: 'bg-green-500' },
+                      ].map(item => (
+                        <div key={item.score} className={`flex-1 rounded-sm p-1 text-center ${
+                          oneRMLikert.score === item.score ? `${item.color} text-white` : 'bg-muted text-muted-foreground'
+                        }`}>
+                          <p className="text-[8px] font-bold">{item.label}</p>
+                          <p className="text-[7px]">{item.range}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {oneRMResult && !currentAthlete?.weight && (
+                  <p className="mt-2 text-[10px] text-destructive">
+                    ⚠️ Berat badan atlet belum diisi. Skor Likert memerlukan data berat badan untuk menghitung rasio kekuatan relatif.
+                  </p>
+                )}
+
+
                 {oneRMResult && (
                   <div className="mt-4">
                     <Label className="text-[10px] font-extrabold text-accent uppercase mb-2 block">
@@ -1118,10 +1203,15 @@ export function TestsSection() {
                     size="sm"
                     className="mt-3 w-full h-7 text-xs"
                     onClick={() => {
-                      setForm({ ...form, value: String(oneRMResult), notes: oneRMExerciseName ? `${oneRMExerciseName} - ${oneRMWeight}kg × ${oneRMReps} reps (Epley)` : `${oneRMWeight}kg × ${oneRMReps} reps (Epley)` });
+                      const ratioInfo = oneRMLikert ? ` | Rasio: ${oneRMLikert.ratio}x BW | Skor: ${oneRMLikert.score}/5 (${oneRMLikert.label})` : '';
+                      setForm({ 
+                        ...form, 
+                        value: String(oneRMResult), 
+                        notes: `${oneRMExerciseName || 'Unknown'} - ${oneRMWeight}kg × ${oneRMReps} reps (Epley)${ratioInfo}` 
+                      });
                     }}
                   >
-                    Gunakan Estimasi 1RM {oneRMResult} kg sebagai Nilai
+                    Gunakan Estimasi 1RM {oneRMResult} kg sebagai Nilai {oneRMExerciseName ? `(${oneRMExerciseName})` : ''}
                   </Button>
                 )}
               </div>
