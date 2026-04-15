@@ -42,7 +42,7 @@ const Index = () => {
           <div className="flex-1 flex flex-col">
             <Header />
             
-            <main className="flex-1 p-6 overflow-auto">
+            <main className="flex-1 p-4 overflow-auto">
               {activeTab === 'setup' && <SetupSection />}
               {activeTab === 'annual' && <AnnualPlanSection />}
               {activeTab === 'monthly' && <MonthlySection />}
