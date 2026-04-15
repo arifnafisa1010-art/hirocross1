@@ -110,9 +110,19 @@
     @apply border-border;
   }
 
+  /* Hide scrollbars globally */
+  *::-webkit-scrollbar {
+    display: none;
+  }
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow-y: auto;
   }
 }
 
