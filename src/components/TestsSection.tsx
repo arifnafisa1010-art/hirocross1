@@ -250,6 +250,18 @@ export function TestsSection() {
   const [oneRMExercisePreset, setOneRMExercisePreset] = useState<string>('');
   const [oneRMResult, setOneRMResult] = useState<number | null>(null);
 
+  // RAST Test calculator states (6 sprint times of 35m + body weight)
+  const [rastBodyWeight, setRastBodyWeight] = useState<string>('');
+  const [rastTimes, setRastTimes] = useState<string[]>(['', '', '', '', '', '']);
+  const [rastResult, setRastResult] = useState<{
+    powers: number[];
+    peak: number;
+    average: number;
+    fatigueIndex: number;
+    minPower: number;
+    totalTime: number;
+  } | null>(null);
+
   // Get current athlete gender and age for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
   const currentGender = currentAthlete?.gender || 'M';
