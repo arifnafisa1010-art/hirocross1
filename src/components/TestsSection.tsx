@@ -64,7 +64,7 @@ const items: Record<string, string[]> = {
     'Estimasi 1RM'
   ],
   'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m', 'VCr (Critical Velocity)'],
-  'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m', 'RAST Test (Peak Power)', 'RAST Test (Average Power)', 'RAST Test (Fatigue Index)'],
+  'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m', 'RAST Test'],
   'Fleksibilitas': ['Sit and Reach', 'Shoulder Flexibility', 'Trunk Rotation'],
   'Power': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw'],
   'Kelincahan': ['Agility T-Test', 'Illinois Agility', 'Hexagon Test'],
