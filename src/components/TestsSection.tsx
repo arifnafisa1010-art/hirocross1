@@ -334,7 +334,48 @@ export function TestsSection() {
     setOneRMExerciseName('');
     setOneRMExercisePreset('');
     setOneRMResult(null);
-  }, [form.item]);
+    // Reset RAST calculator
+    setRastTimes(['', '', '', '', '', '']);
+    setRastResult(null);
+    // Auto-fill body weight from athlete data when switching to RAST
+    if (form.item === 'RAST Test' && currentAthlete?.weight) {
+      setRastBodyWeight(String(currentAthlete.weight));
+    } else {
+      setRastBodyWeight('');
+    }
+  }, [form.item, currentAthlete?.weight]);
+
+  // Calculate RAST: P = (BW × distance²) / time³ for each sprint (35m), then Peak/Avg/Fatigue Index
+  useEffect(() => {
+    if (form.item !== 'RAST Test') {
+      setRastResult(null);
+      return;
+    }
+    const bw = parseFloat(rastBodyWeight);
+    const times = rastTimes.map(t => parseFloat(t));
+    const allValid = times.every(t => !isNaN(t) && t > 0 && t < 30);
+    if (!isNaN(bw) && bw > 0 && allValid) {
+      const distance = 35; // meters
+      const distSq = distance * distance;
+      const powers = times.map(t => (bw * distSq) / (t * t * t));
+      const peak = Math.max(...powers);
+      const minP = Math.min(...powers);
+      const average = powers.reduce((a, b) => a + b, 0) / powers.length;
+      const totalTime = times.reduce((a, b) => a + b, 0);
+      // Fatigue Index (W/s) = (Peak Power - Min Power) / Total Time
+      const fatigueIndex = (peak - minP) / totalTime;
+      setRastResult({
+        powers: powers.map(p => Math.round(p * 10) / 10),
+        peak: Math.round(peak * 10) / 10,
+        average: Math.round(average * 10) / 10,
+        fatigueIndex: Math.round(fatigueIndex * 100) / 100,
+        minPower: Math.round(minP * 10) / 10,
+        totalTime: Math.round(totalTime * 100) / 100,
+      });
+    } else {
+      setRastResult(null);
+    }
+  }, [rastBodyWeight, rastTimes, form.item]);
 
   // Calculate 1RM when inputs change (Epley formula: 1RM = weight × (1 + reps/30))
   useEffect(() => {
