@@ -96,6 +96,7 @@ export function SessionModal({
   const { sessions, updateSession, removeSession, setup, selectedAthleteIds, planData } = useTrainingStore();
   const { addLoad } = useTrainingLoads(athleteId);
   const { user } = useAuth();
+  const { hasPremium } = usePremiumAccess();
   const { results: testResults } = useTestResults();
   const canPersistToDb = hasSavedProgram && typeof saveSessionToDb === 'function';
 
