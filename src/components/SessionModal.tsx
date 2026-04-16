@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { useTrainingLoads, calculateSessionLoad } from '@/hooks/useTrainingLoads';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useTestResults } from '@/hooks/useTestResults';
 import { DaySession, Exercise } from '@/types/training';
 import { format, addDays } from 'date-fns';
