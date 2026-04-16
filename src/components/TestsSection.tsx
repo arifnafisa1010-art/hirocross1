@@ -64,7 +64,7 @@ const items: Record<string, string[]> = {
     'Estimasi 1RM'
   ],
   'Daya Tahan': ['Cooper Test 12min', 'Bleep Test', 'Yo-Yo IR1', 'Lari 2400m', 'VCr (Critical Velocity)'],
-  'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m', 'RAST Test (Peak Power)', 'RAST Test (Average Power)', 'RAST Test (Fatigue Index)'],
+  'Kecepatan': ['Sprint 30m', 'Sprint 60m', 'Sprint 100m', 'RAST Test'],
   'Fleksibilitas': ['Sit and Reach', 'Shoulder Flexibility', 'Trunk Rotation'],
   'Power': ['Vertical Jump', 'Standing Long Jump', 'Medicine Ball Throw'],
   'Kelincahan': ['Agility T-Test', 'Illinois Agility', 'Hexagon Test'],
@@ -100,9 +100,7 @@ const defaultUnits: Record<string, string> = {
   'Sprint 30m': 's',
   'Sprint 60m': 's',
   'Sprint 100m': 's',
-  'RAST Test (Peak Power)': 'watt',
-  'RAST Test (Average Power)': 'watt',
-  'RAST Test (Fatigue Index)': 'W/s',
+  'RAST Test': 'watt',
   // Fleksibilitas
   'Sit and Reach': 'cm',
   'Shoulder Flexibility': 'cm',
@@ -159,9 +157,7 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Sprint 30m': { min: 3, max: 10, hint: '3-10 detik' },
   'Sprint 60m': { min: 6, max: 18, hint: '6-18 detik' },
   'Sprint 100m': { min: 10, max: 25, hint: '10-25 detik' },
-  'RAST Test (Peak Power)': { min: 100, max: 2000, hint: 'Peak Power 100-2000 watt' },
-  'RAST Test (Average Power)': { min: 100, max: 1500, hint: 'Average Power 100-1500 watt' },
-  'RAST Test (Fatigue Index)': { min: 0, max: 50, hint: 'Fatigue Index 0-50 W/s (lebih rendah lebih baik)' },
+  'RAST Test': { min: 100, max: 2000, hint: 'Peak Power 100-2000 watt (gunakan kalkulator atau isi manual)' },
   // Fleksibilitas
   'Sit and Reach': { min: -20, max: 60, hint: '-20 sampai 60 cm' },
   'Shoulder Flexibility': { min: -25, max: 25, hint: '-25 sampai 25 cm' },
@@ -254,6 +250,18 @@ export function TestsSection() {
   const [oneRMExercisePreset, setOneRMExercisePreset] = useState<string>('');
   const [oneRMResult, setOneRMResult] = useState<number | null>(null);
 
+  // RAST Test calculator states (6 sprint times of 35m + body weight)
+  const [rastBodyWeight, setRastBodyWeight] = useState<string>('');
+  const [rastTimes, setRastTimes] = useState<string[]>(['', '', '', '', '', '']);
+  const [rastResult, setRastResult] = useState<{
+    powers: number[];
+    peak: number;
+    average: number;
+    fatigueIndex: number;
+    minPower: number;
+    totalTime: number;
+  } | null>(null);
+
   // Get current athlete gender and age for norm lookup
   const currentAthlete = athletes.find(a => a.id === form.athleteId);
   const currentGender = currentAthlete?.gender || 'M';
@@ -326,7 +334,48 @@ export function TestsSection() {
     setOneRMExerciseName('');
     setOneRMExercisePreset('');
     setOneRMResult(null);
-  }, [form.item]);
+    // Reset RAST calculator
+    setRastTimes(['', '', '', '', '', '']);
+    setRastResult(null);
+    // Auto-fill body weight from athlete data when switching to RAST
+    if (form.item === 'RAST Test' && currentAthlete?.weight) {
+      setRastBodyWeight(String(currentAthlete.weight));
+    } else {
+      setRastBodyWeight('');
+    }
+  }, [form.item, currentAthlete?.weight]);
+
+  // Calculate RAST: P = (BW × distance²) / time³ for each sprint (35m), then Peak/Avg/Fatigue Index
+  useEffect(() => {
+    if (form.item !== 'RAST Test') {
+      setRastResult(null);
+      return;
+    }
+    const bw = parseFloat(rastBodyWeight);
+    const times = rastTimes.map(t => parseFloat(t));
+    const allValid = times.every(t => !isNaN(t) && t > 0 && t < 30);
+    if (!isNaN(bw) && bw > 0 && allValid) {
+      const distance = 35; // meters
+      const distSq = distance * distance;
+      const powers = times.map(t => (bw * distSq) / (t * t * t));
+      const peak = Math.max(...powers);
+      const minP = Math.min(...powers);
+      const average = powers.reduce((a, b) => a + b, 0) / powers.length;
+      const totalTime = times.reduce((a, b) => a + b, 0);
+      // Fatigue Index (W/s) = (Peak Power - Min Power) / Total Time
+      const fatigueIndex = (peak - minP) / totalTime;
+      setRastResult({
+        powers: powers.map(p => Math.round(p * 10) / 10),
+        peak: Math.round(peak * 10) / 10,
+        average: Math.round(average * 10) / 10,
+        fatigueIndex: Math.round(fatigueIndex * 100) / 100,
+        minPower: Math.round(minP * 10) / 10,
+        totalTime: Math.round(totalTime * 100) / 100,
+      });
+    } else {
+      setRastResult(null);
+    }
+  }, [rastBodyWeight, rastTimes, form.item]);
 
   // Calculate 1RM when inputs change (Epley formula: 1RM = weight × (1 + reps/30))
   useEffect(() => {
@@ -1052,6 +1101,148 @@ export function TestsSection() {
                       onClick={() => setForm({ ...form, value: String(vcrResult.vcr) })}
                     >
                       Gunakan VCr {vcrResult.vcr} m/s sebagai Nilai
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* RAST Test Calculator */}
+            {form.item === 'RAST Test' && (
+              <div className="col-span-2 md:col-span-4 lg:col-span-6 p-4 bg-accent/10 rounded-lg border border-accent/30">
+                <Label className="text-xs font-extrabold text-accent uppercase">
+                  Kalkulator RAST Test (6 × Sprint 35m)
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-1 mb-3">
+                  Rumus: P = (Berat Badan × Jarak²) / Waktu³ — jarak 35m. Isi berat badan + 6 waktu sprint untuk auto-kalkulasi, atau isi nilai Peak Power manual di kolom "Nilai".
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                  <div className="col-span-2 md:col-span-1">
+                    <Label className="text-[10px] text-muted-foreground">Berat Badan (kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={rastBodyWeight}
+                      onChange={(e) => setRastBodyWeight(e.target.value)}
+                      placeholder="Contoh: 70"
+                      className="mt-1 h-8 text-sm"
+                    />
+                    {currentAthlete?.weight && (
+                      <p className="text-[9px] text-muted-foreground mt-0.5">
+                        Auto dari profil: {currentAthlete.weight} kg
+                      </p>
+                    )}
+                  </div>
+                  <div className="col-span-2 md:col-span-3">
+                    <Label className="text-[10px] text-muted-foreground">Waktu 6 Sprint 35m (detik)</Label>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-1">
+                      {rastTimes.map((t, i) => (
+                        <div key={i}>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={t}
+                            onChange={(e) => {
+                              const next = [...rastTimes];
+                              next[i] = e.target.value;
+                              setRastTimes(next);
+                            }}
+                            placeholder={`#${i + 1}`}
+                            className="h-8 text-xs text-center"
+                          />
+                          {rastResult && (
+                            <p className="text-[9px] text-center mt-0.5 font-mono text-muted-foreground">
+                              {rastResult.powers[i]}W
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Result Display */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Peak Power</Label>
+                    <div className={`mt-1 h-10 px-3 flex items-center justify-center rounded-md text-sm font-extrabold ${
+                      rastResult ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {rastResult ? `${rastResult.peak} W` : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Average Power</Label>
+                    <div className={`mt-1 h-10 px-3 flex items-center justify-center rounded-md text-sm font-extrabold ${
+                      rastResult ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {rastResult ? `${rastResult.average} W` : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Fatigue Index</Label>
+                    <div className={`mt-1 h-10 px-3 flex items-center justify-center rounded-md text-sm font-extrabold ${
+                      rastResult ? 'bg-orange-500/20 text-orange-600' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      {rastResult ? `${rastResult.fatigueIndex} W/s` : '-'}
+                    </div>
+                  </div>
+                </div>
+
+                {rastResult && (
+                  <>
+                    {/* Detail Table */}
+                    <div className="mt-4">
+                      <Label className="text-[10px] font-extrabold text-accent uppercase mb-2 block">
+                        Ringkasan Hasil RAST Test
+                      </Label>
+                      <div className="overflow-x-auto rounded-md border border-border">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-muted/50">
+                              <th className="px-3 py-1.5 text-left font-semibold text-muted-foreground">Metrik</th>
+                              <th className="px-3 py-1.5 text-center font-semibold text-muted-foreground">Nilai</th>
+                              <th className="px-3 py-1.5 text-left font-semibold text-muted-foreground">Interpretasi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-t border-border bg-accent/10">
+                              <td className="px-3 py-1.5 font-bold">Peak Power</td>
+                              <td className="px-3 py-1.5 text-center font-mono font-bold">{rastResult.peak} W</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">Daya maksimal anaerobik (kapasitas sprint puncak)</td>
+                            </tr>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-1.5 font-bold">Average Power</td>
+                              <td className="px-3 py-1.5 text-center font-mono">{rastResult.average} W</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">Daya rata-rata 6 sprint (kapasitas anaerobik total)</td>
+                            </tr>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-1.5 font-bold">Min Power</td>
+                              <td className="px-3 py-1.5 text-center font-mono">{rastResult.minPower} W</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">Daya terendah (sprint terlemah)</td>
+                            </tr>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-1.5 font-bold">Fatigue Index</td>
+                              <td className="px-3 py-1.5 text-center font-mono">{rastResult.fatigueIndex} W/s</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">Tingkat penurunan daya (semakin rendah = semakin baik)</td>
+                            </tr>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-1.5 font-bold">Total Waktu</td>
+                              <td className="px-3 py-1.5 text-center font-mono">{rastResult.totalTime} s</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">Akumulasi 6 sprint</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full h-7 text-xs"
+                      onClick={() => setForm({ ...form, value: String(rastResult.peak) })}
+                    >
+                      Gunakan Peak Power {rastResult.peak} W sebagai Nilai
                     </Button>
                   </>
                 )}
