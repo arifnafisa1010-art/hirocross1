@@ -159,6 +159,9 @@ const testValueRanges: Record<string, { min: number; max: number; hint: string }
   'Sprint 30m': { min: 3, max: 10, hint: '3-10 detik' },
   'Sprint 60m': { min: 6, max: 18, hint: '6-18 detik' },
   'Sprint 100m': { min: 10, max: 25, hint: '10-25 detik' },
+  'RAST Test (Peak Power)': { min: 100, max: 2000, hint: 'Peak Power 100-2000 watt' },
+  'RAST Test (Average Power)': { min: 100, max: 1500, hint: 'Average Power 100-1500 watt' },
+  'RAST Test (Fatigue Index)': { min: 0, max: 50, hint: 'Fatigue Index 0-50 W/s (lebih rendah lebih baik)' },
   // Fleksibilitas
   'Sit and Reach': { min: -20, max: 60, hint: '-20 sampai 60 cm' },
   'Shoulder Flexibility': { min: -25, max: 25, hint: '-25 sampai 25 cm' },
