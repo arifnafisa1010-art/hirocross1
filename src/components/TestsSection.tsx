@@ -100,6 +100,9 @@ const defaultUnits: Record<string, string> = {
   'Sprint 30m': 's',
   'Sprint 60m': 's',
   'Sprint 100m': 's',
+  'RAST Test (Peak Power)': 'watt',
+  'RAST Test (Average Power)': 'watt',
+  'RAST Test (Fatigue Index)': 'W/s',
   // Fleksibilitas
   'Sit and Reach': 'cm',
   'Shoulder Flexibility': 'cm',
