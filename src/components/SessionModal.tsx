@@ -386,8 +386,30 @@ export function SessionModal({
         </div>
 
         <div className="space-y-4 mt-2">
-          {/* Training Recommendations based on test results + annual plan intensity */}
-          {(() => {
+          {/* Training Recommendations based on test results + annual plan intensity — PREMIUM ONLY */}
+          {!hasPremium ? (
+            <div className="p-4 bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/30 rounded-xl">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                  <Activity className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <Label className="text-xs font-extrabold text-amber-600 uppercase">
+                      Rekomendasi Latihan
+                    </Label>
+                    <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">
+                      💎 Premium
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Dapatkan rekomendasi latihan otomatis berdasarkan hasil tes 1RM & VCr serta intensitas annual plan. Upgrade ke <span className="font-bold text-amber-600">Premium</span> untuk mengaktifkan fitur ini.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          {hasPremium && (() => {
             const weekPlan = planData.find(p => p.wk === week);
             const intensityPct = weekPlan?.int || 0;
             const targetAthleteId = athleteId || (selectedAthleteIds.length === 1 ? selectedAthleteIds[0] : undefined);
