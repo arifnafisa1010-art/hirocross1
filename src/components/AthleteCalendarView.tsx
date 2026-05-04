@@ -742,39 +742,14 @@ export function AthleteCalendarView({
                     <div className="flex items-center justify-between p-2 bg-background rounded-lg">
                       <div className="flex items-center gap-2">
                         <Activity className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">TSS Sesi {idx + 1}</span>
+                        <span className="text-sm font-medium">TSS</span>
                       </div>
                       <Badge className="font-bold">{calculateSessionLoad(slot.rpe, slot.duration)} AU</Badge>
                     </div>
-
-                    {/* Toggle off button for session 2 */}
-                    {idx === 1 && slot.enabled && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-xs text-muted-foreground"
-                        onClick={() => setSessionSlots(prev => prev.map((s, i) => i === 1 ? { ...s, enabled: false } : s))}
-                      >
-                        Hapus Sesi 2
-                      </Button>
-                    )}
                   </div>
                 </div>
               );
             })()}
-
-            {/* Total TSS summary */}
-            {sessionSlots.filter(s => s.enabled).length > 1 && (
-              <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">Total TSS Hari Ini</span>
-                </div>
-                <Badge className="text-lg font-bold">
-                  {sessionSlots.filter(s => s.enabled).reduce((total, s) => total + calculateSessionLoad(s.rpe, s.duration), 0)} AU
-                </Badge>
-              </div>
-            )}
 
             {/* Save Button */}
             <Button 
