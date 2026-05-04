@@ -765,7 +765,7 @@ export function AthleteCalendarView({
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Simpan {sessionSlots.filter(s => s.enabled).length > 1 ? '2 Sesi' : 'Sesi'} & Tandai Selesai
+                  Simpan Sesi & Tandai Selesai
                 </>
               )}
             </Button>
