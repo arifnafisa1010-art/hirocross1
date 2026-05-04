@@ -88,10 +88,9 @@ export function AthleteCalendarView({
   const [updatingSession, setUpdatingSession] = useState<string | null>(null);
   const [activeSessionTab, setActiveSessionTab] = useState<number>(0);
   
-  // RPE and Duration input state per session slot (always 2 slots)
+  // RPE and Duration input state - single session
   const [sessionSlots, setSessionSlots] = useState<Array<{ rpe: number; duration: number; enabled: boolean }>>([
     { rpe: 5, duration: 60, enabled: true },
-    { rpe: 5, duration: 60, enabled: false },
   ]);
   const [sessionInputs, setSessionInputs] = useState<Record<string, { rpe: number; duration: number }>>({});
   const [rpe, setRpe] = useState<number>(5);
@@ -376,10 +375,9 @@ export function AthleteCalendarView({
     setSelectedSessionDate(format(dayDate, 'yyyy-MM-dd'));
     setActiveSessionTab(0);
     
-    // Always initialize 2 slots
+    // Single session slot
     setSessionSlots([
       { rpe: 5, duration: 60, enabled: true },
-      { rpe: 5, duration: 60, enabled: allDaySessions.length > 1 },
     ]);
     
     setDetailOpen(true);
@@ -502,8 +500,8 @@ export function AthleteCalendarView({
                       {/* Day header */}
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <div className="text-[10px] font-bold text-muted-foreground">
-                            {day.slice(0, 3)}
+                          <div className="text-[10px] font-bold text-muted-foreground capitalize">
+                            {format(dayDate, 'EEE', { locale: idLocale })}
                           </div>
                           <div className="text-[9px] text-muted-foreground/70">
                             {format(dayDate, 'd MMM', { locale: idLocale })}
@@ -594,55 +592,6 @@ export function AthleteCalendarView({
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Session Tab Selector - always 2 tabs */}
-            <div className="grid grid-cols-2 gap-2">
-              {[0, 1].map((idx) => {
-                const slot = sessionSlots[idx];
-                const session = selectedSessions[idx];
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setActiveSessionTab(idx);
-                      if (!slot.enabled) {
-                        setSessionSlots(prev => prev.map((s, i) => i === idx ? { ...s, enabled: true } : s));
-                      }
-                    }}
-                    className={cn(
-                      "p-3 rounded-lg border-2 text-left transition-all",
-                      activeSessionTab === idx
-                        ? "border-primary bg-primary/10"
-                        : slot.enabled
-                          ? "border-border bg-muted/50 hover:bg-muted"
-                          : "border-dashed border-muted-foreground/30 hover:border-muted-foreground/50"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm">Sesi {idx + 1}</span>
-                      {slot.enabled ? (
-                        <Badge variant="outline" className="text-[10px]">
-                          RPE {slot.rpe} · {slot.duration}m
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                          Tap untuk isi
-                        </Badge>
-                      )}
-                    </div>
-                    {slot.enabled && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        TSS: {calculateSessionLoad(slot.rpe, slot.duration)} AU
-                      </div>
-                    )}
-                    {session && session.exercises && session.exercises.length > 0 && (
-                      <div className="text-[10px] text-muted-foreground/70 mt-1 truncate">
-                        {session.exercises.slice(0, 2).map(e => e.name).join(', ')}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
 
             {/* Active Session Content */}
             {(() => {
@@ -737,7 +686,7 @@ export function AthleteCalendarView({
                   <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-3">
                     <h4 className="font-semibold text-sm flex items-center gap-2">
                       <Zap className="h-4 w-4 text-primary" />
-                      Catat Beban - Sesi {idx + 1}
+                      Catat Beban Latihan
                     </h4>
                     
                     {/* RPE Slider */}
@@ -793,39 +742,14 @@ export function AthleteCalendarView({
                     <div className="flex items-center justify-between p-2 bg-background rounded-lg">
                       <div className="flex items-center gap-2">
                         <Activity className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">TSS Sesi {idx + 1}</span>
+                        <span className="text-sm font-medium">TSS</span>
                       </div>
                       <Badge className="font-bold">{calculateSessionLoad(slot.rpe, slot.duration)} AU</Badge>
                     </div>
-
-                    {/* Toggle off button for session 2 */}
-                    {idx === 1 && slot.enabled && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-xs text-muted-foreground"
-                        onClick={() => setSessionSlots(prev => prev.map((s, i) => i === 1 ? { ...s, enabled: false } : s))}
-                      >
-                        Hapus Sesi 2
-                      </Button>
-                    )}
                   </div>
                 </div>
               );
             })()}
-
-            {/* Total TSS summary */}
-            {sessionSlots.filter(s => s.enabled).length > 1 && (
-              <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">Total TSS Hari Ini</span>
-                </div>
-                <Badge className="text-lg font-bold">
-                  {sessionSlots.filter(s => s.enabled).reduce((total, s) => total + calculateSessionLoad(s.rpe, s.duration), 0)} AU
-                </Badge>
-              </div>
-            )}
 
             {/* Save Button */}
             <Button 
@@ -841,7 +765,7 @@ export function AthleteCalendarView({
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Simpan {sessionSlots.filter(s => s.enabled).length > 1 ? '2 Sesi' : 'Sesi'} & Tandai Selesai
+                  Simpan Sesi & Tandai Selesai
                 </>
               )}
             </Button>
