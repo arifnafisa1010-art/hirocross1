@@ -500,8 +500,8 @@ export function AthleteCalendarView({
                       {/* Day header */}
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <div className="text-[10px] font-bold text-muted-foreground">
-                            {day.slice(0, 3)}
+                          <div className="text-[10px] font-bold text-muted-foreground capitalize">
+                            {format(dayDate, 'EEE', { locale: idLocale })}
                           </div>
                           <div className="text-[9px] text-muted-foreground/70">
                             {format(dayDate, 'd MMM', { locale: idLocale })}
