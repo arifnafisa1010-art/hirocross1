@@ -686,7 +686,7 @@ export function AthleteCalendarView({
                   <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 space-y-3">
                     <h4 className="font-semibold text-sm flex items-center gap-2">
                       <Zap className="h-4 w-4 text-primary" />
-                      Catat Beban - Sesi {idx + 1}
+                      Catat Beban Latihan
                     </h4>
                     
                     {/* RPE Slider */}
