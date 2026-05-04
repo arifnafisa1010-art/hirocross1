@@ -69,14 +69,24 @@ export function useAthletePortal() {
     // Fetch programs assigned to this athlete
     const { data: programsData, error: programsError } = await supabase
       .from('training_programs')
-      .select('id, name, start_date, match_date, plan_data, mesocycles, competitions')
-      .contains('athlete_ids', [athleteData.id]);
+      .select('id, name, start_date, match_date, plan_data, mesocycles, competitions, updated_at, created_at')
+      .contains('athlete_ids', [athleteData.id])
+      .order('updated_at', { ascending: false });
 
     if (programsError) {
       console.error('Error fetching programs:', programsError);
       toast.error('Gagal memuat program latihan');
     } else {
-      setPrograms((programsData || []).map(p => ({
+      // Dedup by program id and keep only the latest single program for the athlete
+      const seen = new Set<string>();
+      const unique = (programsData || []).filter(p => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+      // Show only the most recently updated program to avoid duplicate calendars
+      const latest = unique.slice(0, 1);
+      setPrograms(latest.map(p => ({
         ...p,
         plan_data: (p.plan_data as any[] | null) || [],
         mesocycles: (p.mesocycles as any[] | null) || [],
