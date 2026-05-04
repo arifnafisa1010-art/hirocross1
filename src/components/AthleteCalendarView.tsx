@@ -163,11 +163,11 @@ export function AthleteCalendarView({
     return daySessions[0] || null;
   };
 
-  // Get date for a specific week and day
+  // Get date for a specific week and day (Monday = index 0, Sunday = index 6)
   const getDateForDay = (week: number, dayIndex: number) => {
     const programStart = parseISO(startDate);
-    // Athlete calendar always uses 'startDay' mode since it follows the program
-    const weekStart = getWeekStartDate(programStart, week, 'startDay');
+    // Use 'monday' mode so columns are always Senin..Minggu
+    const weekStart = getWeekStartDate(programStart, week, 'monday');
     return addDays(weekStart, dayIndex);
   };
 
@@ -364,7 +364,7 @@ export function AthleteCalendarView({
     const dayOfWeek = dayDate.getDay();
     const actualDayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const programStart = parseISO(startDate);
-    const weekStartDate = getWeekStartDate(programStart, 1, 'startDay');
+    const weekStartDate = getWeekStartDate(programStart, 1, 'monday');
     const diffWeeks = Math.floor((dayDate.getTime() - weekStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
     const wk = Math.max(1, diffWeeks + 1);
     
