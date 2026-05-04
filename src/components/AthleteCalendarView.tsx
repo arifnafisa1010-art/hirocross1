@@ -364,7 +364,7 @@ export function AthleteCalendarView({
     const dayOfWeek = dayDate.getDay();
     const actualDayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const programStart = parseISO(startDate);
-    const weekStartDate = getWeekStartDate(programStart, 1, 'startDay');
+    const weekStartDate = getWeekStartDate(programStart, 1, 'monday');
     const diffWeeks = Math.floor((dayDate.getTime() - weekStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
     const wk = Math.max(1, diffWeeks + 1);
     
