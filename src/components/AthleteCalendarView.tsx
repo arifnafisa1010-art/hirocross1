@@ -592,55 +592,6 @@ export function AthleteCalendarView({
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Session Tab Selector - always 2 tabs */}
-            <div className="grid grid-cols-2 gap-2">
-              {[0, 1].map((idx) => {
-                const slot = sessionSlots[idx];
-                const session = selectedSessions[idx];
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setActiveSessionTab(idx);
-                      if (!slot.enabled) {
-                        setSessionSlots(prev => prev.map((s, i) => i === idx ? { ...s, enabled: true } : s));
-                      }
-                    }}
-                    className={cn(
-                      "p-3 rounded-lg border-2 text-left transition-all",
-                      activeSessionTab === idx
-                        ? "border-primary bg-primary/10"
-                        : slot.enabled
-                          ? "border-border bg-muted/50 hover:bg-muted"
-                          : "border-dashed border-muted-foreground/30 hover:border-muted-foreground/50"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm">Sesi {idx + 1}</span>
-                      {slot.enabled ? (
-                        <Badge variant="outline" className="text-[10px]">
-                          RPE {slot.rpe} · {slot.duration}m
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                          Tap untuk isi
-                        </Badge>
-                      )}
-                    </div>
-                    {slot.enabled && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        TSS: {calculateSessionLoad(slot.rpe, slot.duration)} AU
-                      </div>
-                    )}
-                    {session && session.exercises && session.exercises.length > 0 && (
-                      <div className="text-[10px] text-muted-foreground/70 mt-1 truncate">
-                        {session.exercises.slice(0, 2).map(e => e.name).join(', ')}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
 
             {/* Active Session Content */}
             {(() => {
