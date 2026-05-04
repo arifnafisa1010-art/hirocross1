@@ -375,10 +375,9 @@ export function AthleteCalendarView({
     setSelectedSessionDate(format(dayDate, 'yyyy-MM-dd'));
     setActiveSessionTab(0);
     
-    // Always initialize 2 slots
+    // Single session slot
     setSessionSlots([
       { rpe: 5, duration: 60, enabled: true },
-      { rpe: 5, duration: 60, enabled: allDaySessions.length > 1 },
     ]);
     
     setDetailOpen(true);
