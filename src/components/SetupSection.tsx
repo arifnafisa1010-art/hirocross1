@@ -31,6 +31,7 @@ export function SetupSection() {
     removeCompetition,
     updateCompetition,
   } = useTrainingStore();
+  const { selectedAthleteIds, sessions: storeSessions, trainingBlocks, scheduledEvents } = useTrainingStore();
   
   const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram, getBackups, restoreBackup } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
@@ -102,7 +103,7 @@ export function SetupSection() {
     }
 
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions);
+    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents, storeSessions);
     setSaving(false);
   };
 
