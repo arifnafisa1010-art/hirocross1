@@ -11,6 +11,7 @@ import { TestsSection } from '@/components/TestsSection';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { TabId } from '@/types/training';
+import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
