@@ -14,21 +14,21 @@ interface PremiumFeatureGateProps {
   children: ReactNode;
 }
 
-const FEATURE_HIGHLIGHTS: Record<string, { icon: typeof Activity; title: string; desc: string }[]> = {
+const FEATURE_HIGHLIGHTS: Record<string, { icon: typeof Activity; title: string; desc: string; color: string }[]> = {
   'Annual Plan': [
-    { icon: Activity, title: 'Periodisasi Tahunan', desc: 'Rencana makro & mesocycle lengkap' },
-    { icon: TrendingUp, title: 'Editing Interaktif', desc: 'Atur fase preparation, comp, transition' },
-    { icon: Zap, title: 'Auto Backup', desc: 'Riwayat versi program tersimpan' },
+    { icon: Activity, title: 'Periodisasi Tahunan', desc: 'Rencana makro & mesocycle lengkap', color: 'text-green-500' },
+    { icon: TrendingUp, title: 'Editing Interaktif', desc: 'Atur fase preparation, comp, transition', color: 'text-blue-500' },
+    { icon: Zap, title: 'Auto Backup', desc: 'Riwayat versi program tersimpan', color: 'text-amber-500' },
   ],
   'Bulanan': [
-    { icon: Activity, title: 'Training Load Bulanan', desc: 'TSS, ACWR, dan compliance biomotor' },
-    { icon: TrendingUp, title: 'Rekomendasi Otomatis', desc: 'Intensitas berbasis ACWR & TSB' },
-    { icon: Zap, title: 'Sync Kalender', desc: 'Auto sync dari sesi DONE' },
+    { icon: Activity, title: 'Training Load Bulanan', desc: 'TSS, ACWR, dan compliance biomotor', color: 'text-green-500' },
+    { icon: TrendingUp, title: 'Rekomendasi Otomatis', desc: 'Intensitas berbasis ACWR & TSB', color: 'text-blue-500' },
+    { icon: Zap, title: 'Sync Kalender', desc: 'Auto sync dari sesi DONE', color: 'text-amber-500' },
   ],
   'Tes & Pengukuran': [
-    { icon: Activity, title: 'Norma Lengkap', desc: 'Bandingkan hasil tes dengan standar' },
-    { icon: TrendingUp, title: 'Kalkulator Otomatis', desc: '1RM, VCr, RAST, BMI & lainnya' },
-    { icon: Zap, title: 'Riwayat Tes', desc: 'Pantau progres atlet secara berkala' },
+    { icon: Activity, title: 'Norma Lengkap', desc: 'Bandingkan hasil tes dengan standar', color: 'text-green-500' },
+    { icon: TrendingUp, title: 'Kalkulator Otomatis', desc: '1RM, VCr, RAST, BMI & lainnya', color: 'text-blue-500' },
+    { icon: Zap, title: 'Riwayat Tes', desc: 'Pantau progres atlet secara berkala', color: 'text-amber-500' },
   ],
 };
 
@@ -39,7 +39,7 @@ export function PremiumFeatureGate({ featureName, description, children }: Premi
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -52,10 +52,13 @@ export function PremiumFeatureGate({ featureName, description, children }: Premi
   const highlights = FEATURE_HIGHLIGHTS[featureName] ?? FEATURE_HIGHLIGHTS['Annual Plan'];
 
   return (
-    <div className="min-h-[60vh] p-2 md:p-4">
+    <div className="min-h-screen bg-muted/30 p-4 md:p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/app')}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               {featureName}
@@ -72,14 +75,14 @@ export function PremiumFeatureGate({ featureName, description, children }: Premi
             <Diamond className="w-16 h-16 mx-auto text-amber-500 mb-4" />
             <CardTitle className="text-xl">Fitur Premium {featureName}</CardTitle>
             <CardDescription className="text-base mt-2">
-              {description ?? `Buka halaman ${featureName} dan semua fitur lanjutan dengan berlangganan Premium.`}
+              {description ?? `Akses fitur ${featureName} lanjutan untuk analisis dan perencanaan program latihan yang lebih optimal`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {highlights.map((h) => (
                 <div key={h.title} className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-                  <h.icon className="w-8 h-8 text-amber-500" />
+                  <h.icon className={`w-8 h-8 ${h.color}`} />
                   <div>
                     <p className="font-medium">{h.title}</p>
                     <p className="text-xs text-muted-foreground">{h.desc}</p>
