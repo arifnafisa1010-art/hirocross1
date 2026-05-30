@@ -11,6 +11,7 @@ import { TestsSection } from '@/components/TestsSection';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { TabId } from '@/types/training';
+import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,9 +45,21 @@ const Index = () => {
             
             <main className="flex-1 p-4 overflow-auto">
               {activeTab === 'setup' && <SetupSection />}
-              {activeTab === 'annual' && <AnnualPlanSection />}
-              {activeTab === 'monthly' && <MonthlySection />}
-              {activeTab === 'tests' && <TestsSection />}
+              {activeTab === 'annual' && (
+                <PremiumFeatureGate featureName="Annual Plan">
+                  <AnnualPlanSection />
+                </PremiumFeatureGate>
+              )}
+              {activeTab === 'monthly' && (
+                <PremiumFeatureGate featureName="Bulanan">
+                  <MonthlySection />
+                </PremiumFeatureGate>
+              )}
+              {activeTab === 'tests' && (
+                <PremiumFeatureGate featureName="Tes & Pengukuran">
+                  <TestsSection />
+                </PremiumFeatureGate>
+              )}
             </main>
 
             <FloatingDock />
