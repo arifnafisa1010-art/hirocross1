@@ -14,7 +14,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { PremiumBadge } from '@/components/PremiumBadge';
 
 const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'setup', label: 'Setup', icon: Settings },
@@ -52,32 +51,23 @@ export function AppSidebar() {
                     isActive={activeTab === item.id}
                     tooltip={item.label}
                     className={cn(
-                      "transition-all",
-                      activeTab === item.id && "bg-primary/10 text-primary font-medium"
+                      "transition-all hover:bg-amber-500/10",
+                      activeTab === item.id && "bg-amber-500/10 text-amber-600 font-medium"
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <div className="relative">
+                      <item.icon className="h-4 w-4 text-amber-500" />
+                    </div>
                     <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Premium Section */}
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
-            Premium
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
               {premiumItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
                     onClick={() => navigate(item.path)}
                     isActive={location.pathname === item.path}
-                    tooltip={`${item.label} (Premium)`}
+                    tooltip={item.label}
                     className={cn(
                       "transition-all hover:bg-amber-500/10",
                       location.pathname === item.path && "bg-amber-500/10 text-amber-600 font-medium"
@@ -86,10 +76,7 @@ export function AppSidebar() {
                     <div className="relative">
                       <item.icon className="h-4 w-4 text-amber-500" />
                     </div>
-                    <span className="flex items-center gap-2">
-                      {item.label}
-                      {!isCollapsed && <PremiumBadge size="sm" />}
-                    </span>
+                    <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
