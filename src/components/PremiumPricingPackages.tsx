@@ -285,9 +285,6 @@ export function PremiumPricingPackages({ onPackageSelect }: PremiumPricingPackag
                   <span className="text-muted-foreground">Atas Nama:</span>
                   <span className="font-medium">{PAYMENT_INFO.accountName}</span>
                 </div>
-                <div className="pt-2 border-t">
-                  <span className="text-muted-foreground text-xs">{PAYMENT_INFO.ewallet}</span>
-                </div>
               </div>
             </div>
 
@@ -344,7 +341,7 @@ export function PremiumPricingPackages({ onPackageSelect }: PremiumPricingPackag
               <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="font-bold">1.</span>
-                  <span>Setelah melakukan pembayaran, <strong>hubungi admin</strong> melalui WhatsApp: <strong>085186064700</strong></span>
+                  <span>Setelah melakukan pembayaran, <strong>hubungi admin</strong> melalui WhatsApp: <strong>{PAYMENT_INFO.whatsapp}</strong></span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold">2.</span>
