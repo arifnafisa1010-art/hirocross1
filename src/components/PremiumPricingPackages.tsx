@@ -39,7 +39,7 @@ const PAYMENT_INFO = {
   bank: 'Bank Mandiri',
   accountNumber: '1370020414021',
   accountName: 'NAFISA ARIF PAMBUDI',
-  ewallet: 'Dana/GoPay: 085186064700',
+  whatsapp: '089515107100',
 };
 
 interface PremiumPricingPackagesProps {
