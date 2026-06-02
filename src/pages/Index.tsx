@@ -45,21 +45,9 @@ const Index = () => {
             
             <main className="flex-1 p-4 overflow-auto">
               {activeTab === 'setup' && <SetupSection />}
-              {activeTab === 'annual' && (
-                <PremiumFeatureGate featureName="Annual Plan">
-                  <AnnualPlanSection />
-                </PremiumFeatureGate>
-              )}
-              {activeTab === 'monthly' && (
-                <PremiumFeatureGate featureName="Bulanan">
-                  <MonthlySection />
-                </PremiumFeatureGate>
-              )}
-              {activeTab === 'tests' && (
-                <PremiumFeatureGate featureName="Tes & Pengukuran">
-                  <TestsSection />
-                </PremiumFeatureGate>
-              )}
+              {activeTab === 'annual' && <AnnualPlanSection />}
+              {activeTab === 'monthly' && <MonthlySection />}
+              {activeTab === 'tests' && <TestsSection />}
             </main>
 
             <FloatingDock />
