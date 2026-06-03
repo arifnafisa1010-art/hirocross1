@@ -18,12 +18,15 @@ import { PremiumBadge } from '@/components/PremiumBadge';
 
 const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'setup', label: 'Setup', icon: Settings },
+];
+
+const premiumTabItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'annual', label: 'Annual Plan', icon: Calendar },
   { id: 'monthly', label: 'Bulanan', icon: CalendarDays },
   { id: 'tests', label: 'Tes & Pengukuran', icon: ClipboardList },
 ];
 
-const premiumItems = [
+const premiumRouteItems = [
   { path: '/monitoring-atlet', label: 'Monitoring Atlet', icon: Crown },
   { path: '/monitoring-plan', label: 'Monitoring Plan', icon: Activity },
   { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
@@ -65,14 +68,43 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Premium Section */}
+        {/* Premium Tab Items */}
         <SidebarGroup className="mt-4">
           <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
             Premium
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {premiumItems.map((item) => (
+              {premiumTabItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    onClick={() => setActiveTab(item.id)}
+                    isActive={activeTab === item.id}
+                    tooltip={`${item.label} (Premium)`}
+                    className={cn(
+                      "transition-all hover:bg-amber-500/10",
+                      activeTab === item.id && "bg-amber-500/10 text-amber-600 font-medium"
+                    )}
+                  >
+                    <div className="relative">
+                      <item.icon className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <span className="flex items-center gap-2">
+                      {item.label}
+                      {!isCollapsed && <PremiumBadge size="sm" />}
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Premium Route Items */}
+        <SidebarGroup className="mt-2">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {premiumRouteItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
                     onClick={() => navigate(item.path)}
