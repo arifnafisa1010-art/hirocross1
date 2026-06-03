@@ -20,10 +20,13 @@ const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'setup', label: 'Setup', icon: Settings },
 ];
 
-const premiumItems = [
-  { path: '/annual', label: 'Annual Plan', icon: Calendar },
-  { path: '/monthly', label: 'Bulanan', icon: CalendarDays },
-  { path: '/tests', label: 'Tes & Pengukuran', icon: ClipboardList },
+const premiumTabItems: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: 'annual', label: 'Annual Plan', icon: Calendar },
+  { id: 'monthly', label: 'Bulanan', icon: CalendarDays },
+  { id: 'tests', label: 'Tes & Pengukuran', icon: ClipboardList },
+];
+
+const premiumRouteItems = [
   { path: '/monitoring-atlet', label: 'Monitoring Atlet', icon: Crown },
   { path: '/monitoring-plan', label: 'Monitoring Plan', icon: Activity },
   { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
