@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { PremiumBadge } from '@/components/PremiumBadge';
+import { Diamond } from 'lucide-react';
 
 const menuItems: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'setup', label: 'Setup', icon: Settings },
@@ -39,92 +39,98 @@ export function AppSidebar() {
   const location = useLocation();
   const isCollapsed = state === 'collapsed';
 
+  const renderPremiumItem = (
+    key: string,
+    label: string,
+    Icon: React.ElementType,
+    isActive: boolean,
+    onClick: () => void,
+  ) => (
+    <SidebarMenuItem key={key}>
+      <SidebarMenuButton
+        onClick={onClick}
+        isActive={isActive}
+        tooltip={`${label} (Premium)`}
+        className={cn(
+          "group/premium h-10 gap-3 rounded-lg px-3 transition-all",
+          "hover:bg-amber-500/10 hover:text-amber-700",
+          isActive && "bg-amber-500/15 text-amber-700 font-medium",
+        )}
+      >
+        <Icon className={cn("h-4 w-4 shrink-0 text-amber-500")} />
+        {!isCollapsed && (
+          <>
+            <span className="flex-1 truncate text-sm">{label}</span>
+            <Diamond className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+          </>
+        )}
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-border">
-      <SidebarContent className="pt-4">
+      <SidebarContent className="gap-1 px-2 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
+          <SidebarGroupLabel
+            className={cn(
+              "px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+              isCollapsed && "sr-only",
+            )}
+          >
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => setActiveTab(item.id)}
-                    isActive={activeTab === item.id}
-                    tooltip={item.label}
-                    className={cn(
-                      "transition-all",
-                      activeTab === item.id && "bg-primary/10 text-primary font-medium"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="gap-1">
+              {menuItems.map((item) => {
+                const isActive = activeTab === item.id;
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => setActiveTab(item.id)}
+                      isActive={isActive}
+                      tooltip={item.label}
+                      className={cn(
+                        "h-10 gap-3 rounded-lg px-3 transition-all",
+                        isActive && "bg-primary/10 text-primary font-medium",
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Premium Tab Items */}
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className={cn(isCollapsed && "sr-only")}>
+        <SidebarGroup className="mt-2">
+          <SidebarGroupLabel
+            className={cn(
+              "flex items-center gap-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-amber-600",
+              isCollapsed && "sr-only",
+            )}
+          >
+            <Diamond className="h-3 w-3 fill-amber-400 text-amber-400" />
             Premium
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {premiumTabItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => setActiveTab(item.id)}
-                    isActive={activeTab === item.id}
-                    tooltip={`${item.label} (Premium)`}
-                    className={cn(
-                      "transition-all hover:bg-amber-500/10",
-                      activeTab === item.id && "bg-amber-500/10 text-amber-600 font-medium"
-                    )}
-                  >
-                    <div className="relative">
-                      <item.icon className="h-4 w-4 text-amber-500" />
-                    </div>
-                    <span className="flex items-center gap-2">
-                      {item.label}
-                      {!isCollapsed && <PremiumBadge size="sm" />}
-                    </span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Premium Route Items */}
-        <SidebarGroup className="mt-2">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {premiumRouteItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    onClick={() => navigate(item.path)}
-                    isActive={location.pathname === item.path}
-                    tooltip={`${item.label} (Premium)`}
-                    className={cn(
-                      "transition-all hover:bg-amber-500/10",
-                      location.pathname === item.path && "bg-amber-500/10 text-amber-600 font-medium"
-                    )}
-                  >
-                    <div className="relative">
-                      <item.icon className="h-4 w-4 text-amber-500" />
-                    </div>
-                    <span className="flex items-center gap-2">
-                      {item.label}
-                      {!isCollapsed && <PremiumBadge size="sm" />}
-                    </span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="gap-1">
+              {premiumTabItems.map((item) =>
+                renderPremiumItem(item.id, item.label, item.icon, activeTab === item.id, () =>
+                  setActiveTab(item.id),
+                ),
+              )}
+              {premiumRouteItems.map((item) =>
+                renderPremiumItem(
+                  item.path,
+                  item.label,
+                  item.icon,
+                  location.pathname === item.path,
+                  () => navigate(item.path),
+                ),
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
