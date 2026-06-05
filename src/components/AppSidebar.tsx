@@ -93,13 +93,13 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                       className={cn(
-                        "relative h-10 gap-3 rounded-lg px-3 transition-all",
+                        "relative h-11 md:h-10 gap-2.5 rounded-lg px-2.5 transition-all",
                         isActive && "data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium",
                         isActive && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r-full before:bg-primary",
                       )}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
-                      {showText && <span className="text-sm">{item.label}</span>}
+                      {showText && <span className="flex-1 min-w-0 truncate text-[13px] md:text-sm leading-tight">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
