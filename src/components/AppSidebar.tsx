@@ -34,10 +34,11 @@ const premiumRouteItems = [
 
 export function AppSidebar() {
   const { activeTab, setActiveTab } = useTrainingStore();
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
   const isCollapsed = state === 'collapsed';
+  const showText = !isCollapsed || isMobile;
 
   const renderPremiumItem = (
     key: string,
@@ -52,13 +53,14 @@ export function AppSidebar() {
         isActive={isActive}
         tooltip={`${label} (Premium)`}
         className={cn(
-          "group/premium h-10 gap-3 rounded-lg px-3 transition-all",
+          "group/premium relative h-10 gap-3 rounded-lg px-3 transition-all",
           "hover:bg-amber-500/10 hover:text-amber-700",
-          isActive && "bg-amber-500/15 text-amber-700 font-medium",
+          isActive && "data-[active=true]:bg-amber-500/15 data-[active=true]:text-amber-700 data-[active=true]:font-medium",
+          isActive && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r-full before:bg-amber-500",
         )}
       >
         <Icon className={cn("h-4 w-4 shrink-0 text-amber-500")} />
-        {!isCollapsed && (
+        {showText && (
           <>
             <span className="flex-1 truncate text-sm">{label}</span>
             <Diamond className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
@@ -75,7 +77,7 @@ export function AppSidebar() {
           <SidebarGroupLabel
             className={cn(
               "px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
-              isCollapsed && "sr-only",
+              !showText && "sr-only",
             )}
           >
             Menu
@@ -91,12 +93,13 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                       className={cn(
-                        "h-10 gap-3 rounded-lg px-3 transition-all",
-                        isActive && "bg-primary/10 text-primary font-medium",
+                        "relative h-10 gap-3 rounded-lg px-3 transition-all",
+                        isActive && "data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium",
+                        isActive && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r-full before:bg-primary",
                       )}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
-                      {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                      {showText && <span className="text-sm">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -109,7 +112,7 @@ export function AppSidebar() {
           <SidebarGroupLabel
             className={cn(
               "flex items-center gap-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-amber-600",
-              isCollapsed && "sr-only",
+              !showText && "sr-only",
             )}
           >
             <Diamond className="h-3 w-3 fill-amber-400 text-amber-400" />
