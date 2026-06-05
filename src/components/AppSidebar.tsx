@@ -53,7 +53,7 @@ export function AppSidebar() {
         isActive={isActive}
         tooltip={`${label} (Premium)`}
         className={cn(
-          "group/premium relative h-10 gap-3 rounded-lg px-3 transition-all",
+          "group/premium relative h-11 md:h-10 gap-2.5 rounded-lg px-2.5 transition-all",
           "hover:bg-amber-500/10 hover:text-amber-700",
           isActive && "data-[active=true]:bg-amber-500/15 data-[active=true]:text-amber-700 data-[active=true]:font-medium",
           isActive && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r-full before:bg-amber-500",
@@ -62,7 +62,7 @@ export function AppSidebar() {
         <Icon className={cn("h-4 w-4 shrink-0 text-amber-500")} />
         {showText && (
           <>
-            <span className="flex-1 truncate text-sm">{label}</span>
+            <span className="flex-1 min-w-0 truncate text-[13px] md:text-sm leading-tight">{label}</span>
             <Diamond className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
           </>
         )}
