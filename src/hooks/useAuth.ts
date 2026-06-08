@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthApiError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useAuth() {
@@ -49,8 +49,20 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // Force clear state even if server call fails
+        setUser(null);
+        setSession(null);
+      }
+      return { error };
+    } catch (e) {
+      // Ensure auth state is cleared on any failure
+      setUser(null);
+      setSession(null);
+      return { error: e as AuthApiError };
+    }
   };
 
   const resetPassword = async (email: string) => {
