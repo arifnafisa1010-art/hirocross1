@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAthletes, Athlete } from '@/hooks/useAthletes';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { PremiumBadge } from './PremiumBadge';
+
 
 interface TeamSnapshot {
   id: string;
