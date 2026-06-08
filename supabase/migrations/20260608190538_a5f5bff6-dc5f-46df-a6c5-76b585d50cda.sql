@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Deny anonymous access to athletes" ON public.athletes;

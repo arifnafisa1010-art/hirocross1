@@ -140,8 +140,13 @@ export default function Auth() {
     }
 
     if (mode === 'signup') {
-      if (password.length < 6) {
-        toast.error('Password minimal 6 karakter!');
+      if (password.length < 8) {
+        toast.error('Password minimal 8 karakter!');
+        setSubmitting(false);
+        return;
+      }
+      if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+        toast.error('Password harus mengandung huruf dan angka!');
         setSubmitting(false);
         return;
       }

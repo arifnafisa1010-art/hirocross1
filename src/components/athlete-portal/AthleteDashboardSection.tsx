@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import DOMPurify from 'dompurify';
 
 interface DailyMetric {
   date: string;
@@ -401,7 +402,7 @@ export function AthleteDashboardSection({
                 </div>
               ) : aiAnalysis ? (
                 <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-sm prose-headings:font-bold prose-p:text-sm prose-li:text-sm prose-p:leading-relaxed">
-                  <div dangerouslySetInnerHTML={{ __html: markdownToHtml(aiAnalysis) }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(markdownToHtml(aiAnalysis), { ALLOWED_TAGS: ['h1','h2','h3','p','strong','em','ul','ol','li','br','code','pre','blockquote'], ALLOWED_ATTR: [] }) }} />
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -423,20 +424,27 @@ export function AthleteDashboardSection({
   );
 }
 
-// Simple markdown to HTML
+// Simple markdown to HTML — output MUST be sanitized with DOMPurify before injection
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function markdownToHtml(md: string): string {
-  return md
+  // Escape raw HTML first to prevent injection from upstream content
+  const safe = escapeHtml(md);
+  return safe
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
     .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br/>')
-    .replace(/^(.+)$/gm, (match) => {
-      if (match.startsWith('<')) return match;
-      return match;
-    });
+    .replace(/\n/g, '<br/>');
 }
