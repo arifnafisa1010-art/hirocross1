@@ -49,8 +49,20 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // Force clear state even if server call fails
+        setUser(null);
+        setSession(null);
+      }
+      return { error };
+    } catch (e) {
+      // Ensure auth state is cleared on any failure
+      setUser(null);
+      setSession(null);
+      return { error: e as AuthApiError };
+    }
   };
 
   const resetPassword = async (email: string) => {
