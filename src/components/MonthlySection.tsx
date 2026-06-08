@@ -1355,7 +1355,6 @@ export function MonthlySection() {
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Activity className="w-5 h-5 text-amber-500" />
                     Input Training Load
-                    <PremiumBadge size="sm" />
                   </CardTitle>
                   <Crown className={cn(
                     "w-5 h-5 text-amber-500 transition-transform",

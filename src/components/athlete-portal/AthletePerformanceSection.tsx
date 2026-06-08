@@ -94,12 +94,6 @@ export function AthletePerformanceSection({
             </div>
             Dashboard Performa
           </h2>
-          {coachHasPremium && (
-            <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] px-2.5 py-0.5 shadow-sm">
-              <Crown className="h-3 w-3 mr-1" />
-              Premium
-            </Badge>
-          )}
         </div>
         <div className="relative">
           <Card className="border-none shadow-md overflow-hidden">
