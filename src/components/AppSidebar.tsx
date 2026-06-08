@@ -117,12 +117,13 @@ export function AppSidebar() {
         <SidebarGroup className="mt-2">
           <SidebarGroupLabel
             className={cn(
-              "flex items-center gap-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-amber-600",
+              "flex items-center gap-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider",
+              hasPremium ? "text-muted-foreground" : "text-amber-600",
               !showText && "sr-only",
             )}
           >
-            <Diamond className="h-3 w-3 fill-amber-400 text-amber-400" />
-            Premium
+            {!hasPremium && <Diamond className="h-3 w-3 fill-amber-400 text-amber-400" />}
+            {hasPremium ? 'Fitur' : 'Premium'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
