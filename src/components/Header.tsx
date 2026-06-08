@@ -17,6 +17,7 @@ export function Header() {
     if (error) {
       toast.error('Gagal logout');
     }
+    navigate('/auth', { replace: true });
   };
 
   return (
