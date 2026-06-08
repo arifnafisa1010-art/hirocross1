@@ -183,9 +183,6 @@ export default function PremiumDashboard() {
           {/* Main Gauges */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
-              </div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-green-500" />
@@ -202,9 +199,6 @@ export default function PremiumDashboard() {
             </Card>
 
             <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
-              </div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <TrendingDown className="w-4 h-4 text-red-500" />
@@ -221,9 +215,6 @@ export default function PremiumDashboard() {
             </Card>
 
             <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
-              </div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Zap className="w-4 h-4 text-amber-500" />
@@ -240,9 +231,6 @@ export default function PremiumDashboard() {
             </Card>
 
             <Card className="relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <PremiumBadge size="sm" />
-              </div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Activity className="w-4 h-4 text-blue-500" />
