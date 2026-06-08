@@ -174,7 +174,6 @@ export default function MonitoringAtlet() {
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                   Monitoring Atlet
-                  <PremiumBadge size="sm" />
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {selectedAthleteName} • Load Monitoring & Performance Analysis

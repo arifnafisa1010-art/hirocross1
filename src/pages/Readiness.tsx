@@ -153,7 +153,6 @@ export default function Readiness() {
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                   <HeartPulse className="h-6 w-6 text-primary" />
                   Readiness Check
-                  <PremiumBadge size="sm" />
                 </h1>
                 <p className="text-sm text-muted-foreground">Monitor kesiapan atlet dengan Vertical Jump & Heart Rate</p>
               </div>
