@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, Activity, Target } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, subWeeks, isWithinInterval, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { PremiumBadge } from './PremiumBadge';
+
 
 interface DailyLoad {
   date: string;
@@ -99,9 +99,6 @@ export function WeeklyTSSChart({ dailyMetrics, weeklyTarget = 400 }: WeeklyTSSCh
 
   return (
     <Card className="relative overflow-hidden">
-      <div className="absolute top-2 right-2">
-        <PremiumBadge size="sm" />
-      </div>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary" />
