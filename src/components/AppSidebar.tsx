@@ -2,6 +2,7 @@ import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity, Heart
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { TabId } from '@/types/training';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import {
   Sidebar,
   SidebarContent,
