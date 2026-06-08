@@ -367,9 +367,6 @@ export function AthleteDashboardSection({
                     <Brain className="h-4 w-4 text-violet-600" />
                   </div>
                   Analisis AI
-                  <Badge className="bg-gradient-to-r from-violet-500 to-blue-500 text-white text-[10px] border-none">
-                    Premium
-                  </Badge>
                 </CardTitle>
                 <Button
                   size="sm"

@@ -2,6 +2,7 @@ import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity, Heart
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { TabId } from '@/types/training';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +38,7 @@ export function AppSidebar() {
   const { state, isMobile } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasPremium } = usePremiumAccess();
   const isCollapsed = state === 'collapsed';
   const showText = !isCollapsed || isMobile;
 
@@ -51,19 +53,23 @@ export function AppSidebar() {
       <SidebarMenuButton
         onClick={onClick}
         isActive={isActive}
-        tooltip={`${label} (Premium)`}
+        tooltip={hasPremium ? label : `${label} (Premium)`}
         className={cn(
-          "group/premium relative h-11 md:h-10 gap-2.5 rounded-lg px-2.5 transition-all",
-          "hover:bg-amber-500/10 hover:text-amber-700",
-          isActive && "data-[active=true]:bg-amber-500/15 data-[active=true]:text-amber-700 data-[active=true]:font-medium",
-          isActive && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r-full before:bg-amber-500",
+          "relative h-11 md:h-10 gap-2.5 rounded-lg px-2.5 transition-all",
+          hasPremium
+            ? "hover:bg-primary/10 hover:text-primary"
+            : "hover:bg-amber-500/10 hover:text-amber-700",
+          isActive && hasPremium && "data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium",
+          isActive && hasPremium && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r-full before:bg-primary",
+          isActive && !hasPremium && "data-[active=true]:bg-amber-500/15 data-[active=true]:text-amber-700 data-[active=true]:font-medium",
+          isActive && !hasPremium && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r-full before:bg-amber-500",
         )}
       >
-        <Icon className={cn("h-4 w-4 shrink-0 text-amber-500")} />
+        <Icon className={cn("h-4 w-4 shrink-0", hasPremium ? "text-primary" : "text-amber-500")} />
         {showText && (
           <>
             <span className="flex-1 min-w-0 truncate text-[13px] md:text-sm leading-tight">{label}</span>
-            <Diamond className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+            {!hasPremium && <Diamond className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
           </>
         )}
       </SidebarMenuButton>
@@ -111,12 +117,13 @@ export function AppSidebar() {
         <SidebarGroup className="mt-2">
           <SidebarGroupLabel
             className={cn(
-              "flex items-center gap-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-amber-600",
+              "flex items-center gap-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider",
+              hasPremium ? "text-muted-foreground" : "text-amber-600",
               !showText && "sr-only",
             )}
           >
-            <Diamond className="h-3 w-3 fill-amber-400 text-amber-400" />
-            Premium
+            {!hasPremium && <Diamond className="h-3 w-3 fill-amber-400 text-amber-400" />}
+            {hasPremium ? 'Fitur' : 'Premium'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">

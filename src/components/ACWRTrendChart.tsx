@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChartContainer } from '@/components/ui/chart';
 import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import { Activity, Download, Image } from 'lucide-react';
-import { PremiumBadge } from '@/components/PremiumBadge';
+
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format, subDays, eachDayOfInterval } from 'date-fns';
@@ -172,7 +172,6 @@ export function ACWRTrendChart({ dailyMetrics }: ACWRTrendChartProps) {
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />
             Tren ACWR
-            <PremiumBadge size="sm" />
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -191,7 +190,6 @@ export function ACWRTrendChart({ dailyMetrics }: ACWRTrendChartProps) {
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />
             Tren ACWR
-            <PremiumBadge size="sm" />
           </CardTitle>
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={periodDays.toString()} onValueChange={(v) => setPeriodDays(parseInt(v))}>

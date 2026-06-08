@@ -10,7 +10,7 @@ import { id as idLocale } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAthletes, Athlete } from '@/hooks/useAthletes';
 import { useAuth } from '@/hooks/useAuth';
-import { PremiumBadge } from './PremiumBadge';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AthleteLoadData {
@@ -208,9 +208,6 @@ export function MultiAthleteComparison() {
 
   return (
     <Card className="relative overflow-hidden">
-      <div className="absolute top-2 right-2">
-        <PremiumBadge size="sm" />
-      </div>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Users className="w-5 h-5 text-primary" />

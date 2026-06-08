@@ -16,7 +16,7 @@ import { TrainingLoadInput } from './TrainingLoadInput';
 import { TrainingLoadHistory } from './TrainingLoadHistory';
 import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarget';
 import { WeeklySyncSummary } from './WeeklySyncSummary';
-import { PremiumBadge } from './PremiumBadge';
+
 import { CompetitionDayMarker, DayMarkerBadge } from './CompetitionDayMarker';
 import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy, Pencil, ClipboardPaste, Clipboard } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -1355,7 +1355,6 @@ export function MonthlySection() {
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Activity className="w-5 h-5 text-amber-500" />
                     Input Training Load
-                    <PremiumBadge size="sm" />
                   </CardTitle>
                   <Crown className={cn(
                     "w-5 h-5 text-amber-500 transition-transform",

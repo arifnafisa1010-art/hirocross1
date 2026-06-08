@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAthletes, Athlete } from '@/hooks/useAthletes';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { PremiumBadge } from './PremiumBadge';
+
 
 interface TeamSnapshot {
   id: string;
@@ -218,9 +218,6 @@ export function TeamSnapshotComparison() {
 
   return (
     <Card className="relative overflow-hidden">
-      <div className="absolute top-2 right-2">
-        <PremiumBadge size="sm" />
-      </div>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Camera className="w-5 h-5 text-primary" />

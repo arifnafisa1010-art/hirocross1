@@ -4,7 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { CalendarDays, Activity, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { format, subDays, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { PremiumBadge } from './PremiumBadge';
+
 import { cn } from '@/lib/utils';
 
 interface DailyLoad {
@@ -76,9 +76,6 @@ export function DailyLoadAccumulation({ dailyMetrics, daysToShow = 14 }: DailyLo
 
   return (
     <Card className="relative overflow-hidden">
-      <div className="absolute top-2 right-2">
-        <PremiumBadge size="sm" />
-      </div>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-primary" />
