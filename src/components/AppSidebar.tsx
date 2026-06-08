@@ -38,6 +38,7 @@ export function AppSidebar() {
   const { state, isMobile } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasPremium } = usePremiumAccess();
   const isCollapsed = state === 'collapsed';
   const showText = !isCollapsed || isMobile;
 
