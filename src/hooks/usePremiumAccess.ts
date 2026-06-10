@@ -165,21 +165,21 @@ export function usePremiumAccessAdmin() {
     notes?: string
   ) => {
     try {
-      // First, deactivate any existing premium access for this user
-      await supabase
-        .from('premium_access')
-        .update({ is_active: false })
-        .eq('user_id', userId);
-
+      // Upsert by user_id (table has UNIQUE constraint on user_id),
+      // so re-granting reactivates and refreshes the existing row.
       const { data, error } = await supabase
         .from('premium_access')
-        .insert({
-          user_id: userId,
-          granted_by: grantedBy,
-          expires_at: expiresAt || null,
-          notes: notes || null,
-          is_active: true,
-        })
+        .upsert(
+          {
+            user_id: userId,
+            granted_by: grantedBy,
+            granted_at: new Date().toISOString(),
+            expires_at: expiresAt || null,
+            notes: notes || null,
+            is_active: true,
+          },
+          { onConflict: 'user_id' }
+        )
         .select()
         .single();
 
