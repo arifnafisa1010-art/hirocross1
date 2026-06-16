@@ -18,7 +18,8 @@ import { WeeklyLoadTarget, DEFAULT_BASE_LOAD_PER_PHASE } from './WeeklyLoadTarge
 import { WeeklySyncSummary } from './WeeklySyncSummary';
 
 import { CompetitionDayMarker, DayMarkerBadge } from './CompetitionDayMarker';
-import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy, Pencil, ClipboardPaste, Clipboard } from 'lucide-react';
+import { Users, Save, Loader2, Target, TrendingUp, RefreshCw, CheckCircle2, Crown, Activity, Cloud, CloudOff, Trophy, Trash2, Copy, Pencil, ClipboardPaste, Clipboard, FileDown } from 'lucide-react';
+import { exportWeeklyProgramPDF } from '@/lib/weeklyProgramExport';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -290,6 +291,33 @@ export function MonthlySection() {
   const handleDayClick = (week: number, day: string) => {
     setSelectedDay({ week, day });
     setModalOpen(true);
+  };
+
+  const handleDownloadWeek = (wk: number) => {
+    const weekData = planData.find(p => p.wk === wk);
+    const exportDays = days.map((day, dayIndex) => {
+      const date = getDateForDay(wk, dayIndex);
+      const sessions = getSessionsForDay(wk, day).map(({ number, session }) => ({ number, session }));
+      const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
+      const marker = dateStr ? dayMarkers.find(m => m.date === dateStr)?.type || null : null;
+      return { day, date, sessions, marker };
+    });
+    const athleteNames = athletes
+      .filter(a => selectedAthleteIds.includes(a.id))
+      .map(a => a.name);
+    try {
+      exportWeeklyProgramPDF({
+        planName: setup.planName || 'Program',
+        weekNumber: wk,
+        weekData,
+        days: exportDays,
+        athleteNames,
+      });
+      toast.success(`Program W${wk} berhasil diunduh`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Gagal mengunduh program');
+    }
   };
 
   const handleCopyDay = (e: React.MouseEvent, week: number, day: string) => {
@@ -900,6 +928,16 @@ export function MonthlySection() {
                       {recommendedIntensity}
                     </Badge>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-7 text-[10px] gap-1"
+                    onClick={() => handleDownloadWeek(wk)}
+                    title={`Unduh program W${wk} (PDF)`}
+                  >
+                    <FileDown className="w-3 h-3" />
+                    Unduh PDF
+                  </Button>
                 </Card>
 
                 {/* Days */}
