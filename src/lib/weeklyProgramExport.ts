@@ -286,12 +286,12 @@ export function exportWeeklyProgramPDF(params: WeeklyExportParams) {
         const rows = session.exercises.map((ex, i) => {
           const cat = CATEGORY_LABELS[ex.cat] || ex.cat;
           return [
-            { text: String(i + 1), align: 'center' },
+            { text: String(i + 1), align: 'center' as const },
             ex.name,
             cat,
-            { text: String(ex.set), align: 'center' },
-            { text: String(ex.rep), align: 'center' },
-            { text: ex.load ? `${ex.load} kg/unit` : '-', align: 'center' },
+            { text: String(ex.set), align: 'center' as const },
+            { text: String(ex.rep), align: 'center' as const },
+            { text: ex.load ? `${ex.load} kg/unit` : '-', align: 'center' as const },
           ];
         });
         drawTable(
