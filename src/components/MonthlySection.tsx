@@ -928,6 +928,16 @@ export function MonthlySection() {
                       {recommendedIntensity}
                     </Badge>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-7 text-[10px] gap-1"
+                    onClick={() => handleDownloadWeek(wk)}
+                    title={`Unduh program W${wk} (PDF)`}
+                  >
+                    <FileDown className="w-3 h-3" />
+                    Unduh PDF
+                  </Button>
                 </Card>
 
                 {/* Days */}
