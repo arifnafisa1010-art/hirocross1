@@ -293,6 +293,33 @@ export function MonthlySection() {
     setModalOpen(true);
   };
 
+  const handleDownloadWeek = (wk: number) => {
+    const weekData = planData.find(p => p.wk === wk);
+    const exportDays = days.map((day, dayIndex) => {
+      const date = getDateForDay(wk, dayIndex);
+      const sessions = getSessionsForDay(wk, day).map(({ number, session }) => ({ number, session }));
+      const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
+      const marker = dateStr ? dayMarkers.find(m => m.date === dateStr)?.type || null : null;
+      return { day, date, sessions, marker };
+    });
+    const athleteNames = athletes
+      .filter(a => selectedAthleteIds.includes(a.id))
+      .map(a => a.name);
+    try {
+      exportWeeklyProgramPDF({
+        planName: setup.planName || 'Program',
+        weekNumber: wk,
+        weekData,
+        days: exportDays,
+        athleteNames,
+      });
+      toast.success(`Program W${wk} berhasil diunduh`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Gagal mengunduh program');
+    }
+  };
+
   const handleCopyDay = (e: React.MouseEvent, week: number, day: string) => {
     e.stopPropagation();
     setCopiedDay({ week, day });
