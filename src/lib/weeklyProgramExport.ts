@@ -5,16 +5,17 @@ import type { DaySession, PlanWeek } from '@/types/training';
 import { calculateSessionLoad } from '@/hooks/useTrainingLoads';
 
 const CATEGORY_LABELS: Record<string, string> = {
-  strength: 'Kekuatan',
-  speed: 'Kecepatan',
-  endurance: 'Daya Tahan',
-  technique: 'Teknik',
-  tactic: 'Taktik',
+  strength: 'Strength',
+  speed: 'Speed',
+  endurance: 'Endurance',
+  technique: 'Technique',
+  tactic: 'Tactic',
   power: 'Power',
   agility: 'Agility',
-  flexibility: 'Fleksibilitas',
-  balance: 'Keseimbangan',
-  reaction: 'Reaksi',
+  flexibility: 'Flexibility',
+  balance: 'Balance',
+  reaction: 'Reaction',
+  core: 'Core',
 };
 
 const INTENSITY_LABELS: Record<string, string> = {
@@ -23,6 +24,8 @@ const INTENSITY_LABELS: Record<string, string> = {
   Med: 'Sedang',
   High: 'Tinggi',
 };
+
+const DAY_ORDER = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU', 'MINGGU'];
 
 export interface WeeklyExportSession {
   number: number;
@@ -46,163 +49,48 @@ export interface WeeklyExportParams {
 
 export function exportWeeklyProgramPDF(params: WeeklyExportParams) {
   const { planName, weekNumber, weekData, days, athleteNames } = params;
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 14;
-  let y = margin;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+  const pageW = doc.internal.pageSize.getWidth();   // ~297
+  const pageH = doc.internal.pageSize.getHeight();  // ~210
+  const margin = 10;
 
-  const ensureSpace = (needed: number) => {
-    if (y + needed > pageH - margin) {
-      doc.addPage();
-      y = margin;
-    }
-  };
+  // Reorder days to Senin..Minggu
+  const dayMap = new Map<string, WeeklyExportDay>();
+  days.forEach((d) => dayMap.set(d.day.toUpperCase(), d));
+  const orderedDays: (WeeklyExportDay & { label: string })[] = DAY_ORDER.map((label) => {
+    const found = dayMap.get(label);
+    return found ? { ...found, label } : { day: label, label, date: null, sessions: [], marker: null };
+  });
 
-  const writeWrapped = (text: string, x: number, options: { size?: number; bold?: boolean; maxWidth?: number; lineHeight?: number } = {}) => {
-    const size = options.size ?? 10;
-    const bold = options.bold ?? false;
-    const maxWidth = options.maxWidth ?? pageW - margin * 2;
-    const lineHeight = options.lineHeight ?? size * 0.45;
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    doc.setFontSize(size);
-    const lines = doc.splitTextToSize(text, maxWidth);
-    lines.forEach((line: string) => {
-      ensureSpace(lineHeight);
-      doc.text(line, x, y);
-      y += lineHeight;
-    });
-  };
-
-  // Table helpers
-  type TableCell = string | { text: string; bold?: boolean; align?: 'left' | 'center' | 'right' };
-
-  const drawTable = (
-    headers: string[],
-    rows: TableCell[][],
-    colWidths: number[],
-    options: {
-      x?: number;
-      headerFill?: [number, number, number];
-      headerTextColor?: [number, number, number];
-      bodyFill?: [number, number, number];
-      fontSize?: number;
-      lineHeight?: number;
-      padding?: number;
-    } = {}
-  ) => {
-    const fontSize = options.fontSize ?? 9;
-    const lineHeight = options.lineHeight ?? fontSize * 0.45;
-    const padding = options.padding ?? 2;
-    const totalWidth = colWidths.reduce((a, b) => a + b, 0);
-    const x = options.x ?? margin + (pageW - margin * 2 - totalWidth) / 2;
-    const startY = y;
-
-    const cellText = (cell: TableCell) => (typeof cell === 'string' ? cell : cell.text);
-    const cellBold = (cell: TableCell) => (typeof cell === 'object' ? cell.bold : false);
-    const cellAlign = (cell: TableCell) => (typeof cell === 'object' ? cell.align : 'left');
-
-    const measureCellHeight = (cell: TableCell, width: number) => {
-      doc.setFont('helvetica', cellBold(cell) ? 'bold' : 'normal');
-      doc.setFontSize(fontSize);
-      const text = cellText(cell);
-      const lines = doc.splitTextToSize(text, Math.max(1, width - padding * 2));
-      return Math.max(lineHeight, lines.length * lineHeight) + padding * 2;
-    };
-
-    const rowHeights = rows.map(row =>
-      Math.max(
-        lineHeight + padding * 2,
-        ...row.map((cell, i) => measureCellHeight(cell, colWidths[i]))
-      )
-    );
-    const headerHeight = Math.max(
-      lineHeight + padding * 2,
-      ...headers.map((h, i) => measureCellHeight(h, colWidths[i]))
-    );
-
-    const tableHeight = headerHeight + rowHeights.reduce((a, b) => a + b, 0);
-    ensureSpace(tableHeight + 1);
-
-    let cx = x;
-    // Header
-    doc.setFillColor(...(options.headerFill ?? [15, 23, 42]));
-    doc.setDrawColor(180, 180, 180);
-    doc.rect(x, y, totalWidth, headerHeight, 'FD');
-    doc.setTextColor(...(options.headerTextColor ?? [255, 255, 255]));
-    headers.forEach((h, i) => {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(fontSize);
-      const lines = doc.splitTextToSize(h, Math.max(1, colWidths[i] - padding * 2));
-      const textY = y + headerHeight / 2 + (lines.length * lineHeight) / 2 - lineHeight / 2 + padding / 2;
-      doc.text(lines, cx + padding, textY, { align: 'left' });
-      cx += colWidths[i];
-    });
-    y += headerHeight;
-
-    // Body rows
-    rows.forEach((row, rowIdx) => {
-      const rowHeight = rowHeights[rowIdx];
-      cx = x;
-      doc.setFillColor(...(options.bodyFill ?? (rowIdx % 2 === 0 ? [255, 255, 255] : [248, 250, 252])));
-      doc.rect(x, y, totalWidth, rowHeight, 'FD');
-      doc.setTextColor(0, 0, 0);
-      row.forEach((cell, i) => {
-        doc.setFont('helvetica', cellBold(cell) ? 'bold' : 'normal');
-        doc.setFontSize(fontSize);
-        const text = cellText(cell);
-        const align = cellAlign(cell);
-        const availW = Math.max(1, colWidths[i] - padding * 2);
-        const lines = doc.splitTextToSize(text, availW);
-        const textY = y + rowHeight / 2 + (lines.length * lineHeight) / 2 - lineHeight / 2 + padding / 2;
-        const textX = align === 'center' ? cx + colWidths[i] / 2 : align === 'right' ? cx + colWidths[i] - padding : cx + padding;
-        doc.text(lines, textX, textY, { align });
-        cx += colWidths[i];
-      });
-      y += rowHeight;
-    });
-
-    // Outer border + vertical lines
-    doc.setDrawColor(180, 180, 180);
-    doc.rect(x, startY, totalWidth, tableHeight, 'S');
-    cx = x;
-    colWidths.slice(0, -1).forEach(w => {
-      cx += w;
-      doc.line(cx, startY, cx, startY + tableHeight);
-    });
-
-    y += 1.5;
-  };
-
-  // Header
+  // ============ Header banner ============
   doc.setFillColor(15, 23, 42); // slate-950
-  doc.rect(0, 0, pageW, 26, 'F');
+  doc.rect(0, 0, pageW, 22, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text(planName || 'Program Latihan', margin, 11);
+  doc.setFontSize(15);
+  doc.text(planName || 'Program Latihan', margin, 9);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.text(`Program Mingguan - Minggu ${weekNumber}`, margin, 18);
+  doc.setFontSize(10);
+  doc.text(`Program Mingguan — Minggu ${weekNumber}`, margin, 15);
   if (weekData) {
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     const meta = [
       weekData.meso,
       weekData.fase,
       `Vol ${weekData.vol}%`,
       `Int ${weekData.int}%`,
     ].filter(Boolean).join(' • ');
-    doc.text(meta, margin, 23);
+    doc.text(meta, margin, 20);
+  }
+  if (athleteNames && athleteNames.length > 0) {
+    doc.setFontSize(8.5);
+    doc.text(`Atlet: ${athleteNames.join(', ')}`, pageW - margin, 15, { align: 'right' });
   }
   doc.setTextColor(0, 0, 0);
-  y = 32;
 
-  if (athleteNames && athleteNames.length > 0) {
-    writeWrapped(`Atlet: ${athleteNames.join(', ')}`, margin, { size: 9 });
-    y += 1;
-  }
+  let y = 28;
 
-  // Weekly objectives
+  // ============ Tujuan (compact line) ============
   if (weekData) {
     const goals: string[] = [];
     if (weekData.tujuanKekuatan) goals.push(`Kekuatan: ${weekData.tujuanKekuatan}`);
@@ -211,138 +99,218 @@ export function exportWeeklyProgramPDF(params: WeeklyExportParams) {
     if (weekData.tujuanFleksibilitas) goals.push(`Fleksibilitas: ${weekData.tujuanFleksibilitas}`);
     if (weekData.tujuanMental) goals.push(`Mental: ${weekData.tujuanMental}`);
     if (goals.length > 0) {
-      writeWrapped('Tujuan Minggu Ini', margin, { size: 11, bold: true });
-      goals.forEach(g => writeWrapped(`• ${g}`, margin + 2, { size: 9 }));
-      y += 2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('Tujuan Minggu Ini:', margin, y);
+      doc.setFont('helvetica', 'normal');
+      const text = goals.join('  •  ');
+      const lines = doc.splitTextToSize(text, pageW - margin * 2 - 32);
+      doc.text(lines, margin + 32, y);
+      y += Math.max(lines.length * 4, 4) + 2;
     }
   }
 
-  // Per day
-  days.forEach(({ day, date, sessions, marker }) => {
-    ensureSpace(20);
-    // Day header bar
-    doc.setFillColor(30, 41, 59); // slate-800
-    doc.rect(margin, y - 4, pageW - margin * 2, 8, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    const dateLabel = date ? ` — ${format(date, 'd MMM yyyy', { locale: idLocale })}` : '';
-    doc.text(`${day}${dateLabel}`, margin + 2, y + 1.5);
-    if (marker) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(`[${marker}]`, pageW - margin - 2, y + 1.5, { align: 'right' });
-    }
-    doc.setTextColor(0, 0, 0);
-    y += 7;
+  // ============ Grid Layout ============
+  const leftLabelW = 18;
+  const totalGridW = pageW - margin * 2;
+  const colW = (totalGridW - leftLabelW) / 7;
 
-    if (sessions.length === 0) {
-      writeWrapped('Istirahat / tidak ada sesi.', margin + 2, { size: 9 });
-      y += 2;
+  const headerH = 7;          // day name
+  const subHeaderH = 6;       // Target | Category
+  const footRowH = 6;         // Durasi / RPE / TL each
+  const totalFootH = footRowH * 3;
+  const availForBody = pageH - margin - y - headerH - subHeaderH - totalFootH - 12; // 12 = footer + totalTL line
+  const bodyH = Math.max(70, availForBody);
+
+  const gridLeft = margin;
+  const gridTop = y;
+  const bodyTop = gridTop + headerH + subHeaderH;
+  const footTop = bodyTop + bodyH;
+  const gridBottom = footTop + totalFootH;
+  const gridRight = gridLeft + totalGridW;
+
+  // Day header cells
+  doc.setDrawColor(120, 130, 145);
+  doc.setLineWidth(0.2);
+  doc.setFillColor(191, 219, 254); // light blue (blue-200)
+  doc.rect(gridLeft, gridTop, totalGridW, headerH, 'FD');
+  doc.setFillColor(226, 232, 240); // slate-200 for left empty
+  doc.rect(gridLeft, gridTop, leftLabelW, headerH, 'FD');
+
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  orderedDays.forEach((d, i) => {
+    const cx = gridLeft + leftLabelW + colW * i;
+    doc.rect(cx, gridTop, colW, headerH, 'S');
+    const dateLabel = d.date ? ` (${format(d.date, 'd/M', { locale: idLocale })})` : '';
+    doc.text(`${d.label}${dateLabel}`, cx + colW / 2, gridTop + headerH / 2 + 1.2, { align: 'center' });
+  });
+
+  // Subheader: Target | Category (per day)
+  doc.setFillColor(219, 234, 254); // blue-100
+  doc.rect(gridLeft + leftLabelW, gridTop + headerH, totalGridW - leftLabelW, subHeaderH, 'FD');
+  doc.setFillColor(226, 232, 240);
+  doc.rect(gridLeft, gridTop + headerH, leftLabelW, subHeaderH, 'FD');
+
+  doc.setFontSize(8);
+  orderedDays.forEach((d, i) => {
+    const cx = gridLeft + leftLabelW + colW * i;
+    const subY = gridTop + headerH;
+    doc.rect(cx, subY, colW, subHeaderH, 'S');
+    if (d.sessions.length > 0) {
+      // Split cell: left "Target", right category label
+      const half = colW / 2;
+      doc.line(cx + half, subY, cx + half, subY + subHeaderH);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Target', cx + 1.5, subY + subHeaderH / 2 + 1);
+      // Determine primary category from first session's first exercise
+      const firstSession = d.sessions[0].session;
+      let catLabel = INTENSITY_LABELS[firstSession.int] || firstSession.int || '-';
+      if (firstSession.exercises && firstSession.exercises.length > 0) {
+        catLabel = CATEGORY_LABELS[firstSession.exercises[0].cat] || firstSession.exercises[0].cat;
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.text(catLabel, cx + half + 1.5, subY + subHeaderH / 2 + 1);
+    }
+  });
+
+  // Body cells (white)
+  doc.setFillColor(255, 255, 255);
+  orderedDays.forEach((d, i) => {
+    const cx = gridLeft + leftLabelW + colW * i;
+    doc.rect(cx, bodyTop, colW, bodyH, 'FD');
+  });
+  // left empty label column (white)
+  doc.rect(gridLeft, bodyTop, leftLabelW, bodyH, 'FD');
+
+  // Body content per day
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(7.8);
+  const bodyPad = 1.5;
+  const lineH = 3.2;
+
+  const drawDayBody = (d: WeeklyExportDay, colX: number) => {
+    let by = bodyTop + bodyPad + 2.5;
+    const maxY = bodyTop + bodyH - bodyPad;
+    const innerW = colW - bodyPad * 2;
+
+    const writeLine = (txt: string, opts: { bold?: boolean; size?: number } = {}) => {
+      if (by > maxY) return;
+      doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+      doc.setFontSize(opts.size ?? 7.8);
+      const lines = doc.splitTextToSize(txt, innerW);
+      for (const ln of lines) {
+        if (by > maxY) return;
+        doc.text(ln, colX + bodyPad, by);
+        by += lineH;
+      }
+    };
+
+    if (d.sessions.length === 0) {
+      writeLine('Istirahat', { bold: true });
+      if (d.marker) writeLine(`[${d.marker}]`);
       return;
     }
 
-    let dayDuration = 0;
-    let dayLoad = 0;
-    let dayRpeSum = 0;
-    let dayRpeCount = 0;
+    if (d.marker) writeLine(`[${d.marker}]`, { bold: true });
 
-    sessions.forEach(({ number, session }) => {
-      const sessionLoad = session.rpe && session.duration ? calculateSessionLoad(session.duration, session.rpe) : undefined;
-      const status = session.isDone ? 'Selesai' : 'Belum';
-      const rpeText = session.rpe ? String(session.rpe) : '-';
-      const durationText = session.duration ? `${session.duration} mnt` : '-';
-      const loadText = sessionLoad !== undefined ? `${sessionLoad} AU` : '-';
-
-      // Session summary table
-      drawTable(
-        ['Sesi', 'Intensitas', 'Durasi', 'RPE', 'Load', 'Status'],
-        [
-          [
-            { text: `Sesi ${number}`, bold: true, align: 'center' },
-            INTENSITY_LABELS[session.int] || session.int,
-            { text: durationText, align: 'center' },
-            { text: rpeText, align: 'center' },
-            { text: loadText, align: 'center' },
-            { text: status, align: 'center' },
-          ],
-        ],
-        [22, 32, 30, 20, 28, 30],
-        { fontSize: 9 }
-      );
-
-      if (session.rpe) {
-        dayRpeSum += session.rpe;
-        dayRpeCount += 1;
-      }
-      if (session.duration) dayDuration += session.duration;
-      if (sessionLoad !== undefined) dayLoad += sessionLoad;
-
-      if (session.warmup) {
-        writeWrapped(`Pemanasan: ${session.warmup}`, margin + 2, { size: 9 });
-      }
-
+    d.sessions.forEach(({ number, session }) => {
+      writeLine(`Sesi ${number} — ${INTENSITY_LABELS[session.int] || session.int}`, { bold: true });
+      if (session.warmup) writeLine(`WU: ${session.warmup}`);
       if (session.exercises && session.exercises.length > 0) {
-        const rows = session.exercises.map((ex, i) => {
+        session.exercises.forEach((ex, idx) => {
           const cat = CATEGORY_LABELS[ex.cat] || ex.cat;
-          return [
-            { text: String(i + 1), align: 'center' as const },
-            ex.name,
-            cat,
-            { text: String(ex.set), align: 'center' as const },
-            { text: String(ex.rep), align: 'center' as const },
-            { text: ex.load ? `${ex.load} kg/unit` : '-', align: 'center' as const },
-          ];
+          const loadTxt = ex.load ? ` @${ex.load}` : '';
+          writeLine(`${idx + 1}. ${ex.name} (${cat}) ${ex.set}x${ex.rep}${loadTxt}`);
         });
-        drawTable(
-          ['No', 'Latihan', 'Kategori', 'Set', 'Rep', 'Beban'],
-          rows,
-          [12, 70, 34, 20, 20, 26],
-          { fontSize: 9, headerFill: [71, 85, 105], headerTextColor: [255, 255, 255] }
-        );
       }
-
-      if (session.cooldown) {
-        writeWrapped(`Pendinginan: ${session.cooldown}`, margin + 2, { size: 9 });
-      }
-      if (session.recovery) {
-        writeWrapped(`Recovery: ${session.recovery}`, margin + 2, { size: 9 });
-      }
-      y += 1;
+      if (session.cooldown) writeLine(`CD: ${session.cooldown}`);
+      if (session.recovery) writeLine(`Rec: ${session.recovery}`);
+      by += 1; // spacing between sessions
     });
+  };
 
-    // Day results summary
-    if (dayRpeCount > 0 || dayDuration > 0 || dayLoad > 0) {
-      const avgRpe = dayRpeCount > 0 ? (dayRpeSum / dayRpeCount).toFixed(1) : '-';
-      const summaryText = `Hasil hari ini: Rata-rata RPE ${avgRpe}  •  Total Durasi ${dayDuration} mnt  •  Total Load ${dayLoad} AU`;
-      doc.setFillColor(241, 245, 249); // slate-100
-      doc.setDrawColor(203, 213, 225);
-      const summaryW = pageW - margin * 2;
-      doc.rect(margin, y, summaryW, 7, 'FD');
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text(summaryText, margin + 3, y + 4.5);
-      doc.setTextColor(0, 0, 0);
-      y += 9;
-    }
-    y += 2;
+  orderedDays.forEach((d, i) => {
+    const cx = gridLeft + leftLabelW + colW * i;
+    drawDayBody(d, cx);
   });
 
-  // Footer
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
+  // ============ Foot rows: Durasi / RPE / TL ============
+  let totalWeekLoad = 0;
+  const footLabels = ['Durasi', 'RPE', 'TL'];
+  const footFill: [number, number, number] = [254, 215, 170]; // orange-200
+  doc.setFillColor(...footFill);
+
+  for (let r = 0; r < 3; r++) {
+    const ry = footTop + r * footRowH;
+    // Left label
+    doc.setFillColor(241, 245, 249);
+    doc.rect(gridLeft, ry, leftLabelW, footRowH, 'FD');
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(footLabels[r], gridLeft + leftLabelW - 2, ry + footRowH / 2 + 1, { align: 'right' });
+
+    // Day cells (orange tint)
+    doc.setFillColor(...footFill);
+    doc.rect(gridLeft + leftLabelW, ry, totalGridW - leftLabelW, footRowH, 'FD');
+
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text(
-      `Dibuat: ${format(new Date(), 'd MMM yyyy HH:mm', { locale: idLocale })}  •  Halaman ${i}/${pageCount}`,
-      pageW / 2,
-      pageH - 6,
-      { align: 'center' }
-    );
+    doc.setFontSize(8.5);
+    orderedDays.forEach((d, i) => {
+      const cx = gridLeft + leftLabelW + colW * i;
+      doc.rect(cx, ry, colW, footRowH, 'S');
+
+      let dayDuration = 0;
+      let dayLoad = 0;
+      let dayRpeSum = 0;
+      let dayRpeCount = 0;
+      d.sessions.forEach(({ session }) => {
+        if (session.duration) dayDuration += session.duration;
+        if (session.rpe) {
+          dayRpeSum += session.rpe;
+          dayRpeCount += 1;
+        }
+        if (session.rpe && session.duration) {
+          dayLoad += calculateSessionLoad(session.duration, session.rpe);
+        }
+      });
+
+      let txt = '-';
+      if (r === 0) txt = dayDuration > 0 ? `${dayDuration} mnt` : '-';
+      else if (r === 1) txt = dayRpeCount > 0 ? (dayRpeSum / dayRpeCount).toFixed(1) : '-';
+      else if (r === 2) {
+        txt = dayLoad > 0 ? `${dayLoad}` : '-';
+        totalWeekLoad += dayLoad;
+      }
+      doc.text(txt, cx + colW / 2, ry + footRowH / 2 + 1, { align: 'center' });
+    });
   }
+
+  // Outer border of grid
+  doc.setLineWidth(0.4);
+  doc.setDrawColor(60, 70, 90);
+  doc.rect(gridLeft, gridTop, totalGridW, gridBottom - gridTop, 'S');
+  doc.setLineWidth(0.2);
+
+  // Total Training Load label at far right under grid
+  const totalY = gridBottom + 5;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Total Training Load: ${totalWeekLoad} AU`, gridRight, totalY, { align: 'right' });
+
+  // Footer
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(120, 120, 120);
+  doc.text(
+    `Dibuat: ${format(new Date(), 'd MMM yyyy HH:mm', { locale: idLocale })}`,
+    margin,
+    pageH - 4
+  );
+  doc.text('HIROCROSS — Weekly Program', pageW - margin, pageH - 4, { align: 'right' });
 
   const fileName = `${(planName || 'program').replace(/[^a-z0-9]+/gi, '_')}_W${weekNumber}.pdf`;
   doc.save(fileName);
