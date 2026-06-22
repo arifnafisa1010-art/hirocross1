@@ -42,6 +42,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { exportAthleteTestPDF } from '@/lib/athleteTestPDFExport';
 
 // Biomotor test categories matching database norms
 const categories = [
@@ -1920,21 +1921,49 @@ export function TestsSection() {
       </Card>
       <Card className="border-border shadow-card">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-base">Riwayat Tes</CardTitle>
-            <Button 
-              onClick={handleExportHistoryPDF} 
-              disabled={exportingHistory || results.length === 0}
-              variant="outline"
-              size="sm"
-            >
-              {exportingHistory ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4 mr-2" />
-              )}
-              Export PDF
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select
+                value={selectedAthlete === '__all__' ? '' : selectedAthlete}
+                onValueChange={(v) => {
+                  const athlete = athletes.find(a => a.id === v);
+                  if (athlete) {
+                    try {
+                      exportAthleteTestPDF({ athlete, results, getNormForItem });
+                      toast.success(`PDF ${athlete.name} berhasil diunduh!`);
+                    } catch (e) {
+                      console.error(e);
+                      toast.error('Gagal export PDF per atlet');
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger className="w-56 h-9">
+                  <SelectValue placeholder="Unduh PDF per Atlet..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {athletes.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleExportHistoryPDF}
+                disabled={exportingHistory || results.length === 0}
+                variant="outline"
+                size="sm"
+              >
+                {exportingHistory ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Export Semua
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
