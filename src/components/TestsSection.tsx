@@ -42,6 +42,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { exportAthleteTestPDF } from '@/lib/athleteTestPDFExport';
 
 // Biomotor test categories matching database norms
 const categories = [
