@@ -149,6 +149,73 @@ export function BiomotorDashboard() {
     });
   }, [athletes, athleteScores]);
 
+  // Auto-select first athlete when list loads
+  useEffect(() => {
+    if (!selectedAthleteId && athletes.length > 0) {
+      setSelectedAthleteId(athletes[0].id);
+    }
+  }, [athletes, selectedAthleteId]);
+
+  const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
+
+  // Per-athlete radar (single series)
+  const singleAthleteRadar = useMemo(() => {
+    return biomotorCategories.map(category => {
+      const dataPoint: Record<string, string | number> = { category };
+      if (selectedAthlete) {
+        dataPoint[selectedAthlete.name] = athleteScores[selectedAthlete.id]?.[category]?.avgScore || 0;
+      }
+      return dataPoint;
+    });
+  }, [selectedAthlete, athleteScores]);
+
+  // BMI calculation for selected athlete
+  const bmiInfo = useMemo(() => {
+    if (!selectedAthlete?.height || !selectedAthlete?.weight) return null;
+    const h = selectedAthlete.height / 100;
+    const bmi = selectedAthlete.weight / (h * h);
+    let label = 'Normal';
+    let color = 'text-green-500';
+    let bg = 'bg-green-500/10';
+    if (bmi < 18.5) { label = 'Kurus'; color = 'text-blue-500'; bg = 'bg-blue-500/10'; }
+    else if (bmi < 25) { label = 'Normal'; color = 'text-green-500'; bg = 'bg-green-500/10'; }
+    else if (bmi < 30) { label = 'Berlebih'; color = 'text-yellow-500'; bg = 'bg-yellow-500/10'; }
+    else { label = 'Obesitas'; color = 'text-red-500'; bg = 'bg-red-500/10'; }
+    return { bmi: Math.round(bmi * 10) / 10, label, color, bg };
+  }, [selectedAthlete]);
+
+  // Latest test result per item for selected athlete
+  const athleteResults = useMemo(() => {
+    if (!selectedAthlete) return [];
+    return results
+      .filter(r => r.athlete_id === selectedAthlete.id)
+      .sort((a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime());
+  }, [results, selectedAthlete]);
+
+  // Group latest result per (category, item) for physical performance table
+  const athleteLatestByItem = useMemo(() => {
+    const map = new Map<string, typeof athleteResults[number]>();
+    athleteResults.forEach(r => {
+      const key = `${r.category}::${r.item}`;
+      if (!map.has(key)) map.set(key, r);
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      a.category.localeCompare(b.category) || a.item.localeCompare(b.item)
+    );
+  }, [athleteResults]);
+
+  const calculateAge = (birthDate: string | null | undefined): number | null => {
+    if (!birthDate) return null;
+    const b = new Date(birthDate);
+    const t = new Date();
+    let age = t.getFullYear() - b.getFullYear();
+    const m = t.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && t.getDate() < b.getDate())) age--;
+    return age;
+  };
+
+
+
   // Bar chart data for selected category or overall
   const barChartData = useMemo(() => {
     if (selectedCategory === '__all__') {
