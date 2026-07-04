@@ -78,13 +78,20 @@ export function AthletesManagement() {
     // Upload to Supabase Storage
     setUploading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Anda harus login untuk mengupload foto');
+        setUploading(false);
+        return;
+      }
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `athletes/${fileName}`;
+      const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('athlete-photos')
         .upload(filePath, file);
+
 
       if (uploadError) throw uploadError;
 
