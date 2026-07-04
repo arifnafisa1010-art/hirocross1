@@ -51,26 +51,6 @@ export function BiomotorDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string>('__all__');
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
 
-  // Auto-pick first athlete once loaded
-  if (!selectedAthleteId && athletes.length > 0) {
-    // set in effect-safe way via microtask
-    Promise.resolve().then(() => setSelectedAthleteId(athletes[0].id));
-  }
-
-  const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
-
-  // Per-athlete radar data (single series)
-  const singleAthleteRadar = useMemo(() => {
-    return biomotorCategories.map(category => ({
-      category,
-      [selectedAthlete?.name || 'Atlet']: athleteScoresSafe(),
-    }));
-
-    function athleteScoresSafe() {
-      // placeholder – recomputed below with real map
-      return 0;
-    }
-  }, [selectedAthleteId]);
 
 
   // Calculate average score per category per athlete
