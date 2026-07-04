@@ -158,16 +158,17 @@ export function BiomotorDashboard() {
 
   const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
 
-  // Per-athlete radar (single series)
+  // Per-athlete radar (single series) — only include categories that have been tested
   const singleAthleteRadar = useMemo(() => {
-    return biomotorCategories.map(category => {
-      const dataPoint: Record<string, string | number> = { category };
-      if (selectedAthlete) {
-        dataPoint[selectedAthlete.name] = athleteScores[selectedAthlete.id]?.[category]?.avgScore || 0;
-      }
-      return dataPoint;
-    });
+    if (!selectedAthlete) return [];
+    return biomotorCategories
+      .filter(category => (athleteScores[selectedAthlete.id]?.[category]?.count || 0) > 0)
+      .map(category => ({
+        category,
+        [selectedAthlete.name]: athleteScores[selectedAthlete.id][category].avgScore,
+      }));
   }, [selectedAthlete, athleteScores]);
+
 
   // BMI calculation for selected athlete
   const bmiInfo = useMemo(() => {
