@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTestResults } from '@/hooks/useTestResults';
-import { Loader2, Download, Trophy, Medal, Award, TrendingUp, Users } from 'lucide-react';
+import { Loader2, Download, Trophy, Medal, Award, TrendingUp, Users, User, Activity, Heart, Ruler, Weight } from 'lucide-react';
 import {
   BarChart,
   Bar,
