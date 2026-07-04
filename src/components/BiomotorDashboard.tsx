@@ -158,16 +158,17 @@ export function BiomotorDashboard() {
 
   const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
 
-  // Per-athlete radar (single series)
+  // Per-athlete radar (single series) — only include categories that have been tested
   const singleAthleteRadar = useMemo(() => {
-    return biomotorCategories.map(category => {
-      const dataPoint: Record<string, string | number> = { category };
-      if (selectedAthlete) {
-        dataPoint[selectedAthlete.name] = athleteScores[selectedAthlete.id]?.[category]?.avgScore || 0;
-      }
-      return dataPoint;
-    });
+    if (!selectedAthlete) return [];
+    return biomotorCategories
+      .filter(category => (athleteScores[selectedAthlete.id]?.[category]?.count || 0) > 0)
+      .map(category => ({
+        category,
+        [selectedAthlete.name]: athleteScores[selectedAthlete.id][category].avgScore,
+      }));
   }, [selectedAthlete, athleteScores]);
+
 
   // BMI calculation for selected athlete
   const bmiInfo = useMemo(() => {
@@ -426,18 +427,24 @@ export function BiomotorDashboard() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Radar */}
                   <Card className="lg:col-span-2">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-bold">Chart Biomotor (Laba-laba)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <AnimatedRadarChart
-                        data={singleAthleteRadar}
-                        athletes={[selectedAthlete]}
-                        colors={['hsl(var(--accent))']}
-                        height={320}
-                      />
+                    <CardContent className="pt-6">
+                      {singleAthleteRadar.length >= 3 ? (
+                        <AnimatedRadarChart
+                          data={singleAthleteRadar}
+                          athletes={[selectedAthlete]}
+                          colors={['hsl(var(--accent))']}
+                          height={320}
+                        />
+                      ) : (
+                        <div className="h-[320px] flex items-center justify-center text-center text-sm text-muted-foreground px-4">
+                          {singleAthleteRadar.length === 0
+                            ? 'Belum ada hasil tes untuk atlet ini'
+                            : 'Minimal 3 kategori biomotor harus dites untuk menampilkan chart'}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
+
 
                   {/* BMI + physical */}
                   <div className="space-y-4">
