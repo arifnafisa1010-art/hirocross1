@@ -369,7 +369,227 @@ export function BiomotorDashboard() {
           </Card>
         </div>
 
+        {/* Per-Athlete Detail Section */}
+        <Card className="border-accent/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-accent" />
+                <CardTitle className="text-base font-bold">Detail per Atlet</CardTitle>
+              </div>
+              <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+                <SelectTrigger className="w-56 h-9 text-sm">
+                  <SelectValue placeholder="Pilih atlet..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {athletes.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!selectedAthlete ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                Pilih atlet untuk melihat detail
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Athlete identity */}
+                <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
+                  {selectedAthlete.photo_url ? (
+                    <img
+                      src={selectedAthlete.photo_url}
+                      alt={selectedAthlete.name}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-accent"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center text-lg font-bold text-accent">
+                      {selectedAthlete.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="text-lg font-bold">{selectedAthlete.name}</div>
+                    <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                      {selectedAthlete.sport && <span>{selectedAthlete.sport}</span>}
+                      {selectedAthlete.position && <span>• {selectedAthlete.position}</span>}
+                      {selectedAthlete.gender && <span>• {selectedAthlete.gender === 'M' ? 'Laki-laki' : 'Perempuan'}</span>}
+                      {calculateAge(selectedAthlete.birth_date) !== null && (
+                        <span>• {calculateAge(selectedAthlete.birth_date)} thn</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Charts + BMI + Physical stats */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* Radar */}
+                  <Card className="lg:col-span-2">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-bold">Chart Biomotor (Laba-laba)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <AnimatedRadarChart
+                        data={singleAthleteRadar}
+                        athletes={[selectedAthlete]}
+                        colors={['hsl(var(--accent))']}
+                        height={320}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* BMI + physical */}
+                  <div className="space-y-4">
+                    <Card className={bmiInfo ? bmiInfo.bg : ''}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-bold flex items-center gap-2">
+                          <Activity className="w-4 h-4" />
+                          Indeks Massa Tubuh (IMT)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {bmiInfo ? (
+                          <div className="space-y-2">
+                            <div className={`text-4xl font-extrabold ${bmiInfo.color}`}>
+                              {bmiInfo.bmi}
+                            </div>
+                            <Badge className={`${bmiInfo.color} bg-background border`}>
+                              {bmiInfo.label}
+                            </Badge>
+                            <div className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                              &lt;18.5 Kurus • 18.5–24.9 Normal • 25–29.9 Berlebih • ≥30 Obesitas
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">
+                            Data tinggi/berat belum lengkap
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-bold">Data Fisik</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 text-muted-foreground">
+                            <Ruler className="w-4 h-4" /> Tinggi
+                          </span>
+                          <span className="font-bold">{selectedAthlete.height ? `${selectedAthlete.height} cm` : '-'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 text-muted-foreground">
+                            <Weight className="w-4 h-4" /> Berat
+                          </span>
+                          <span className="font-bold">{selectedAthlete.weight ? `${selectedAthlete.weight} kg` : '-'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 text-muted-foreground">
+                            <Heart className="w-4 h-4" /> HR Istirahat
+                          </span>
+                          <span className="font-bold">{selectedAthlete.resting_hr ? `${selectedAthlete.resting_hr} bpm` : '-'}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Category averages */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-bold">Rata-rata Skor per Kategori Biomotor</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {biomotorCategories.map(cat => {
+                        const s = athleteScores[selectedAthlete.id]?.[cat];
+                        const avg = s?.avgScore || 0;
+                        return (
+                          <div
+                            key={cat}
+                            className="p-3 rounded-lg border flex flex-col gap-1"
+                            style={{ borderColor: `${categoryColors[cat]}40`, backgroundColor: `${categoryColors[cat]}10` }}
+                          >
+                            <div className="text-[11px] font-medium text-muted-foreground">{cat}</div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xl font-extrabold" style={{ color: categoryColors[cat] }}>
+                                {avg > 0 ? avg.toFixed(1) : '-'}
+                              </span>
+                              {avg > 0 && (
+                                <Badge className={`${getScoreBadgeColor(avg)} text-[10px]`}>
+                                  {s?.count}x
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Physical performance table (latest per test item) */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-bold">Data Performa Fisik (Hasil Tes Terbaru per Item)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {athleteLatestByItem.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground text-sm">
+                        Belum ada hasil tes untuk atlet ini
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 px-2 font-bold">Kategori</th>
+                              <th className="text-left py-2 px-2 font-bold">Item Tes</th>
+                              <th className="text-right py-2 px-2 font-bold">Nilai</th>
+                              <th className="text-center py-2 px-2 font-bold">Skor</th>
+                              <th className="text-left py-2 px-2 font-bold">Tanggal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {athleteLatestByItem.map(r => (
+                              <tr key={r.id} className="border-b hover:bg-muted/50">
+                                <td className="py-2 px-2">
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <span
+                                      className="w-2 h-2 rounded-full"
+                                      style={{ backgroundColor: categoryColors[r.category] || 'hsl(var(--accent))' }}
+                                    />
+                                    {r.category}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-2 font-medium">{r.item}</td>
+                                <td className="py-2 px-2 text-right font-bold">
+                                  {r.value} <span className="text-xs text-muted-foreground">{r.unit}</span>
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <Badge className={getScoreBadgeColor(r.score)}>{r.score}</Badge>
+                                </td>
+                                <td className="py-2 px-2 text-xs text-muted-foreground">
+                                  {format(new Date(r.test_date), 'dd MMM yyyy')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Charts Row */}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Radar Chart - Comparison */}
           <Card>
