@@ -79,6 +79,10 @@ interface TrainingStore {
   scheduledEvents: ScheduledEvent[];
   setScheduledEvents: (events: ScheduledEvent[]) => void;
   
+  periodizationBlocks: TrainingBlock[];
+  setPeriodizationBlocks: (blocks: TrainingBlock[]) => void;
+
+  
   dayMarkers: DayMarker[];
   addDayMarker: (marker: Omit<DayMarker, 'id'>) => void;
   removeDayMarker: (id: string) => void;
