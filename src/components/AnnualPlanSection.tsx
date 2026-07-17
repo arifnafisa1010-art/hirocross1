@@ -115,8 +115,13 @@ export function AnnualPlanSection() {
   const [isDraggingPhase, setIsDraggingPhase] = useState(false);
   const [dragStartWeek, setDragStartWeek] = useState<number | null>(null);
   const [hoveredWeek, setHoveredWeek] = useState<{ week: number; vol: number; int: number; x: number; y: number } | null>(null);
+  const [selectedPeriodizationWeeks, setSelectedPeriodizationWeeks] = useState<number[]>([]);
+  const [pendingBlockName, setPendingBlockName] = useState('');
+  const [inlineEditingPeriodization, setInlineEditingPeriodization] = useState<number | null>(null);
+  const [inlinePeriodizationText, setInlinePeriodizationText] = useState('');
   const [exporting, setExporting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+
 
   // Global mouseup to end drag-select
   useEffect(() => {
