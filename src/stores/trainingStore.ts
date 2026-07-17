@@ -185,6 +185,10 @@ export const useTrainingStore = create<TrainingStore>()(
       scheduledEvents: [],
       setScheduledEvents: (events) => set({ scheduledEvents: events }),
       
+      periodizationBlocks: [],
+      setPeriodizationBlocks: (blocks) => set({ periodizationBlocks: blocks }),
+
+      
       dayMarkers: [],
       addDayMarker: (marker) => set((state) => ({
         dayMarkers: [...state.dayMarkers, { ...marker, id: crypto.randomUUID() }],
