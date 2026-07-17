@@ -1136,8 +1136,162 @@ export function AnnualPlanSection() {
                     );
                   })}
                 </tr>
+                {/* Block Periodization Row */}
+                <tr className="bg-card border-t border-border">
+                  <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-indigo-500/20 text-indigo-800">
+                    Block
+                  </td>
+                  {planData.map((d) => {
+                    const week = d.wk;
+                    const existing = periodizationBlocks.find(b => week >= b.startWeek && week <= b.endWeek);
+                    if (existing) {
+                      if (existing.startWeek !== week) return null;
+                      const span = existing.endWeek - existing.startWeek + 1;
+                      const isEditing = inlineEditingPeriodization === existing.startWeek;
+                      const bgColor =
+                        existing.text.toLowerCase().includes('accumulation') ? 'bg-emerald-500/40 border-emerald-500 text-emerald-900' :
+                        existing.text.toLowerCase().includes('transmutation') ? 'bg-amber-500/40 border-amber-500 text-amber-900' :
+                        existing.text.toLowerCase().includes('realization') ? 'bg-rose-500/40 border-rose-500 text-rose-900' :
+                        'bg-indigo-500/30 border-indigo-500 text-indigo-900';
+                      return (
+                        <td
+                          key={week}
+                          colSpan={span}
+                          className={cn(
+                            "p-0.5 text-center cursor-pointer transition-all border font-bold text-[7px] hover:opacity-80",
+                            bgColor
+                          )}
+                          onClick={() => {
+                            if (isEditing) return;
+                            setInlineEditingPeriodization(existing.startWeek);
+                            setInlinePeriodizationText(existing.text);
+                          }}
+                        >
+                          {isEditing ? (
+                            <Input
+                              type="text"
+                              value={inlinePeriodizationText}
+                              onChange={(e) => setInlinePeriodizationText(e.target.value)}
+                              onBlur={() => {
+                                if (!inlinePeriodizationText.trim()) {
+                                  setPeriodizationBlocks(periodizationBlocks.filter(b => b.startWeek !== existing.startWeek));
+                                } else {
+                                  setPeriodizationBlocks(periodizationBlocks.map(b =>
+                                    b.startWeek === existing.startWeek ? { ...b, text: inlinePeriodizationText } : b
+                                  ));
+                                }
+                                setInlineEditingPeriodization(null);
+                                setInlinePeriodizationText('');
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                if (e.key === 'Escape') {
+                                  setInlineEditingPeriodization(null);
+                                  setInlinePeriodizationText('');
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              autoFocus
+                              className="w-full h-4 text-[7px] text-center p-0 font-bold"
+                            />
+                          ) : (
+                            existing.text
+                          )}
+                        </td>
+                      );
+                    }
+                    const isSelected = selectedPeriodizationWeeks.includes(week);
+                    return (
+                      <td
+                        key={week}
+                        className={cn(
+                          "p-0.5 text-center cursor-pointer transition-all border border-border/30 min-h-[18px]",
+                          isSelected ? "bg-indigo-500/30 ring-1 ring-indigo-500" : "hover:bg-secondary/50"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPeriodizationWeeks(prev =>
+                            prev.includes(week) ? prev.filter(w => w !== week) : [...prev, week].sort((a, b) => a - b)
+                          );
+                        }}
+                      >
+                        <span className="text-[6px] text-muted-foreground select-none">+</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+                {/* Block Periodization Controls */}
+                {selectedPeriodizationWeeks.length > 0 && (
+                  <tr>
+                    <td colSpan={planData.length + 1} className="p-2 bg-indigo-500/5 border-t border-indigo-500/30">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold text-indigo-700">
+                          {selectedPeriodizationWeeks.length} minggu terpilih (W{Math.min(...selectedPeriodizationWeeks)}-W{Math.max(...selectedPeriodizationWeeks)}):
+                        </span>
+                        <div className="flex gap-1">
+                          {(['Accumulation', 'Transmutation', 'Realization'] as const).map(tpl => (
+                            <button
+                              key={tpl}
+                              onClick={() => setPendingBlockName(tpl)}
+                              className={cn(
+                                "text-[10px] font-bold px-2 py-1 rounded border transition-colors",
+                                pendingBlockName === tpl
+                                  ? tpl === 'Accumulation' ? "bg-emerald-500/40 border-emerald-500 text-emerald-900"
+                                    : tpl === 'Transmutation' ? "bg-amber-500/40 border-amber-500 text-amber-900"
+                                    : "bg-rose-500/40 border-rose-500 text-rose-900"
+                                  : "border-border text-muted-foreground hover:border-indigo-500/50"
+                              )}
+                            >
+                              {tpl}
+                            </button>
+                          ))}
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="Atau ketik nama block sendiri..."
+                          value={pendingBlockName}
+                          onChange={(e) => setPendingBlockName(e.target.value)}
+                          className="h-7 text-[10px] max-w-[200px]"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-7 text-[10px]"
+                          disabled={!pendingBlockName.trim()}
+                          onClick={() => {
+                            const startWeek = Math.min(...selectedPeriodizationWeeks);
+                            const endWeek = Math.max(...selectedPeriodizationWeeks);
+                            const hasOverlap = periodizationBlocks.some(
+                              b => !(endWeek < b.startWeek || startWeek > b.endWeek)
+                            );
+                            if (hasOverlap) return;
+                            setPeriodizationBlocks(
+                              [...periodizationBlocks, { startWeek, endWeek, text: pendingBlockName }]
+                                .sort((a, b) => a.startWeek - b.startWeek)
+                            );
+                            setSelectedPeriodizationWeeks([]);
+                            setPendingBlockName('');
+                          }}
+                        >
+                          Buat Block
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px]"
+                          onClick={() => {
+                            setSelectedPeriodizationWeeks([]);
+                            setPendingBlockName('');
+                          }}
+                        >
+                          Batal
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {/* Mesocycle Row */}
                 <tr className="bg-secondary/30 border-t border-border">
+
                   <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-secondary/50">
                     Meso
                   </td>
