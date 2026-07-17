@@ -80,6 +80,9 @@ export function AnnualPlanSection() {
     setPlanData,
     setMesocycles,
     setTotalWeeks,
+    periodizationBlocks,
+    setPeriodizationBlocks,
+
   } = useTrainingStore();
 
   const { currentProgram, saveProgram, duplicateProgram, loadProgram, renameProgram } = useTrainingPrograms();
