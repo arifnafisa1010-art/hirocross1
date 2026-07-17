@@ -606,6 +606,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      deactivate_expired_premium: { Args: never; Returns: undefined }
       get_admin_activity_logs: {
         Args: { _limit?: number }
         Returns: {
