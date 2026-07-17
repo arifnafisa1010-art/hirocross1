@@ -79,6 +79,10 @@ interface TrainingStore {
   scheduledEvents: ScheduledEvent[];
   setScheduledEvents: (events: ScheduledEvent[]) => void;
   
+  periodizationBlocks: TrainingBlock[];
+  setPeriodizationBlocks: (blocks: TrainingBlock[]) => void;
+
+  
   dayMarkers: DayMarker[];
   addDayMarker: (marker: Omit<DayMarker, 'id'>) => void;
   removeDayMarker: (id: string) => void;
@@ -180,6 +184,10 @@ export const useTrainingStore = create<TrainingStore>()(
       
       scheduledEvents: [],
       setScheduledEvents: (events) => set({ scheduledEvents: events }),
+      
+      periodizationBlocks: [],
+      setPeriodizationBlocks: (blocks) => set({ periodizationBlocks: blocks }),
+
       
       dayMarkers: [],
       addDayMarker: (marker) => set((state) => ({
