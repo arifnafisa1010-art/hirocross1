@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, Trophy, Star, Copy, History } from 'lucide-react';
 import { Mesocycle, PlanWeek, Competition } from '@/types/training';
+import type { TrainingBlock, TrainingBlocks, ScheduledEvent } from '@/stores/trainingStore';
 import { cn } from '@/lib/utils';
 import { AthletesManagement } from '@/components/AthletesManagement';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
