@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition } from '@/types/training';
-import { TrainingBlocks, ScheduledEvent } from '@/stores/trainingStore';
+import { TrainingBlocks, ScheduledEvent, TrainingBlock } from '@/stores/trainingStore';
 import { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 
