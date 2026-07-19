@@ -1,0 +1,1 @@
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS periodization_blocks jsonb DEFAULT '[]'::jsonb;

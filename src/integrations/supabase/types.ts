@@ -451,6 +451,7 @@ export type Database = {
           match_date: string
           mesocycles: Json | null
           name: string
+          periodization_blocks: Json | null
           plan_data: Json | null
           scheduled_events: Json | null
           start_date: string
@@ -471,6 +472,7 @@ export type Database = {
           match_date: string
           mesocycles?: Json | null
           name: string
+          periodization_blocks?: Json | null
           plan_data?: Json | null
           scheduled_events?: Json | null
           start_date: string
@@ -491,6 +493,7 @@ export type Database = {
           match_date?: string
           mesocycles?: Json | null
           name?: string
+          periodization_blocks?: Json | null
           plan_data?: Json | null
           scheduled_events?: Json | null
           start_date?: string
