@@ -73,6 +73,7 @@ export function AnnualPlanSection() {
     scheduledEvents,
     setScheduledEvents,
     selectedAthleteIds,
+    sessions,
     addMesocycle, 
     removeMesocycle, 
     updateMesocycle,
