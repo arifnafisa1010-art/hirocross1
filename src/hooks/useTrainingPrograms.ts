@@ -130,7 +130,7 @@ export function useTrainingPrograms() {
     // Ensure unique name (exclude current program when updating)
     const uniqueName = getUniqueName(setup.planName, currentProgram?.id);
 
-    const programData: TrainingProgramInsert = {
+    const programData = {
       user_id: user.id,
       name: uniqueName,
       start_date: setup.startDate,
@@ -147,7 +147,7 @@ export function useTrainingPrograms() {
       training_blocks: trainingBlocks as unknown as Json,
       scheduled_events: scheduledEvents as unknown as Json,
       periodization_blocks: (periodizationBlocks ?? []) as unknown as Json,
-    };
+    } as TrainingProgramInsert & { periodization_blocks: Json };
 
     let programId: string;
 
