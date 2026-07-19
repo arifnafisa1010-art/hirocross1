@@ -140,6 +140,52 @@ export function AnnualPlanSection() {
     return () => window.removeEventListener('mouseup', handleMouseUp);
   }, [isDraggingPhase]);
 
+  // Auto-save periodization blocks when they change
+  useEffect(() => {
+    if (!currentProgram) {
+      setAutoSaveStatus('idle');
+      setAutoSaveMessage('');
+      return;
+    }
+
+    // Skip the initial sync / load without persisting
+    const prevBlocks = prevPeriodizationBlocksRef.current;
+    const isInitial = prevBlocks.length === 0 && periodizationBlocks.length === 0;
+    const isSame = JSON.stringify(prevBlocks) === JSON.stringify(periodizationBlocks);
+
+    if (isSame || isInitial) {
+      prevPeriodizationBlocksRef.current = periodizationBlocks;
+      return;
+    }
+
+    prevPeriodizationBlocksRef.current = periodizationBlocks;
+    setAutoSaveStatus('saving');
+    setAutoSaveMessage('Menyimpan block...');
+
+    const timeout = setTimeout(async () => {
+      const success = await saveProgram(
+        setup,
+        mesocycles,
+        planData,
+        competitions,
+        selectedAthleteIds,
+        trainingBlocks,
+        scheduledEvents,
+        sessions,
+        periodizationBlocks
+      );
+      if (success) {
+        setAutoSaveStatus('saved');
+        setAutoSaveMessage('Block tersimpan');
+      } else {
+        setAutoSaveStatus('error');
+        setAutoSaveMessage('Gagal menyimpan block');
+      }
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [periodizationBlocks, currentProgram?.id]);
+
   // Calculate biomotor targets based on volume percentage
   const calculateBiomotorTargets = (vol: number) => {
     const targets = setup.targets;
