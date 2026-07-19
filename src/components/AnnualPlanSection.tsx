@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2, Copy, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
+import { X, Plus, Settings, Loader2, Trophy, Merge, Split, FlaskConical, Flag, Download, Trash2, Copy, Pencil, Save, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -73,6 +74,7 @@ export function AnnualPlanSection() {
     scheduledEvents,
     setScheduledEvents,
     selectedAthleteIds,
+    sessions,
     addMesocycle, 
     removeMesocycle, 
     updateMesocycle,
@@ -120,6 +122,9 @@ export function AnnualPlanSection() {
   const [inlineEditingPeriodization, setInlineEditingPeriodization] = useState<number | null>(null);
   const [inlinePeriodizationText, setInlinePeriodizationText] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [autoSaveMessage, setAutoSaveMessage] = useState('');
+  const prevPeriodizationBlocksRef = useRef<TrainingBlock[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
 
 
@@ -134,6 +139,52 @@ export function AnnualPlanSection() {
     window.addEventListener('mouseup', handleMouseUp);
     return () => window.removeEventListener('mouseup', handleMouseUp);
   }, [isDraggingPhase]);
+
+  // Auto-save periodization blocks when they change
+  useEffect(() => {
+    if (!currentProgram) {
+      setAutoSaveStatus('idle');
+      setAutoSaveMessage('');
+      return;
+    }
+
+    // Skip the initial sync / load without persisting
+    const prevBlocks = prevPeriodizationBlocksRef.current;
+    const isInitial = prevBlocks.length === 0 && periodizationBlocks.length === 0;
+    const isSame = JSON.stringify(prevBlocks) === JSON.stringify(periodizationBlocks);
+
+    if (isSame || isInitial) {
+      prevPeriodizationBlocksRef.current = periodizationBlocks;
+      return;
+    }
+
+    prevPeriodizationBlocksRef.current = periodizationBlocks;
+    setAutoSaveStatus('saving');
+    setAutoSaveMessage('Menyimpan block...');
+
+    const timeout = setTimeout(async () => {
+      const success = await saveProgram(
+        setup,
+        mesocycles,
+        planData,
+        competitions,
+        selectedAthleteIds,
+        trainingBlocks,
+        scheduledEvents,
+        sessions,
+        periodizationBlocks
+      );
+      if (success) {
+        setAutoSaveStatus('saved');
+        setAutoSaveMessage('Block tersimpan');
+      } else {
+        setAutoSaveStatus('error');
+        setAutoSaveMessage('Gagal menyimpan block');
+      }
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [periodizationBlocks, currentProgram?.id]);
 
   // Calculate biomotor targets based on volume percentage
   const calculateBiomotorTargets = (vol: number) => {
@@ -284,8 +335,29 @@ export function AnnualPlanSection() {
 
   const handleSave = async () => {
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents);
+    setAutoSaveStatus('saving');
+    setAutoSaveMessage('Menyimpan program...');
+    const success = await saveProgram(
+      setup,
+      mesocycles,
+      planData,
+      competitions,
+      selectedAthleteIds,
+      trainingBlocks,
+      scheduledEvents,
+      sessions,
+      periodizationBlocks
+    );
     setSaving(false);
+    if (success) {
+      setAutoSaveStatus('saved');
+      setAutoSaveMessage('Tersimpan');
+      toast.success('Program berhasil disimpan');
+    } else {
+      setAutoSaveStatus('error');
+      setAutoSaveMessage('Gagal menyimpan');
+      toast.error('Gagal menyimpan program');
+    }
   };
 
   const handleDuplicate = async () => {
@@ -561,7 +633,20 @@ export function AnnualPlanSection() {
         <h2 className="text-2xl font-extrabold uppercase tracking-wide">
           {setup.planName}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {autoSaveStatus !== 'idle' && (
+            <div className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-colors",
+              autoSaveStatus === 'saving' && "bg-primary/20 text-primary",
+              autoSaveStatus === 'saved' && "bg-success/20 text-success",
+              autoSaveStatus === 'error' && "bg-destructive/20 text-destructive"
+            )}>
+              {autoSaveStatus === 'saving' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {autoSaveStatus === 'saved' && <CheckCircle2 className="w-3.5 h-3.5" />}
+              {autoSaveStatus === 'error' && <AlertCircle className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{autoSaveMessage}</span>
+            </div>
+          )}
           <Button 
             variant="outline" 
             size="sm" 
@@ -1139,7 +1224,12 @@ export function AnnualPlanSection() {
                 {/* Block Periodization Row */}
                 <tr className="bg-card border-t border-border">
                   <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-indigo-500/20 text-indigo-800">
-                    Block
+                    <div className="flex items-center justify-between gap-1">
+                      <span>Block</span>
+                      {autoSaveStatus === 'saving' && <Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-600" />}
+                      {autoSaveStatus === 'saved' && <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />}
+                      {autoSaveStatus === 'error' && <AlertCircle className="w-2.5 h-2.5 text-red-600" />}
+                    </div>
                   </td>
                   {planData.map((d) => {
                     const week = d.wk;

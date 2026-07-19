@@ -57,6 +57,7 @@ export function useTrainingPrograms() {
     }
 
     setCurrentProgram(program);
+    toast.success('Program berhasil dimuat');
 
     // Load sessions for this program
     const { data: sessionsData, error: sessionsError } = await supabase
@@ -66,6 +67,7 @@ export function useTrainingPrograms() {
     
     if (sessionsError) {
       console.error(sessionsError);
+      toast.error('Gagal memuat sesi latihan');
     } else {
       const sessionsMap: Record<string, DaySession> = {};
       sessionsData?.forEach(s => {
