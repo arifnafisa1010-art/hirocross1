@@ -1224,7 +1224,12 @@ export function AnnualPlanSection() {
                 {/* Block Periodization Row */}
                 <tr className="bg-card border-t border-border">
                   <td className="p-1 text-left text-[7px] font-extrabold uppercase border-r border-border bg-indigo-500/20 text-indigo-800">
-                    Block
+                    <div className="flex items-center justify-between gap-1">
+                      <span>Block</span>
+                      {autoSaveStatus === 'saving' && <Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-600" />}
+                      {autoSaveStatus === 'saved' && <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />}
+                      {autoSaveStatus === 'error' && <AlertCircle className="w-2.5 h-2.5 text-red-600" />}
+                    </div>
                   </td>
                   {planData.map((d) => {
                     const week = d.wk;
