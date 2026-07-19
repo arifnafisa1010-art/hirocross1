@@ -32,7 +32,7 @@ export function SetupSection() {
     removeCompetition,
     updateCompetition,
   } = useTrainingStore();
-  const { selectedAthleteIds, sessions: storeSessions, trainingBlocks, scheduledEvents } = useTrainingStore();
+  const { selectedAthleteIds, sessions: storeSessions, trainingBlocks, scheduledEvents, periodizationBlocks, setPeriodizationBlocks, setTrainingBlocks, setScheduledEvents } = useTrainingStore();
   
   const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram, getBackups, restoreBackup } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
