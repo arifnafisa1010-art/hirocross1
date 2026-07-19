@@ -113,7 +113,7 @@ export function SetupSection() {
     }
 
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents, storeSessions);
+    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents, storeSessions, periodizationBlocks);
     setSaving(false);
   };
 
