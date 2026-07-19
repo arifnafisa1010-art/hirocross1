@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition } from '@/types/training';
-import { TrainingBlocks, ScheduledEvent } from '@/stores/trainingStore';
+import { TrainingBlocks, ScheduledEvent, TrainingBlock } from '@/stores/trainingStore';
 import { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
 
@@ -110,7 +110,8 @@ export function useTrainingPrograms() {
     athleteIds: string[] = [],
     trainingBlocks?: TrainingBlocks,
     scheduledEvents?: ScheduledEvent[],
-    storeSessions?: Record<string, DaySession>
+    storeSessions?: Record<string, DaySession>,
+    periodizationBlocks?: TrainingBlock[]
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
@@ -129,7 +130,7 @@ export function useTrainingPrograms() {
     // Ensure unique name (exclude current program when updating)
     const uniqueName = getUniqueName(setup.planName, currentProgram?.id);
 
-    const programData: TrainingProgramInsert = {
+    const programData = {
       user_id: user.id,
       name: uniqueName,
       start_date: setup.startDate,
@@ -145,7 +146,8 @@ export function useTrainingPrograms() {
       athlete_ids: athleteIds,
       training_blocks: trainingBlocks as unknown as Json,
       scheduled_events: scheduledEvents as unknown as Json,
-    };
+      periodization_blocks: (periodizationBlocks ?? []) as unknown as Json,
+    } as TrainingProgramInsert & { periodization_blocks: Json };
 
     let programId: string;
 
@@ -495,6 +497,7 @@ export function useTrainingPrograms() {
         athlete_ids: source.athlete_ids,
         training_blocks: source.training_blocks,
         scheduled_events: source.scheduled_events,
+        periodization_blocks: (source as any).periodization_blocks ?? [],
       })
       .select()
       .single();
@@ -735,6 +738,7 @@ export function useTrainingPrograms() {
         athlete_ids: snapshot.athlete_ids,
         training_blocks: snapshot.training_blocks,
         scheduled_events: snapshot.scheduled_events,
+        periodization_blocks: snapshot.periodization_blocks ?? [],
       })
       .eq('id', programId);
 

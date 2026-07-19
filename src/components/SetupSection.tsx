@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, Trophy, Star, Copy, History } from 'lucide-react';
 import { Mesocycle, PlanWeek, Competition } from '@/types/training';
+import type { TrainingBlock, TrainingBlocks, ScheduledEvent } from '@/stores/trainingStore';
 import { cn } from '@/lib/utils';
 import { AthletesManagement } from '@/components/AthletesManagement';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -31,7 +32,7 @@ export function SetupSection() {
     removeCompetition,
     updateCompetition,
   } = useTrainingStore();
-  const { selectedAthleteIds, sessions: storeSessions, trainingBlocks, scheduledEvents } = useTrainingStore();
+  const { selectedAthleteIds, sessions: storeSessions, trainingBlocks, scheduledEvents, periodizationBlocks, setPeriodizationBlocks, setTrainingBlocks, setScheduledEvents } = useTrainingStore();
   
   const { programs, currentProgram, loading, saveProgram, loadProgram, deleteProgram, duplicateProgram, createNewProgram, getBackups, restoreBackup } = useTrainingPrograms();
   const [saving, setSaving] = useState(false);
@@ -71,6 +72,15 @@ export function SetupSection() {
       if (loadedPlan.length > 0) {
         setTotalWeeks(loadedPlan.length);
       }
+
+      const loadedPeriodization = ((currentProgram as any).periodization_blocks as unknown as TrainingBlock[]) || [];
+      setPeriodizationBlocks(loadedPeriodization);
+
+      const loadedTrainingBlocks = (currentProgram as any).training_blocks as unknown as TrainingBlocks | null;
+      if (loadedTrainingBlocks) setTrainingBlocks(loadedTrainingBlocks);
+
+      const loadedScheduledEvents = ((currentProgram as any).scheduled_events as unknown as ScheduledEvent[]) || [];
+      setScheduledEvents(loadedScheduledEvents);
     }
   }, [currentProgram?.id]);
 
@@ -103,7 +113,7 @@ export function SetupSection() {
     }
 
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents, storeSessions);
+    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents, storeSessions, periodizationBlocks);
     setSaving(false);
   };
 
