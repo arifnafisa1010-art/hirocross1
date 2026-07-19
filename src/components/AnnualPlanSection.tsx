@@ -288,8 +288,29 @@ export function AnnualPlanSection() {
 
   const handleSave = async () => {
     setSaving(true);
-    await saveProgram(setup, mesocycles, planData, competitions, selectedAthleteIds, trainingBlocks, scheduledEvents);
+    setAutoSaveStatus('saving');
+    setAutoSaveMessage('Menyimpan program...');
+    const success = await saveProgram(
+      setup,
+      mesocycles,
+      planData,
+      competitions,
+      selectedAthleteIds,
+      trainingBlocks,
+      scheduledEvents,
+      sessions,
+      periodizationBlocks
+    );
     setSaving(false);
+    if (success) {
+      setAutoSaveStatus('saved');
+      setAutoSaveMessage('Tersimpan');
+      toast.success('Program berhasil disimpan');
+    } else {
+      setAutoSaveStatus('error');
+      setAutoSaveMessage('Gagal menyimpan');
+      toast.error('Gagal menyimpan program');
+    }
   };
 
   const handleDuplicate = async () => {
