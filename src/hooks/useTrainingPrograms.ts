@@ -738,6 +738,7 @@ export function useTrainingPrograms() {
         athlete_ids: snapshot.athlete_ids,
         training_blocks: snapshot.training_blocks,
         scheduled_events: snapshot.scheduled_events,
+        periodization_blocks: snapshot.periodization_blocks ?? [],
       })
       .eq('id', programId);
 
