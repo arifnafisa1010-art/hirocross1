@@ -497,6 +497,7 @@ export function useTrainingPrograms() {
         athlete_ids: source.athlete_ids,
         training_blocks: source.training_blocks,
         scheduled_events: source.scheduled_events,
+        periodization_blocks: (source as any).periodization_blocks ?? [],
       })
       .select()
       .single();
