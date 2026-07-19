@@ -633,7 +633,20 @@ export function AnnualPlanSection() {
         <h2 className="text-2xl font-extrabold uppercase tracking-wide">
           {setup.planName}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {autoSaveStatus !== 'idle' && (
+            <div className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-colors",
+              autoSaveStatus === 'saving' && "bg-primary/20 text-primary",
+              autoSaveStatus === 'saved' && "bg-success/20 text-success",
+              autoSaveStatus === 'error' && "bg-destructive/20 text-destructive"
+            )}>
+              {autoSaveStatus === 'saving' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {autoSaveStatus === 'saved' && <CheckCircle2 className="w-3.5 h-3.5" />}
+              {autoSaveStatus === 'error' && <AlertCircle className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{autoSaveMessage}</span>
+            </div>
+          )}
           <Button 
             variant="outline" 
             size="sm" 
