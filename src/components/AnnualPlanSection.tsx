@@ -121,6 +121,9 @@ export function AnnualPlanSection() {
   const [inlineEditingPeriodization, setInlineEditingPeriodization] = useState<number | null>(null);
   const [inlinePeriodizationText, setInlinePeriodizationText] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [autoSaveMessage, setAutoSaveMessage] = useState('');
+  const prevPeriodizationBlocksRef = useRef<TrainingBlock[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
 
 
