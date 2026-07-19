@@ -72,6 +72,15 @@ export function SetupSection() {
       if (loadedPlan.length > 0) {
         setTotalWeeks(loadedPlan.length);
       }
+
+      const loadedPeriodization = ((currentProgram as any).periodization_blocks as unknown as TrainingBlock[]) || [];
+      setPeriodizationBlocks(loadedPeriodization);
+
+      const loadedTrainingBlocks = (currentProgram as any).training_blocks as unknown as TrainingBlocks | null;
+      if (loadedTrainingBlocks) setTrainingBlocks(loadedTrainingBlocks);
+
+      const loadedScheduledEvents = ((currentProgram as any).scheduled_events as unknown as ScheduledEvent[]) || [];
+      setScheduledEvents(loadedScheduledEvents);
     }
   }, [currentProgram?.id]);
 
