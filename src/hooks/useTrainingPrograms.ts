@@ -110,7 +110,8 @@ export function useTrainingPrograms() {
     athleteIds: string[] = [],
     trainingBlocks?: TrainingBlocks,
     scheduledEvents?: ScheduledEvent[],
-    storeSessions?: Record<string, DaySession>
+    storeSessions?: Record<string, DaySession>,
+    periodizationBlocks?: TrainingBlock[]
   ) => {
     if (!user) {
       toast.error('Anda harus login!');
@@ -145,6 +146,7 @@ export function useTrainingPrograms() {
       athlete_ids: athleteIds,
       training_blocks: trainingBlocks as unknown as Json,
       scheduled_events: scheduledEvents as unknown as Json,
+      periodization_blocks: (periodizationBlocks ?? []) as unknown as Json,
     };
 
     let programId: string;
