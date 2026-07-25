@@ -6,6 +6,7 @@ import { Mesocycle, PlanWeek, DaySession, Exercise, ProgramSetup, Competition } 
 import { TrainingBlocks, ScheduledEvent, TrainingBlock } from '@/stores/trainingStore';
 import { Json } from '@/integrations/supabase/types';
 import { useAuth } from './useAuth';
+import { describeSupabaseError } from '@/lib/supabaseErrors';
 
 export type TrainingProgram = Tables<'training_programs'>;
 export type TrainingProgramInsert = TablesInsert<'training_programs'>;

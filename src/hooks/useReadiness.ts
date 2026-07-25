@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
+import { describeSupabaseError } from '@/lib/supabaseErrors';
 
 export interface ReadinessEntry {
   id: string;
@@ -65,7 +66,7 @@ export function useReadiness(athleteId?: string) {
       .single();
 
     if (error) {
-      toast.error('Gagal menyimpan data readiness');
+      toast.error(describeSupabaseError(error, 'Gagal menyimpan data readiness'));
       console.error(error);
       return null;
     }
@@ -82,7 +83,7 @@ export function useReadiness(athleteId?: string) {
       .eq('id', id);
 
     if (error) {
-      toast.error('Gagal menghapus data');
+      toast.error(describeSupabaseError(error, 'Gagal menghapus data'));
       console.error(error);
       return false;
     }
