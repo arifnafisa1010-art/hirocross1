@@ -25,6 +25,11 @@ const FEATURE_HIGHLIGHTS: Record<string, { icon: typeof Activity; title: string;
     { icon: TrendingUp, title: 'Rekomendasi Otomatis', desc: 'Intensitas berbasis ACWR & TSB', color: 'text-blue-500' },
     { icon: Zap, title: 'Sync Kalender', desc: 'Auto sync dari sesi DONE', color: 'text-amber-500' },
   ],
+  'Peta Otot Latihan': [
+    { icon: Activity, title: 'Visualisasi Otot', desc: 'Peta tubuh depan & belakang', color: 'text-green-500' },
+    { icon: TrendingUp, title: 'Aktivasi Dominan', desc: 'Lihat otot primer, sekunder, pendukung', color: 'text-blue-500' },
+    { icon: Zap, title: 'Kombinasi Latihan', desc: 'Gabungkan beberapa gerakan sekaligus', color: 'text-amber-500' },
+  ],
   'Tes & Pengukuran': [
     { icon: Activity, title: 'Norma Lengkap', desc: 'Bandingkan hasil tes dengan standar', color: 'text-green-500' },
     { icon: TrendingUp, title: 'Kalkulator Otomatis', desc: '1RM, VCr, RAST, BMI & lainnya', color: 'text-blue-500' },
