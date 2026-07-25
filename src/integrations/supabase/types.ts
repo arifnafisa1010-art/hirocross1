@@ -164,6 +164,33 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_update_audit: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          record_id: string
+          record_owner_id: string | null
+          table_name: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          record_id: string
+          record_owner_id?: string | null
+          table_name: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          record_id?: string
+          record_owner_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       premium_access: {
         Row: {
           created_at: string
