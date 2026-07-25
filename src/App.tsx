@@ -14,6 +14,7 @@ import PremiumDashboard from "./pages/PremiumDashboard";
 import MonitoringAtlet from "./pages/MonitoringAtlet";
 import MonitoringPlan from "./pages/MonitoringPlan";
 import Readiness from "./pages/Readiness";
+import MuscleMap from "./pages/MuscleMap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,14 @@ function App() {
                     <Readiness />
                   </ProtectedRoute>
                 } 
+              />
+              <Route
+                path="/muscle-map"
+                element={
+                  <ProtectedRoute>
+                    <MuscleMap />
+                  </ProtectedRoute>
+                }
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
