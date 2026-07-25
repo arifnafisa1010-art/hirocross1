@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
+import { describeSupabaseError } from '@/lib/supabaseErrors';
 
 export type TestResult = Tables<'test_results'>;
 export type TestResultInsert = TablesInsert<'test_results'>;
@@ -48,7 +49,7 @@ export function useTestResults() {
       .single();
     
     if (error) {
-      toast.error('Gagal menyimpan hasil tes');
+      toast.error(describeSupabaseError(error, 'Gagal menyimpan hasil tes'));
       console.error(error);
       return null;
     }
@@ -65,7 +66,7 @@ export function useTestResults() {
       .eq('id', id);
     
     if (error) {
-      toast.error('Gagal menghapus hasil tes');
+      toast.error(describeSupabaseError(error, 'Gagal menghapus hasil tes'));
       console.error(error);
       return false;
     }
