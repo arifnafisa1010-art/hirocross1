@@ -5,125 +5,142 @@ interface Props {
   onHover?: (m: MuscleId | null) => void;
 }
 
-// Color mapping: 0 = idle, 1 = tertiary, 2 = secondary, 3 = primary
-const COLORS = ['#3f4a5c', '#facc15', '#fb923c', '#ef4444'];
-
-const fill = (m: MuscleId, intensities: Props['intensities']) => COLORS[intensities[m] ?? 0];
+// 0 = idle, 1 = tertiary, 2 = secondary, 3 = primary
+const COLORS = ['#39435466', '#facc15', '#fb923c', '#ef4444'];
 
 export function MuscleBodyMap({ intensities, onHover }: Props) {
-  const f = (m: MuscleId) => fill(m, intensities);
-  const hoverProps = (m: MuscleId) => ({
+  const f = (m: MuscleId) => COLORS[intensities[m] ?? 0];
+  const hp = (m: MuscleId) => ({
     onMouseEnter: () => onHover?.(m),
     onMouseLeave: () => onHover?.(null),
-    style: { transition: 'fill 400ms ease', cursor: 'pointer' },
+    style: { transition: 'fill 350ms ease', cursor: 'pointer' },
+    stroke: '#0b1220',
+    strokeWidth: 0.7,
   });
 
+  const SKIN = '#2b3648';
+  const OUTLINE = '#0b1220';
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-      {/* FRONT VIEW */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+      {/* ---------------- FRONT ---------------- */}
       <div className="flex flex-col items-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Tampak Depan</p>
-        <svg viewBox="0 0 220 460" className="w-full max-w-[260px] h-auto">
-          {/* body silhouette */}
-          <g fill="#1f2937" stroke="#0f172a" strokeWidth="1.2">
-            {/* head */}
-            <ellipse cx="110" cy="32" rx="22" ry="26" />
-            {/* neck */}
-            <rect x="100" y="55" width="20" height="14" />
+        <svg viewBox="0 0 240 520" className="w-full max-w-[280px] h-auto">
+          <g fill={SKIN} stroke={OUTLINE} strokeWidth="1.4" strokeLinejoin="round">
+            {/* head + neck */}
+            <ellipse cx="120" cy="36" rx="23" ry="28" />
+            <path d="M110 60 L130 60 L133 76 L107 76 Z" />
             {/* torso */}
-            <path d="M65 72 Q110 60 155 72 L165 190 Q110 210 55 190 Z" />
-            {/* hips */}
-            <path d="M60 188 Q110 205 160 188 L155 240 Q110 250 65 240 Z" />
-            {/* left arm */}
-            <path d="M60 78 Q40 90 38 140 L45 200 L58 200 L60 145 Q70 100 70 90 Z" />
-            {/* right arm */}
-            <path d="M160 78 Q180 90 182 140 L175 200 L162 200 L160 145 Q150 100 150 90 Z" />
+            <path d="M85 76 Q120 66 155 76 Q170 82 172 104 L168 150 Q166 190 160 216 Q120 230 80 216 Q74 190 72 150 L68 104 Q70 82 85 76 Z" />
+            {/* pelvis */}
+            <path d="M80 214 Q120 228 160 214 L156 258 Q120 272 84 258 Z" />
+            {/* arms upper */}
+            <path d="M72 88 Q56 96 52 122 L50 172 L66 176 L70 130 Q72 106 80 96 Z" />
+            <path d="M168 88 Q184 96 188 122 L190 172 L174 176 L170 130 Q168 106 160 96 Z" />
             {/* forearms */}
-            <path d="M45 200 L38 265 L52 265 L58 200 Z" />
-            <path d="M175 200 L182 265 L168 265 L162 200 Z" />
-            {/* left leg */}
-            <path d="M70 240 Q80 260 82 340 L90 430 L108 430 L108 340 Q108 280 105 245 Z" />
-            {/* right leg */}
-            <path d="M150 240 Q140 260 138 340 L130 430 L112 430 L112 340 Q112 280 115 245 Z" />
+            <path d="M50 172 Q44 210 42 256 L56 260 Q62 214 66 176 Z" />
+            <path d="M190 172 Q196 210 198 256 L184 260 Q178 214 174 176 Z" />
+            {/* hands */}
+            <ellipse cx="49" cy="272" rx="9" ry="14" />
+            <ellipse cx="191" cy="272" rx="9" ry="14" />
+            {/* legs */}
+            <path d="M86 256 Q94 300 94 340 L96 400 Q98 450 100 486 L118 486 L118 400 Q120 330 116 260 Z" />
+            <path d="M154 256 Q146 300 146 340 L144 400 Q142 450 140 486 L122 486 L122 400 Q120 330 124 260 Z" />
+            {/* feet */}
+            <path d="M99 486 L119 486 L121 500 L95 500 Z" />
+            <path d="M121 486 L141 486 L145 500 L119 500 Z" />
           </g>
 
-          {/* MUSCLES (overlays) */}
-          {/* chest */}
-          <path d="M75 90 Q88 82 108 84 L108 130 Q92 132 78 122 Z" fill={f('chest')} {...hoverProps('chest')} />
-          <path d="M145 90 Q132 82 112 84 L112 130 Q128 132 142 122 Z" fill={f('chest')} {...hoverProps('chest')} />
+          {/* muscles */}
+          {/* neck (sternocleidomastoid) */}
+          <path d="M110 62 L118 62 L116 76 L108 74 Z" fill={f('neck')} {...hp('neck')} />
+          <path d="M130 62 L122 62 L124 76 L132 74 Z" fill={f('neck')} {...hp('neck')} />
+          {/* traps front */}
+          <path d="M92 78 Q120 70 148 78 L140 92 Q120 84 100 92 Z" fill={f('traps')} {...hp('traps')} />
           {/* shoulders front */}
-          <ellipse cx="66" cy="88" rx="12" ry="14" fill={f('shoulders_front')} {...hoverProps('shoulders_front')} />
-          <ellipse cx="154" cy="88" rx="12" ry="14" fill={f('shoulders_front')} {...hoverProps('shoulders_front')} />
+          <path d="M70 88 Q84 82 92 92 Q90 112 80 120 Q66 116 64 104 Q64 92 70 88 Z" fill={f('shoulders_front')} {...hp('shoulders_front')} />
+          <path d="M170 88 Q156 82 148 92 Q150 112 160 120 Q174 116 176 104 Q176 92 170 88 Z" fill={f('shoulders_front')} {...hp('shoulders_front')} />
+          {/* chest */}
+          <path d="M92 94 Q106 88 117 92 L117 134 Q100 136 88 124 Q86 106 92 94 Z" fill={f('chest')} {...hp('chest')} />
+          <path d="M148 94 Q134 88 123 92 L123 134 Q140 136 152 124 Q154 106 148 94 Z" fill={f('chest')} {...hp('chest')} />
           {/* biceps */}
-          <ellipse cx="52" cy="130" rx="10" ry="22" fill={f('biceps')} {...hoverProps('biceps')} />
-          <ellipse cx="168" cy="130" rx="10" ry="22" fill={f('biceps')} {...hoverProps('biceps')} />
+          <path d="M60 112 Q70 110 72 126 L70 158 Q60 162 55 154 Q54 128 60 112 Z" fill={f('biceps')} {...hp('biceps')} />
+          <path d="M180 112 Q170 110 168 126 L170 158 Q180 162 185 154 Q186 128 180 112 Z" fill={f('biceps')} {...hp('biceps')} />
           {/* forearms */}
-          <ellipse cx="45" cy="230" rx="9" ry="28" fill={f('forearms')} {...hoverProps('forearms')} />
-          <ellipse cx="175" cy="230" rx="9" ry="28" fill={f('forearms')} {...hoverProps('forearms')} />
-          {/* abs */}
-          <path d="M96 135 L124 135 L122 195 L98 195 Z" fill={f('abs')} {...hoverProps('abs')} />
-          <line x1="110" y1="140" x2="110" y2="190" stroke="#0f172a" strokeWidth="1" />
-          <line x1="97" y1="155" x2="123" y2="155" stroke="#0f172a" strokeWidth="0.8" />
-          <line x1="97" y1="170" x2="123" y2="170" stroke="#0f172a" strokeWidth="0.8" />
-          <line x1="97" y1="183" x2="123" y2="183" stroke="#0f172a" strokeWidth="0.8" />
+          <path d="M52 180 Q62 178 64 192 Q60 226 56 250 Q48 250 46 240 Q48 208 52 180 Z" fill={f('forearms')} {...hp('forearms')} />
+          <path d="M188 180 Q178 178 176 192 Q180 226 184 250 Q192 250 194 240 Q192 208 188 180 Z" fill={f('forearms')} {...hp('forearms')} />
+          {/* abs — 3 pairs */}
+          {[0, 1, 2].map((i) => (
+            <g key={i}>
+              <rect x="103" y={140 + i * 22} width="15" height="18" rx="4" fill={f('abs')} {...hp('abs')} />
+              <rect x="122" y={140 + i * 22} width="15" height="18" rx="4" fill={f('abs')} {...hp('abs')} />
+            </g>
+          ))}
+          <path d="M103 206 L137 206 L133 224 Q120 230 107 224 Z" fill={f('abs')} {...hp('abs')} />
           {/* obliques */}
-          <path d="M78 138 L94 140 L92 195 L75 185 Z" fill={f('obliques')} {...hoverProps('obliques')} />
-          <path d="M142 138 L126 140 L128 195 L145 185 Z" fill={f('obliques')} {...hoverProps('obliques')} />
+          <path d="M88 140 L100 144 L99 214 Q88 208 84 194 Z" fill={f('obliques')} {...hp('obliques')} />
+          <path d="M152 140 L140 144 L141 214 Q152 208 156 194 Z" fill={f('obliques')} {...hp('obliques')} />
           {/* quads */}
-          <path d="M72 250 Q88 258 96 260 L100 340 L82 340 Q76 300 72 250 Z" fill={f('quads')} {...hoverProps('quads')} />
-          <path d="M148 250 Q132 258 124 260 L120 340 L138 340 Q144 300 148 250 Z" fill={f('quads')} {...hoverProps('quads')} />
-          {/* calves (front hint) */}
-          <ellipse cx="92" cy="385" rx="9" ry="22" fill={f('calves')} {...hoverProps('calves')} />
-          <ellipse cx="128" cy="385" rx="9" ry="22" fill={f('calves')} {...hoverProps('calves')} />
+          <path d="M90 268 Q104 276 114 276 L115 356 Q102 362 95 350 Q90 310 90 268 Z" fill={f('quads')} {...hp('quads')} />
+          <path d="M150 268 Q136 276 126 276 L125 356 Q138 362 145 350 Q150 310 150 268 Z" fill={f('quads')} {...hp('quads')} />
+          {/* calves front (tibialis) */}
+          <path d="M100 400 Q108 398 110 412 L110 452 Q102 456 99 444 Q98 420 100 400 Z" fill={f('calves')} {...hp('calves')} />
+          <path d="M140 400 Q132 398 130 412 L130 452 Q138 456 141 444 Q142 420 140 400 Z" fill={f('calves')} {...hp('calves')} />
         </svg>
       </div>
 
-      {/* BACK VIEW */}
+      {/* ---------------- BACK ---------------- */}
       <div className="flex flex-col items-center">
         <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Tampak Belakang</p>
-        <svg viewBox="0 0 220 460" className="w-full max-w-[260px] h-auto">
-          <g fill="#1f2937" stroke="#0f172a" strokeWidth="1.2">
-            <ellipse cx="110" cy="32" rx="22" ry="26" />
-            <rect x="100" y="55" width="20" height="14" />
-            <path d="M65 72 Q110 60 155 72 L165 190 Q110 210 55 190 Z" />
-            <path d="M60 188 Q110 205 160 188 L155 240 Q110 250 65 240 Z" />
-            <path d="M60 78 Q40 90 38 140 L45 200 L58 200 L60 145 Q70 100 70 90 Z" />
-            <path d="M160 78 Q180 90 182 140 L175 200 L162 200 L160 145 Q150 100 150 90 Z" />
-            <path d="M45 200 L38 265 L52 265 L58 200 Z" />
-            <path d="M175 200 L182 265 L168 265 L162 200 Z" />
-            <path d="M70 240 Q80 260 82 340 L90 430 L108 430 L108 340 Q108 280 105 245 Z" />
-            <path d="M150 240 Q140 260 138 340 L130 430 L112 430 L112 340 Q112 280 115 245 Z" />
+        <svg viewBox="0 0 240 520" className="w-full max-w-[280px] h-auto">
+          <g fill={SKIN} stroke={OUTLINE} strokeWidth="1.4" strokeLinejoin="round">
+            <ellipse cx="120" cy="36" rx="23" ry="28" />
+            <path d="M110 60 L130 60 L133 76 L107 76 Z" />
+            <path d="M85 76 Q120 66 155 76 Q170 82 172 104 L168 150 Q166 190 160 216 Q120 230 80 216 Q74 190 72 150 L68 104 Q70 82 85 76 Z" />
+            <path d="M80 214 Q120 228 160 214 L156 258 Q120 272 84 258 Z" />
+            <path d="M72 88 Q56 96 52 122 L50 172 L66 176 L70 130 Q72 106 80 96 Z" />
+            <path d="M168 88 Q184 96 188 122 L190 172 L174 176 L170 130 Q168 106 160 96 Z" />
+            <path d="M50 172 Q44 210 42 256 L56 260 Q62 214 66 176 Z" />
+            <path d="M190 172 Q196 210 198 256 L184 260 Q178 214 174 176 Z" />
+            <ellipse cx="49" cy="272" rx="9" ry="14" />
+            <ellipse cx="191" cy="272" rx="9" ry="14" />
+            <path d="M86 256 Q94 300 94 340 L96 400 Q98 450 100 486 L118 486 L118 400 Q120 330 116 260 Z" />
+            <path d="M154 256 Q146 300 146 340 L144 400 Q142 450 140 486 L122 486 L122 400 Q120 330 124 260 Z" />
+            <path d="M99 486 L119 486 L121 500 L95 500 Z" />
+            <path d="M121 486 L141 486 L145 500 L119 500 Z" />
           </g>
 
-          {/* neck */}
-          <rect x="102" y="58" width="16" height="10" fill={f('neck')} {...hoverProps('neck')} />
-          {/* traps */}
-          <path d="M85 72 Q110 65 135 72 L128 100 Q110 108 92 100 Z" fill={f('traps')} {...hoverProps('traps')} />
+          {/* neck back */}
+          <path d="M109 60 L131 60 L129 76 L111 76 Z" fill={f('neck')} {...hp('neck')} />
+          {/* traps (diamond) */}
+          <path d="M120 74 L152 84 Q140 112 120 128 Q100 112 88 84 Z" fill={f('traps')} {...hp('traps')} />
           {/* shoulders rear */}
-          <ellipse cx="66" cy="90" rx="12" ry="14" fill={f('shoulders_rear')} {...hoverProps('shoulders_rear')} />
-          <ellipse cx="154" cy="90" rx="12" ry="14" fill={f('shoulders_rear')} {...hoverProps('shoulders_rear')} />
+          <path d="M70 88 Q84 82 92 92 Q90 112 80 120 Q66 116 64 104 Q64 92 70 88 Z" fill={f('shoulders_rear')} {...hp('shoulders_rear')} />
+          <path d="M170 88 Q156 82 148 92 Q150 112 160 120 Q174 116 176 104 Q176 92 170 88 Z" fill={f('shoulders_rear')} {...hp('shoulders_rear')} />
           {/* upper back / rhomboids */}
-          <path d="M88 100 L132 100 L128 135 L92 135 Z" fill={f('upper_back')} {...hoverProps('upper_back')} />
+          <path d="M96 106 L118 118 L118 146 L94 138 Q92 120 96 106 Z" fill={f('upper_back')} {...hp('upper_back')} />
+          <path d="M144 106 L122 118 L122 146 L146 138 Q148 120 144 106 Z" fill={f('upper_back')} {...hp('upper_back')} />
           {/* lats */}
-          <path d="M78 118 L96 130 L94 180 Q80 175 72 160 Z" fill={f('lats')} {...hoverProps('lats')} />
-          <path d="M142 118 L124 130 L126 180 Q140 175 148 160 Z" fill={f('lats')} {...hoverProps('lats')} />
+          <path d="M92 140 L118 150 L118 196 Q98 194 86 176 Q82 158 92 140 Z" fill={f('lats')} {...hp('lats')} />
+          <path d="M148 140 L122 150 L122 196 Q142 194 154 176 Q158 158 148 140 Z" fill={f('lats')} {...hp('lats')} />
           {/* lower back */}
-          <path d="M96 140 L124 140 L122 195 L98 195 Z" fill={f('lower_back')} {...hoverProps('lower_back')} />
+          <path d="M106 176 L134 176 L132 220 Q120 226 108 220 Z" fill={f('lower_back')} {...hp('lower_back')} />
           {/* triceps */}
-          <ellipse cx="52" cy="130" rx="10" ry="22" fill={f('triceps')} {...hoverProps('triceps')} />
-          <ellipse cx="168" cy="130" rx="10" ry="22" fill={f('triceps')} {...hoverProps('triceps')} />
+          <path d="M58 110 Q70 108 72 126 L70 160 Q59 164 55 154 Q53 128 58 110 Z" fill={f('triceps')} {...hp('triceps')} />
+          <path d="M182 110 Q170 108 168 126 L170 160 Q181 164 185 154 Q187 128 182 110 Z" fill={f('triceps')} {...hp('triceps')} />
           {/* forearms */}
-          <ellipse cx="45" cy="230" rx="9" ry="28" fill={f('forearms')} {...hoverProps('forearms')} />
-          <ellipse cx="175" cy="230" rx="9" ry="28" fill={f('forearms')} {...hoverProps('forearms')} />
+          <path d="M52 180 Q62 178 64 192 Q60 226 56 250 Q48 250 46 240 Q48 208 52 180 Z" fill={f('forearms')} {...hp('forearms')} />
+          <path d="M188 180 Q178 178 176 192 Q180 226 184 250 Q192 250 194 240 Q192 208 188 180 Z" fill={f('forearms')} {...hp('forearms')} />
           {/* glutes */}
-          <path d="M78 205 Q95 200 108 205 L108 245 Q90 245 78 235 Z" fill={f('glutes')} {...hoverProps('glutes')} />
-          <path d="M142 205 Q125 200 112 205 L112 245 Q130 245 142 235 Z" fill={f('glutes')} {...hoverProps('glutes')} />
+          <path d="M86 224 Q104 218 118 226 L118 262 Q98 266 87 252 Q83 238 86 224 Z" fill={f('glutes')} {...hp('glutes')} />
+          <path d="M154 224 Q136 218 122 226 L122 262 Q142 266 153 252 Q157 238 154 224 Z" fill={f('glutes')} {...hp('glutes')} />
           {/* hamstrings */}
-          <path d="M76 250 Q90 258 100 260 L100 340 L82 340 Q76 300 76 250 Z" fill={f('hamstrings')} {...hoverProps('hamstrings')} />
-          <path d="M144 250 Q130 258 120 260 L120 340 L138 340 Q144 300 144 250 Z" fill={f('hamstrings')} {...hoverProps('hamstrings')} />
+          <path d="M92 270 Q104 278 114 278 L115 358 Q102 364 96 352 Q92 312 92 270 Z" fill={f('hamstrings')} {...hp('hamstrings')} />
+          <path d="M148 270 Q136 278 126 278 L125 358 Q138 364 144 352 Q148 312 148 270 Z" fill={f('hamstrings')} {...hp('hamstrings')} />
           {/* calves */}
-          <ellipse cx="92" cy="385" rx="10" ry="26" fill={f('calves')} {...hoverProps('calves')} />
-          <ellipse cx="128" cy="385" rx="10" ry="26" fill={f('calves')} {...hoverProps('calves')} />
+          <path d="M98 388 Q110 388 112 406 Q112 438 106 458 Q96 458 95 442 Q94 412 98 388 Z" fill={f('calves')} {...hp('calves')} />
+          <path d="M142 388 Q130 388 128 406 Q128 438 134 458 Q144 458 145 442 Q146 412 142 388 Z" fill={f('calves')} {...hp('calves')} />
         </svg>
       </div>
     </div>
