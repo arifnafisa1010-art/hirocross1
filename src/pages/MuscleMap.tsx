@@ -9,6 +9,9 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { Header } from '@/components/Header';
 import { AppSidebar } from '@/components/AppSidebar';
 import { MuscleBodyMap } from '@/components/MuscleBodyMap';
+import { MuscleHistoryPanel } from '@/components/MuscleHistoryPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   EXERCISES,
   EXERCISE_CATEGORIES,
