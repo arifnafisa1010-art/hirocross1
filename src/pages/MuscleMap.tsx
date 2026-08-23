@@ -72,24 +72,9 @@ export default function MuscleMap() {
     );
   }
 
-  const content = (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Kembali
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Dumbbell className="w-6 h-6 text-primary" />
-            Peta Otot Latihan
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Lihat otot dominan yang bekerja pada setiap gerakan latihan kekuatan.
-          </p>
-        </div>
-      </div>
-
+  const simulator = (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
         {/* LEFT: exercise picker */}
         <Card className="lg:col-span-1">
           <CardHeader>
