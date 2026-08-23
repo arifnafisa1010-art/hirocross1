@@ -9,6 +9,9 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { Header } from '@/components/Header';
 import { AppSidebar } from '@/components/AppSidebar';
 import { MuscleBodyMap } from '@/components/MuscleBodyMap';
+import { MuscleHistoryPanel } from '@/components/MuscleHistoryPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   EXERCISES,
   EXERCISE_CATEGORIES,
@@ -72,24 +75,11 @@ export default function MuscleMap() {
     );
   }
 
-  const content = (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Kembali
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Dumbbell className="w-6 h-6 text-primary" />
-            Peta Otot Latihan
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Lihat otot dominan yang bekerja pada setiap gerakan latihan kekuatan.
-          </p>
-        </div>
-      </div>
-
+  const simulator = (
+    <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+
         {/* LEFT: exercise picker */}
         <Card className="lg:col-span-1">
           <CardHeader>
@@ -211,6 +201,40 @@ export default function MuscleMap() {
       )}
     </div>
   );
+
+  const content = (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
+          <ArrowLeft className="w-4 h-4 mr-1" /> Kembali
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Dumbbell className="w-6 h-6 text-primary" />
+            Peta Otot Latihan
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Simulasikan gerakan atau lihat riwayat otot yang sudah dilatih.
+          </p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="simulasi">
+        <TabsList>
+          <TabsTrigger value="simulasi">Simulasi Latihan</TabsTrigger>
+          <TabsTrigger value="riwayat">Riwayat & Statistik</TabsTrigger>
+        </TabsList>
+        <TabsContent value="simulasi" className="mt-4">
+          {simulator}
+        </TabsContent>
+        <TabsContent value="riwayat" className="mt-4">
+          <MuscleHistoryPanel />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+
+
 
   return (
     <SidebarProvider>
