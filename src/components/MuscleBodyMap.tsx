@@ -199,6 +199,20 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
               className="w-full h-auto select-none pointer-events-none"
               draggable={false}
             />
+            {active.length === 0 && (
+              <div
+                className="absolute inset-0 bg-black"
+                aria-hidden="true"
+                style={{
+                  WebkitMaskImage: `url(${base.url})`,
+                  maskImage: `url(${base.url})`,
+                  WebkitMaskSize: '100% 100%',
+                  maskSize: '100% 100%',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskRepeat: 'no-repeat',
+                }}
+              />
+            )}
             {active.map((m) => {
               const v = intensities[m] as 1 | 2 | 3;
               return (
