@@ -169,9 +169,11 @@ export default function MuscleMap() {
               )}
             </CardTitle>
             <CardDescription>
-              {selected.length === 0
-                ? 'Pilih latihan di sebelah kiri untuk melihat aktivasi otot.'
-                : `Menampilkan aktivasi untuk ${selected.length} gerakan`}
+              {showAll
+                ? 'Menampilkan semua kelompok otot'
+                : selected.length === 0
+                  ? 'Pilih latihan di sebelah kiri atau aktifkan "Tampilkan semua otot".'
+                  : `Menampilkan aktivasi untuk ${selected.length} gerakan`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -180,7 +182,7 @@ export default function MuscleMap() {
             {/* Legend */}
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-sm bg-red-500" /> Dominan
+                <span className="w-3 h-3 rounded-sm bg-red-500" /> Dominan (tersorot)
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-sm bg-orange-400" /> Sekunder
@@ -189,9 +191,10 @@ export default function MuscleMap() {
                 <span className="w-3 h-3 rounded-sm bg-yellow-400" /> Pendukung
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-sm bg-slate-600" /> Tidak aktif
+                <span className="w-3 h-3 rounded-sm bg-black border border-border" /> Tidak dipilih (hitam)
               </div>
             </div>
+
           </CardContent>
         </Card>
       </div>
