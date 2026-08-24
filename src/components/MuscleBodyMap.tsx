@@ -368,8 +368,9 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
       </div>
 
       <p className="mt-2 text-center text-[11px] text-muted-foreground md:hidden">
-        Cubit untuk zoom, geser untuk menggeser, ketuk otot untuk melihat namanya.
+        Cubit untuk zoom, geser untuk menggeser, ketuk tepat pada otot untuk melihat namanya.
       </p>
+
       <div className="flex justify-center gap-16 sm:gap-24 mt-2">
         <p className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Tampak Depan</p>
         <p className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Tampak Belakang</p>
