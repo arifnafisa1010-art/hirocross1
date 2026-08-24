@@ -11,6 +11,8 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { MuscleBodyMap } from '@/components/MuscleBodyMap';
 import { MuscleHistoryPanel } from '@/components/MuscleHistoryPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+
 
 import {
   EXERCISES,
