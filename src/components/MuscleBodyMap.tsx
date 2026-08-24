@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MuscleId } from '@/lib/muscleExercises';
+import { MuscleId, MUSCLE_LABELS } from '@/lib/muscleExercises';
 
 import base from '@/assets/muscle/base.png.asset.json';
 import abs from '@/assets/muscle/abs.png.asset.json';
