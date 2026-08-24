@@ -29,8 +29,16 @@ export default function MuscleMap() {
   const [category, setCategory] = useState<string>('all');
   const [hovered, setHovered] = useState<MuscleId | null>(null);
 
+  const [showAll, setShowAll] = useState(false);
+
   const intensities = useMemo(() => {
     const map: Partial<Record<MuscleId, 0 | 1 | 2 | 3>> = {};
+    if (showAll) {
+      (Object.keys(MUSCLE_LABELS) as MuscleId[]).forEach((m) => {
+        map[m] = 3;
+      });
+      return map;
+    }
     const bump = (m: MuscleId, v: 1 | 2 | 3) => {
       map[m] = (Math.max(map[m] ?? 0, v) as 0 | 1 | 2 | 3);
     };
@@ -40,7 +48,8 @@ export default function MuscleMap() {
       ex.tertiary?.forEach((m) => bump(m, 1));
     });
     return map;
-  }, [selected]);
+  }, [selected, showAll]);
+
 
   const activeMuscles = useMemo(() => {
     return (Object.entries(intensities) as [MuscleId, 1 | 2 | 3][])
