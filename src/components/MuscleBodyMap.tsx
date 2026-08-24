@@ -294,6 +294,27 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
                 maskRepeat: 'no-repeat',
               }}
             />
+            {(Object.keys(MASKS) as MuscleId[]).map((m) => (
+              <div
+                key={`idle-${m}`}
+                className="absolute inset-0 pointer-events-none"
+                aria-hidden="true"
+                style={{
+                  backgroundColor: '#4b5563',
+                  opacity: (intensities[m] ?? 0) > 0 ? 0 : 0.55,
+                  transition: 'opacity 300ms',
+                  WebkitMaskImage: `url(${MASKS[m]})`,
+                  maskImage: `url(${MASKS[m]})`,
+                  WebkitMaskSize: '100% 100%',
+                  maskSize: '100% 100%',
+                  WebkitMaskPosition: '0 0',
+                  maskPosition: '0 0',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskRepeat: 'no-repeat',
+                }}
+              />
+            ))}
+
             {active.map((m) => {
               const v = intensities[m] as 1 | 2 | 3;
               return (
