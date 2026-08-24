@@ -11,6 +11,8 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { MuscleBodyMap } from '@/components/MuscleBodyMap';
 import { MuscleHistoryPanel } from '@/components/MuscleHistoryPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+
 
 import {
   EXERCISES,
@@ -29,8 +31,16 @@ export default function MuscleMap() {
   const [category, setCategory] = useState<string>('all');
   const [hovered, setHovered] = useState<MuscleId | null>(null);
 
+  const [showAll, setShowAll] = useState(false);
+
   const intensities = useMemo(() => {
     const map: Partial<Record<MuscleId, 0 | 1 | 2 | 3>> = {};
+    if (showAll) {
+      (Object.keys(MUSCLE_LABELS) as MuscleId[]).forEach((m) => {
+        map[m] = 3;
+      });
+      return map;
+    }
     const bump = (m: MuscleId, v: 1 | 2 | 3) => {
       map[m] = (Math.max(map[m] ?? 0, v) as 0 | 1 | 2 | 3);
     };
@@ -40,7 +50,8 @@ export default function MuscleMap() {
       ex.tertiary?.forEach((m) => bump(m, 1));
     });
     return map;
-  }, [selected]);
+  }, [selected, showAll]);
+
 
   const activeMuscles = useMemo(() => {
     return (Object.entries(intensities) as [MuscleId, 1 | 2 | 3][])
@@ -87,6 +98,15 @@ export default function MuscleMap() {
             <CardDescription>Pilih satu atau beberapa gerakan untuk melihat kombinasi otot yang bekerja.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">Tampilkan semua otot</p>
+                <p className="text-[11px] text-muted-foreground">Sorot seluruh otot tanpa memilih latihan.</p>
+              </div>
+              <Switch checked={showAll} onCheckedChange={setShowAll} aria-label="Tampilkan semua otot" />
+            </div>
+
+
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="Kategori" />
@@ -149,9 +169,11 @@ export default function MuscleMap() {
               )}
             </CardTitle>
             <CardDescription>
-              {selected.length === 0
-                ? 'Pilih latihan di sebelah kiri untuk melihat aktivasi otot.'
-                : `Menampilkan aktivasi untuk ${selected.length} gerakan`}
+              {showAll
+                ? 'Menampilkan semua kelompok otot'
+                : selected.length === 0
+                  ? 'Pilih latihan di sebelah kiri atau aktifkan "Tampilkan semua otot".'
+                  : `Menampilkan aktivasi untuk ${selected.length} gerakan`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -160,7 +182,7 @@ export default function MuscleMap() {
             {/* Legend */}
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-sm bg-red-500" /> Dominan
+                <span className="w-3 h-3 rounded-sm bg-red-500" /> Dominan (tersorot)
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-sm bg-orange-400" /> Sekunder
@@ -169,9 +191,10 @@ export default function MuscleMap() {
                 <span className="w-3 h-3 rounded-sm bg-yellow-400" /> Pendukung
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-sm bg-slate-600" /> Tidak aktif
+                <span className="w-3 h-3 rounded-sm bg-black border border-border" /> Tidak dipilih (hitam)
               </div>
             </div>
+
           </CardContent>
         </Card>
       </div>

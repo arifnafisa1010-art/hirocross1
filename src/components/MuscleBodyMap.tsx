@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MuscleId } from '@/lib/muscleExercises';
+import { MuscleId, MUSCLE_LABELS } from '@/lib/muscleExercises';
 
 import base from '@/assets/muscle/base.png.asset.json';
 import abs from '@/assets/muscle/abs.png.asset.json';
@@ -62,11 +62,60 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
   const active = (Object.keys(MASKS) as MuscleId[]).filter((m) => (intensities[m] ?? 0) > 0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; cx: number; cy: number } | null>(null);
   const dragged = useRef(false);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string } | null>(null);
+
+  // --- alpha hit-testing on mask images ---
+  const hitCanvases = useRef<Map<MuscleId, { ctx: CanvasRenderingContext2D; w: number; h: number }>>(
+    new Map(),
+  );
+  useEffect(() => {
+    let cancelled = false;
+    (Object.entries(MASKS) as [MuscleId, string][]).forEach(([id, url]) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        if (cancelled) return;
+        const w = 220;
+        const h = Math.max(1, Math.round((img.naturalHeight / img.naturalWidth) * w));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        try {
+          ctx.drawImage(img, 0, 0, w, h);
+          ctx.getImageData(0, 0, 1, 1);
+          hitCanvases.current.set(id, { ctx, w, h });
+        } catch {
+          /* tainted canvas — fall back to no hit-testing */
+        }
+      };
+      img.src = url;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const muscleAt = useCallback((rx: number, ry: number): MuscleId | null => {
+    let best: { id: MuscleId; a: number } | null = null;
+    hitCanvases.current.forEach((c, id) => {
+      const x = Math.floor(rx * c.w);
+      const y = Math.floor(ry * c.h);
+      if (x < 0 || y < 0 || x >= c.w || y >= c.h) return;
+      const a = c.ctx.getImageData(x, y, 1, 1).data[3];
+      if (a > 40 && (!best || a > best.a)) best = { id, a };
+    });
+    return best ? best.id : null;
+  }, []);
+
 
   const clampOffset = useCallback((o: { x: number; y: number }, z: number) => {
     const el = containerRef.current;
@@ -146,15 +195,43 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
       return;
     }
 
-    if (zoomRef.current > 1) {
+    if (zoomRef.current > 1 && pointers.current.size === 1 && e.buttons !== 0) {
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
       if (Math.abs(dx) + Math.abs(dy) > 2) dragged.current = true;
       setOffset((o) => clampOffset({ x: o.x + dx, y: o.y + dy }, zoomRef.current));
+      return;
     }
+
+    if (e.pointerType === 'mouse') detectHover(e.clientX, e.clientY);
   };
 
+  const detectHover = useCallback(
+    (clientX: number, clientY: number) => {
+      const el = containerRef.current;
+      const content = contentRef.current;
+      if (!el || !content) return;
+      const rect = el.getBoundingClientRect();
+      const cRect = content.getBoundingClientRect();
+      if (cRect.width <= 0 || cRect.height <= 0) return;
+      const rx = (clientX - cRect.left) / cRect.width;
+      const ry = (clientY - cRect.top) / cRect.height;
+      if (rx < 0 || ry < 0 || rx > 1 || ry > 1) {
+        onHover?.(null);
+        setTooltip(null);
+        return;
+      }
+      const id = muscleAt(rx, ry);
+      onHover?.(id);
+      setTooltip(id ? { x: clientX - rect.left, y: clientY - rect.top, label: MUSCLE_LABELS[id] } : null);
+    },
+    [muscleAt, onHover],
+  );
+
   const endPointer = (e: React.PointerEvent) => {
+    if (!dragged.current && pointers.current.size === 1) {
+      detectHover(e.clientX, e.clientY);
+    }
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) pinch.current = null;
   };
@@ -183,10 +260,14 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
           onPointerCancel={endPointer}
           onPointerLeave={(e) => {
             endPointer(e);
-            if (e.pointerType === 'mouse') onHover?.(null);
+            if (e.pointerType === 'mouse') {
+              onHover?.(null);
+              setTooltip(null);
+            }
           }}
         >
           <div
+            ref={contentRef}
             className="relative w-full"
             style={{
               transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
@@ -199,30 +280,26 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
               className="w-full h-auto select-none pointer-events-none"
               draggable={false}
             />
-            {active.length === 0 && (
-              <div
-                className="absolute inset-0 bg-black"
-                aria-hidden="true"
-                style={{
-                  WebkitMaskImage: `url(${base.url})`,
-                  maskImage: `url(${base.url})`,
-                  WebkitMaskSize: '100% 100%',
-                  maskSize: '100% 100%',
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskRepeat: 'no-repeat',
-                }}
-              />
-            )}
+            <div
+              className="absolute inset-0 bg-black pointer-events-none"
+              aria-hidden="true"
+              style={{
+                WebkitMaskImage: `url(${base.url})`,
+                maskImage: `url(${base.url})`,
+                WebkitMaskSize: '100% 100%',
+                maskSize: '100% 100%',
+                WebkitMaskPosition: '0 0',
+                maskPosition: '0 0',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+              }}
+            />
             {active.map((m) => {
               const v = intensities[m] as 1 | 2 | 3;
               return (
                 <div
                   key={m}
-                  onMouseEnter={() => onHover?.(m)}
-                  onPointerUp={(e) => {
-                    if (e.pointerType !== 'mouse' && !dragged.current) onHover?.(m);
-                  }}
-                  className="absolute inset-0 transition-opacity duration-300"
+                  className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
                   style={{
                     backgroundColor: COLORS[v],
                     opacity: v === 3 ? 0.95 : v === 2 ? 0.85 : 0.75,
@@ -230,6 +307,8 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
                     maskImage: `url(${MASKS[m]})`,
                     WebkitMaskSize: '100% 100%',
                     maskSize: '100% 100%',
+                    WebkitMaskPosition: '0 0',
+                    maskPosition: '0 0',
                     WebkitMaskRepeat: 'no-repeat',
                     maskRepeat: 'no-repeat',
                   }}
@@ -237,6 +316,16 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
               );
             })}
           </div>
+
+          {tooltip && (
+            <div
+              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded bg-foreground px-2 py-1 text-[11px] font-medium text-background shadow"
+              style={{ left: tooltip.x, top: Math.max(tooltip.y - 8, 14) }}
+            >
+              {tooltip.label}
+            </div>
+          )}
+
 
           {/* Zoom controls */}
           <div className="absolute bottom-2 right-2 flex flex-col gap-1">
@@ -279,8 +368,9 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
       </div>
 
       <p className="mt-2 text-center text-[11px] text-muted-foreground md:hidden">
-        Cubit untuk zoom, geser untuk menggeser, ketuk otot untuk melihat namanya.
+        Cubit untuk zoom, geser untuk menggeser, ketuk tepat pada otot untuk melihat namanya.
       </p>
+
       <div className="flex justify-center gap-16 sm:gap-24 mt-2">
         <p className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Tampak Depan</p>
         <p className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Tampak Belakang</p>
