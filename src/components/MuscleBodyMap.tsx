@@ -62,6 +62,8 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
   const active = (Object.keys(MASKS) as MuscleId[]).filter((m) => (intensities[m] ?? 0) > 0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
