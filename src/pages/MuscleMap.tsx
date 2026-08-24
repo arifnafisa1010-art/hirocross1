@@ -96,6 +96,15 @@ export default function MuscleMap() {
             <CardDescription>Pilih satu atau beberapa gerakan untuk melihat kombinasi otot yang bekerja.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">Tampilkan semua otot</p>
+                <p className="text-[11px] text-muted-foreground">Sorot seluruh otot tanpa memilih latihan.</p>
+              </div>
+              <Switch checked={showAll} onCheckedChange={setShowAll} aria-label="Tampilkan semua otot" />
+            </div>
+
+
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="Kategori" />
