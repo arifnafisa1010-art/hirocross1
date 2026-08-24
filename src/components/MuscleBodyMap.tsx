@@ -67,6 +67,53 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; cx: number; cy: number } | null>(null);
   const dragged = useRef(false);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string } | null>(null);
+
+  // --- alpha hit-testing on mask images ---
+  const hitCanvases = useRef<Map<MuscleId, { ctx: CanvasRenderingContext2D; w: number; h: number }>>(
+    new Map(),
+  );
+  useEffect(() => {
+    let cancelled = false;
+    (Object.entries(MASKS) as [MuscleId, string][]).forEach(([id, url]) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        if (cancelled) return;
+        const w = 220;
+        const h = Math.max(1, Math.round((img.naturalHeight / img.naturalWidth) * w));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        try {
+          ctx.drawImage(img, 0, 0, w, h);
+          ctx.getImageData(0, 0, 1, 1);
+          hitCanvases.current.set(id, { ctx, w, h });
+        } catch {
+          /* tainted canvas — fall back to no hit-testing */
+        }
+      };
+      img.src = url;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const muscleAt = useCallback((rx: number, ry: number): MuscleId | null => {
+    let best: { id: MuscleId; a: number } | null = null;
+    hitCanvases.current.forEach((c, id) => {
+      const x = Math.floor(rx * c.w);
+      const y = Math.floor(ry * c.h);
+      if (x < 0 || y < 0 || x >= c.w || y >= c.h) return;
+      const a = c.ctx.getImageData(x, y, 1, 1).data[3];
+      if (a > 40 && (!best || a > best.a)) best = { id, a };
+    });
+    return best ? best.id : null;
+  }, []);
+
 
   const clampOffset = useCallback((o: { x: number; y: number }, z: number) => {
     const el = containerRef.current;
