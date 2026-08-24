@@ -284,6 +284,7 @@ export function MuscleBodyMap({ intensities, onHover }: Props) {
               className="absolute inset-0 bg-black pointer-events-none"
               aria-hidden="true"
               style={{
+                opacity: 0.82,
                 WebkitMaskImage: `url(${base.url})`,
                 maskImage: `url(${base.url})`,
                 WebkitMaskSize: '100% 100%',
