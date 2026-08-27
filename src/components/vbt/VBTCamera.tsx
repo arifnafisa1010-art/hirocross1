@@ -1,0 +1,449 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Camera, CameraOff, Crosshair, RotateCcw, Ruler, TriangleAlert } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import {
+  detectRep,
+  metersPerPixel,
+  smoothScale,
+  trackMarker,
+  velocityLossPercent,
+  velocityZone,
+  type RgbColor,
+  type VbtRep,
+  type VbtSample,
+} from '@/lib/vbt';
+
+const CANVAS_W = 320;
+const CANVAS_H = 240;
+
+interface Props {
+  onRepsChange?: (reps: VbtRep[]) => void;
+}
+
+export function VBTCamera({ onRepsChange }: Props) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>();
+  const streamRef = useRef<MediaStream | null>(null);
+  const samplesRef = useRef<VbtSample[]>([]);
+  const scaleRef = useRef<number | null>(null);
+  const lastRepAtRef = useRef(0);
+  const startTimeRef = useRef(0);
+  const alertedRef = useRef(false);
+
+  const [active, setActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [target, setTarget] = useState<RgbColor | null>(null);
+  const [tolerance, setTolerance] = useState(0.18);
+  const [refDiameter, setRefDiameter] = useState(45); // cm (plate olympic)
+  const [autoScale, setAutoScale] = useState(true);
+  const [manualScale, setManualScale] = useState(0.0025); // m/px
+  const [scale, setScale] = useState<number | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [reps, setReps] = useState<VbtRep[]>([]);
+  const [live, setLive] = useState<{ v: number; found: boolean }>({ v: 0, found: false });
+  const [cutoff, setCutoff] = useState(20);
+  const [alertOn, setAlertOn] = useState(true);
+
+  const bestMpv = reps.length ? Math.max(...reps.map((r) => r.mpv)) : 0;
+  const lastRep = reps[reps.length - 1];
+  const vLoss = lastRep ? velocityLossPercent(bestMpv, lastRep.mpv) : 0;
+  const overCutoff = !!lastRep && vLoss >= cutoff;
+
+  const beep = useCallback(() => {
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.15;
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+      setTimeout(() => ctx.close(), 600);
+    } catch {
+      /* audio not available */
+    }
+  }, []);
+
+  const stop = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setActive(false);
+  }, []);
+
+  useEffect(() => () => stop(), [stop]);
+
+  useEffect(() => {
+    onRepsChange?.(reps);
+  }, [reps, onRepsChange]);
+
+  // Real-time velocity loss notification
+  useEffect(() => {
+    if (!alertOn || !lastRep) return;
+    if (overCutoff && !alertedRef.current) {
+      alertedRef.current = true;
+      beep();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      toast.error(`Velocity loss ${vLoss.toFixed(1)}% ≥ cutoff ${cutoff}%`, {
+        description: 'Hentikan set atau turunkan beban — kualitas kecepatan sudah menurun.',
+        duration: 8000,
+      });
+    }
+    if (!overCutoff) alertedRef.current = false;
+  }, [overCutoff, vLoss, cutoff, alertOn, lastRep, beep]);
+
+  const loop = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const overlay = overlayRef.current;
+    if (!video || !canvas || !overlay || video.readyState < 2) {
+      rafRef.current = requestAnimationFrame(loop);
+      return;
+    }
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const octx = overlay.getContext('2d');
+    if (!ctx || !octx) return;
+
+    ctx.drawImage(video, 0, 0, CANVAS_W, CANVAS_H);
+    octx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+    if (target) {
+      const frame = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
+      const blob = trackMarker(frame.data, CANVAS_W, CANVAS_H, target, tolerance);
+
+      if (blob) {
+        // --- automatic scale calibration from reference object size ---
+        let mpp = scaleRef.current;
+        if (autoScale && !locked) {
+          const size = Math.max(blob.width, blob.height);
+          const est = metersPerPixel(size, refDiameter);
+          if (est) {
+            mpp = smoothScale(scaleRef.current, est);
+            scaleRef.current = mpp;
+            setScale(mpp);
+          }
+        } else if (!autoScale) {
+          mpp = manualScale;
+          scaleRef.current = mpp;
+        }
+
+        if (mpp) {
+          const t = (performance.now() - startTimeRef.current) / 1000;
+          // canvas y grows downward -> invert so upward is positive
+          const yMeters = (CANVAS_H - blob.y) * mpp;
+          const buf = samplesRef.current;
+          buf.push({ t, y: yMeters });
+          if (buf.length > 180) buf.shift();
+
+          const prev = buf[buf.length - 2];
+          const v = prev ? (yMeters - prev.y) / Math.max(t - prev.t, 1e-3) : 0;
+          setLive({ v, found: true });
+
+          const rep = detectRep(buf);
+          if (rep && t - lastRepAtRef.current > 0.8) {
+            lastRepAtRef.current = t;
+            setReps((prevReps) => [
+              ...prevReps,
+              { ...rep, index: prevReps.length + 1, timestamp: Date.now() },
+            ]);
+            samplesRef.current = buf.slice(-10);
+          }
+        }
+
+        // overlay marker
+        octx.strokeStyle = '#22d3ee';
+        octx.lineWidth = 2;
+        octx.beginPath();
+        octx.arc(blob.x, blob.y, Math.max(8, Math.max(blob.width, blob.height) / 2), 0, Math.PI * 2);
+        octx.stroke();
+        octx.beginPath();
+        octx.moveTo(0, blob.y);
+        octx.lineTo(CANVAS_W, blob.y);
+        octx.strokeStyle = 'rgba(34,211,238,0.4)';
+        octx.stroke();
+      } else {
+        setLive({ v: 0, found: false });
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(loop);
+  }, [target, tolerance, autoScale, locked, refDiameter, manualScale]);
+
+  useEffect(() => {
+    if (!active) return;
+    rafRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [active, loop]);
+
+  const start = async () => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      startTimeRef.current = performance.now();
+      samplesRef.current = [];
+      setActive(true);
+    } catch (e) {
+      setError(
+        'Kamera tidak dapat diakses. Pastikan izin kamera diberikan dan halaman dibuka lewat HTTPS.',
+      );
+      console.error(e);
+    }
+  };
+
+  const pickColor = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor(((e.clientX - rect.left) / rect.width) * CANVAS_W);
+    const y = Math.floor(((e.clientY - rect.top) / rect.height) * CANVAS_H);
+    const d = ctx.getImageData(x, y, 1, 1).data;
+    setTarget({ r: d[0], g: d[1], b: d[2] });
+    samplesRef.current = [];
+    toast.success('Marker terkunci', { description: 'Gerakkan barbel — pelacakan dimulai.' });
+  };
+
+  const reset = () => {
+    setReps([]);
+    samplesRef.current = [];
+    lastRepAtRef.current = 0;
+    alertedRef.current = false;
+    startTimeRef.current = performance.now();
+  };
+
+  const zone = lastRep ? velocityZone(lastRep.mpv) : null;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Camera className="h-4 w-4 text-primary" /> Kamera VBT
+          </CardTitle>
+          <CardDescription>
+            Letakkan HP tegak lurus terhadap lintasan barbel, lalu ketuk marker warna terang di ujung
+            barbel/plate untuk mengunci pelacakan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="relative overflow-hidden rounded-lg border bg-black">
+            <video ref={videoRef} playsInline muted className="hidden" />
+            <canvas
+              ref={canvasRef}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              onClick={pickColor}
+              className="w-full cursor-crosshair"
+            />
+            <canvas
+              ref={overlayRef}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              className="pointer-events-none absolute inset-0 h-full w-full"
+            />
+            {!active && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-center text-sm text-muted-foreground">
+                <Crosshair className="h-8 w-8 text-primary" />
+                <p className="px-6">Kamera belum aktif</p>
+              </div>
+            )}
+            {active && !target && (
+              <div className="absolute bottom-2 left-2 right-2 rounded-md bg-background/85 px-3 py-2 text-xs">
+                Ketuk area marker (stiker warna terang) pada gambar untuk mengunci warna.
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <p className="flex items-start gap-2 text-sm text-destructive">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {!active ? (
+              <Button onClick={start} className="gap-2">
+                <Camera className="h-4 w-4" /> Mulai Kamera
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={stop} className="gap-2">
+                <CameraOff className="h-4 w-4" /> Stop
+              </Button>
+            )}
+            <Button variant="outline" onClick={reset} className="gap-2">
+              <RotateCcw className="h-4 w-4" /> Reset Set
+            </Button>
+            {target && (
+              <Badge variant="outline" className="gap-2">
+                <span
+                  className="h-3 w-3 rounded-full border"
+                  style={{ backgroundColor: `rgb(${target.r},${target.g},${target.b})` }}
+                />
+                Marker aktif
+              </Badge>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Toleransi warna marker: {(tolerance * 100).toFixed(0)}%</Label>
+            <Slider
+              value={[tolerance]}
+              min={0.05}
+              max={0.45}
+              step={0.01}
+              onValueChange={([v]) => setTolerance(v)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        {/* Live metrics */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Metrik Live</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Metric label="MPV terakhir" value={lastRep ? `${lastRep.mpv.toFixed(2)} m/s` : '—'} />
+              <Metric label="Peak Velocity" value={lastRep ? `${lastRep.peak.toFixed(2)} m/s` : '—'} />
+              <Metric label="Best MPV" value={bestMpv ? `${bestMpv.toFixed(2)} m/s` : '—'} />
+              <Metric label="ROM" value={lastRep ? `${(lastRep.rom * 100).toFixed(0)} cm` : '—'} />
+            </div>
+            <div
+              className={cn(
+                'rounded-lg border p-3 text-center',
+                overCutoff ? 'border-destructive bg-destructive/10' : 'bg-muted/40',
+              )}
+            >
+              <p className="text-xs text-muted-foreground">Velocity Loss</p>
+              <p className={cn('text-2xl font-bold', overCutoff && 'text-destructive')}>
+                {vLoss.toFixed(1)}%
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {overCutoff ? 'Melewati cutoff — hentikan set / turunkan beban' : `Cutoff ${cutoff}%`}
+              </p>
+            </div>
+            {zone && (
+              <div className="rounded-lg border p-3">
+                <p className="text-sm font-semibold">{zone.label}</p>
+                <p className="text-xs text-muted-foreground">{zone.hint}</p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Status pelacakan: {live.found ? `terdeteksi · v ${live.v.toFixed(2)} m/s` : 'marker tidak terdeteksi'}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Calibration */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Ruler className="h-4 w-4 text-primary" /> Kalibrasi Skala
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Skala dihitung otomatis dari ukuran objek referensi sehingga konsisten di berbagai jarak
+              kamera dan ukuran layar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="autoscale" className="text-sm">Kalibrasi otomatis</Label>
+              <Switch id="autoscale" checked={autoScale} onCheckedChange={setAutoScale} />
+            </div>
+            {autoScale ? (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-xs">Diameter referensi (cm)</Label>
+                  <Input
+                    type="number"
+                    value={refDiameter}
+                    min={2}
+                    onChange={(e) => setRefDiameter(Number(e.target.value) || 0)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Plate olympic = 45 cm, plate 20 kg standar = 45 cm, stiker marker = ukur sendiri.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="lockscale" className="text-sm">Kunci skala</Label>
+                  <Switch id="lockscale" checked={locked} onCheckedChange={setLocked} />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-xs">Skala manual (meter / piksel)</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  value={manualScale}
+                  onChange={(e) => setManualScale(Number(e.target.value) || 0.0025)}
+                />
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Skala aktif: {scale ? `${(scale * 1000).toFixed(2)} mm/px` : '—'}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Velocity loss cutoff */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Cutoff Velocity Loss</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label className="text-xs">Batas: {cutoff}%</Label>
+            <Slider value={[cutoff]} min={5} max={50} step={1} onValueChange={([v]) => setCutoff(v)} />
+            <div className="flex flex-wrap gap-2">
+              {[10, 15, 20, 25, 30].map((p) => (
+                <Button key={p} size="sm" variant={cutoff === p ? 'default' : 'outline'} onClick={() => setCutoff(p)}>
+                  {p}%
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="alerton" className="text-sm">Notifikasi real-time (bunyi + getar)</Label>
+              <Switch id="alerton" checked={alertOn} onCheckedChange={setAlertOn} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-muted/40 p-3">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
