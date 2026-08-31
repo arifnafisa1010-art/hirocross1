@@ -1,4 +1,4 @@
-import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity, HeartPulse, Dumbbell } from 'lucide-react';
+import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity, HeartPulse, Dumbbell, Gauge } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
 import { TabId } from '@/types/training';
@@ -32,6 +32,7 @@ const premiumRouteItems = [
   { path: '/monitoring-plan', label: 'Monitoring Plan', icon: Activity },
   { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
   { path: '/muscle-map', label: 'Peta Otot Latihan', icon: Dumbbell },
+  { path: '/vbt', label: 'VBT Kamera', icon: Gauge },
 ];
 
 export function AppSidebar() {

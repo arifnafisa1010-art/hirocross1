@@ -15,6 +15,7 @@ import MonitoringAtlet from "./pages/MonitoringAtlet";
 import MonitoringPlan from "./pages/MonitoringPlan";
 import Readiness from "./pages/Readiness";
 import MuscleMap from "./pages/MuscleMap";
+import VBT from "./pages/VBT";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -91,6 +92,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MuscleMap />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vbt"
+                element={
+                  <ProtectedRoute>
+                    <VBT />
                   </ProtectedRoute>
                 }
               />
