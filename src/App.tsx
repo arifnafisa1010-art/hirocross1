@@ -95,6 +95,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/vbt"
+                element={
+                  <ProtectedRoute>
+                    <VBT />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
