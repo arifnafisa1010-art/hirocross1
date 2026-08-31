@@ -606,6 +606,72 @@ export type Database = {
         }
         Relationships: []
       }
+      vbt_sets: {
+        Row: {
+          athlete_id: string | null
+          avg_mpv: number | null
+          best_mpv: number | null
+          created_at: string
+          exercise_name: string
+          id: string
+          load_kg: number | null
+          notes: string | null
+          reps: Json
+          session_date: string
+          source: string
+          updated_at: string
+          user_id: string
+          velocity_loss: number | null
+        }
+        Insert: {
+          athlete_id?: string | null
+          avg_mpv?: number | null
+          best_mpv?: number | null
+          created_at?: string
+          exercise_name: string
+          id?: string
+          load_kg?: number | null
+          notes?: string | null
+          reps?: Json
+          session_date?: string
+          source?: string
+          updated_at?: string
+          user_id: string
+          velocity_loss?: number | null
+        }
+        Update: {
+          athlete_id?: string | null
+          avg_mpv?: number | null
+          best_mpv?: number | null
+          created_at?: string
+          exercise_name?: string
+          id?: string
+          load_kg?: number | null
+          notes?: string | null
+          reps?: Json
+          session_date?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+          velocity_loss?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vbt_sets_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vbt_sets_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes_pending_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       athletes_pending_links: {
