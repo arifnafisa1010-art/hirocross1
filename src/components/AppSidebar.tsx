@@ -32,6 +32,7 @@ const premiumRouteItems = [
   { path: '/monitoring-plan', label: 'Monitoring Plan', icon: Activity },
   { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
   { path: '/muscle-map', label: 'Peta Otot Latihan', icon: Dumbbell },
+  { path: '/vbt', label: 'VBT Kamera', icon: Gauge },
 ];
 
 export function AppSidebar() {
