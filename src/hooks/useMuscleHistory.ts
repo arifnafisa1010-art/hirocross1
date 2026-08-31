@@ -13,6 +13,7 @@ export interface MuscleHistoryEntry {
   sessionKey: string;
   exercises: { name: string; matched: boolean }[];
   weights: MuscleWeights;
+  source: 'program' | 'vbt';
 }
 
 interface DbSession {
@@ -22,7 +23,7 @@ interface DbSession {
   program_id: string | null;
 }
 
-export function useMuscleHistory() {
+export function useMuscleHistory(athleteId?: string | null) {
   const { user } = useAuth();
   const weekMode = useTrainingStore((s) => s.weekMode);
   const [entries, setEntries] = useState<MuscleHistoryEntry[]>([]);
@@ -36,27 +37,27 @@ export function useMuscleHistory() {
     }
     setLoading(true);
 
-    const { data: programs } = await supabase
+    let programQuery = supabase
       .from('training_programs')
       .select('id, name, start_date')
       .eq('user_id', user.id);
+    if (athleteId) programQuery = programQuery.contains('athlete_ids', [athleteId]);
+    const { data: programs } = await programQuery;
 
-    if (!programs?.length) {
-      setEntries([]);
-      setLoading(false);
-      return;
-    }
+    const sessions = programs?.length
+      ? (
+          await supabase
+            .from('training_sessions')
+            .select('session_key, exercises, is_done, program_id')
+            .in(
+              'program_id',
+              programs.map((p) => p.id),
+            )
+            .eq('is_done', true)
+        ).data
+      : [];
 
-    const { data: sessions } = await supabase
-      .from('training_sessions')
-      .select('session_key, exercises, is_done, program_id')
-      .in(
-        'program_id',
-        programs.map((p) => p.id),
-      )
-      .eq('is_done', true);
-
-    const byId = new Map(programs.map((p) => [p.id, p]));
+    const byId = new Map((programs ?? []).map((p) => [p.id, p]));
     const result: MuscleHistoryEntry[] = [];
 
     ((sessions ?? []) as DbSession[]).forEach((s) => {
@@ -88,13 +89,39 @@ export function useMuscleHistory() {
         sessionKey: s.session_key,
         exercises: list,
         weights,
+        source: 'program',
+      });
+    });
+
+    // --- VBT sets: setiap set kamera/video ikut menghitung otot terkena ---
+    let vbtQuery = supabase
+      .from('vbt_sets')
+      .select('exercise_name, session_date, reps')
+      .eq('user_id', user.id);
+    if (athleteId) vbtQuery = vbtQuery.eq('athlete_id', athleteId);
+    const { data: vbtSets } = await vbtQuery;
+
+    (vbtSets ?? []).forEach((v, i) => {
+      const found = matchExercise(v.exercise_name ?? '');
+      const weights: MuscleWeights = {};
+      const repCount = Array.isArray(v.reps) ? v.reps.length : 0;
+      if (found) accumulateMuscles(found, weights, Math.max(1, repCount) / 5);
+      result.push({
+        date: v.session_date,
+        programName: 'VBT Kamera',
+        sessionKey: `vbt-${i}`,
+        exercises: [
+          { name: `${v.exercise_name} (${repCount} rep VBT)`, matched: !!found },
+        ],
+        weights,
+        source: 'vbt',
       });
     });
 
     result.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     setEntries(result);
     setLoading(false);
-  }, [user?.id, weekMode]);
+  }, [user?.id, weekMode, athleteId]);
 
   useEffect(() => {
     load();
