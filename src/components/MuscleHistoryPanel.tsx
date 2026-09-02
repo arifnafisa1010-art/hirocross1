@@ -30,7 +30,11 @@ export function MuscleHistoryPanel({ athleteId }: { athleteId?: string | null })
   const [hovered, setHovered] = useState<MuscleId | null>(null);
 
   useEffect(() => {
-    if (!selectedDate && dates.length > 0) setSelectedDate(dates[0]);
+    if (dates.length === 0) {
+      if (selectedDate) setSelectedDate('');
+      return;
+    }
+    if (!selectedDate || !dates.includes(selectedDate)) setSelectedDate(dates[0]);
   }, [dates, selectedDate]);
 
   const dayEntries = useMemo(
