@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Dumbbell, Info, Plus, X } from 'lucide-react';
+import { ArrowLeft, Dumbbell, Info, Plus, Users, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,7 @@ import {
 } from '@/lib/muscleExercises';
 import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
+import { useAthletes } from '@/hooks/useAthletes';
 
 export default function MuscleMap() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ export default function MuscleMap() {
   const [selected, setSelected] = useState<Exercise[]>([EXERCISES[0]]);
   const [category, setCategory] = useState<string>('all');
   const [hovered, setHovered] = useState<MuscleId | null>(null);
+  const { athletes } = useAthletes();
+  const [athleteFilter, setAthleteFilter] = useState<string>('all');
 
   const [showAll, setShowAll] = useState(false);
 
@@ -250,9 +253,33 @@ export default function MuscleMap() {
         <TabsContent value="simulasi" className="mt-4">
           {simulator}
         </TabsContent>
-        <TabsContent value="riwayat" className="mt-4">
-          <MuscleHistoryPanel />
+        <TabsContent value="riwayat" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" /> Pilih Atlet
+              </CardTitle>
+              <CardDescription>
+                Lihat riwayat otot tiap atlet tanpa perlu login ke akun atlet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select value={athleteFilter} onValueChange={setAthleteFilter}>
+                <SelectTrigger className="max-w-sm">
+                  <SelectValue placeholder="Semua atlet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Atlet</SelectItem>
+                  {athletes.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+          <MuscleHistoryPanel athleteId={athleteFilter === 'all' ? null : athleteFilter} />
         </TabsContent>
+
       </Tabs>
     </div>
   );

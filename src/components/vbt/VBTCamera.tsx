@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, Crosshair, RotateCcw, Ruler, TriangleAlert } from 'lucide-react';
+import { Camera, CameraOff, Crosshair, RotateCcw, Ruler, TriangleAlert, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +39,8 @@ export function VBTCamera({ onRepsChange }: Props) {
   const lastRepAtRef = useRef(0);
   const startTimeRef = useRef(0);
   const alertedRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +55,8 @@ export function VBTCamera({ onRepsChange }: Props) {
   const [live, setLive] = useState<{ v: number; found: boolean }>({ v: 0, found: false });
   const [cutoff, setCutoff] = useState(20);
   const [alertOn, setAlertOn] = useState(true);
+  const [mode, setMode] = useState<'camera' | 'video'>('camera');
+  const [videoName, setVideoName] = useState<string | null>(null);
 
   const bestMpv = reps.length ? Math.max(...reps.map((r) => r.mpv)) : 0;
   const lastRep = reps[reps.length - 1];
@@ -81,10 +85,17 @@ export function VBTCamera({ onRepsChange }: Props) {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    videoRef.current?.pause();
     setActive(false);
   }, []);
 
-  useEffect(() => () => stop(), [stop]);
+  useEffect(
+    () => () => {
+      stop();
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    },
+    [stop],
+  );
 
   useEffect(() => {
     onRepsChange?.(reps);
@@ -141,7 +152,8 @@ export function VBTCamera({ onRepsChange }: Props) {
         }
 
         if (mpp) {
-          const t = (performance.now() - startTimeRef.current) / 1000;
+          const t =
+            mode === 'video' ? video.currentTime : (performance.now() - startTimeRef.current) / 1000;
           // canvas y grows downward -> invert so upward is positive
           const yMeters = (CANVAS_H - blob.y) * mpp;
           const buf = samplesRef.current;
@@ -180,7 +192,7 @@ export function VBTCamera({ onRepsChange }: Props) {
     }
 
     rafRef.current = requestAnimationFrame(loop);
-  }, [target, tolerance, autoScale, locked, refDiameter, manualScale]);
+  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode]);
 
   useEffect(() => {
     if (!active) return;
@@ -198,7 +210,14 @@ export function VBTCamera({ onRepsChange }: Props) {
         audio: false,
       });
       streamRef.current = stream;
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+      setVideoName(null);
+      setMode('camera');
       if (videoRef.current) {
+        videoRef.current.removeAttribute('src');
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
@@ -210,6 +229,40 @@ export function VBTCamera({ onRepsChange }: Props) {
         'Kamera tidak dapat diakses. Pastikan izin kamera diberikan dan halaman dibuka lewat HTTPS.',
       );
       console.error(e);
+    }
+  };
+
+  const handleFile = async (file: File) => {
+    setError(null);
+    // stop live camera if running
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    const url = URL.createObjectURL(file);
+    objectUrlRef.current = url;
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      video.srcObject = null;
+      video.src = url;
+      video.loop = false;
+      video.muted = true;
+      video.playbackRate = 1;
+      await video.play();
+      startTimeRef.current = performance.now();
+      samplesRef.current = [];
+      lastRepAtRef.current = 0;
+      setTarget(null);
+      setReps([]);
+      setVideoName(file.name);
+      setMode('video');
+      setActive(true);
+      toast.success('Video dimuat', {
+        description: 'Ketuk marker/plate pada gambar untuk mengunci warna & kalibrasi skala.',
+      });
+    } catch (e) {
+      console.error(e);
+      setError('Video tidak dapat diputar. Gunakan format MP4/WebM.');
     }
   };
 
@@ -245,13 +298,19 @@ export function VBTCamera({ onRepsChange }: Props) {
             <Camera className="h-4 w-4 text-primary" /> Kamera VBT
           </CardTitle>
           <CardDescription>
-            Letakkan HP tegak lurus terhadap lintasan barbel, lalu ketuk marker warna terang di ujung
-            barbel/plate untuk mengunci pelacakan.
+            Gunakan kamera langsung atau unggah video lama. Ketuk marker warna terang / plate di
+            ujung barbel untuk mengunci pelacakan sekaligus kalibrasi skala otomatis.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="relative overflow-hidden rounded-lg border bg-black">
-            <video ref={videoRef} playsInline muted className="hidden" />
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className="hidden"
+              onEnded={() => setActive(false)}
+            />
             <canvas
               ref={canvasRef}
               width={CANVAS_W}
@@ -268,7 +327,7 @@ export function VBTCamera({ onRepsChange }: Props) {
             {!active && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-center text-sm text-muted-foreground">
                 <Crosshair className="h-8 w-8 text-primary" />
-                <p className="px-6">Kamera belum aktif</p>
+                <p className="px-6">Kamera belum aktif — mulai kamera atau unggah video lama</p>
               </div>
             )}
             {active && !target && (
@@ -292,12 +351,31 @@ export function VBTCamera({ onRepsChange }: Props) {
               </Button>
             ) : (
               <Button variant="destructive" onClick={stop} className="gap-2">
-                <CameraOff className="h-4 w-4" /> Stop
+                <CameraOff className="h-4 w-4" /> {mode === 'video' ? 'Stop Video' : 'Stop Kamera'}
               </Button>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFile(f);
+                e.target.value = '';
+              }}
+            />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
+              <Upload className="h-4 w-4" /> Unggah Video
+            </Button>
             <Button variant="outline" onClick={reset} className="gap-2">
               <RotateCcw className="h-4 w-4" /> Reset Set
             </Button>
+            {videoName && (
+              <Badge variant="secondary" className="max-w-[200px] truncate">
+                Video: {videoName}
+              </Badge>
+            )}
             {target && (
               <Badge variant="outline" className="gap-2">
                 <span

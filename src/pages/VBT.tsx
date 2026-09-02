@@ -1,11 +1,21 @@
 import { useMemo, useState } from 'react';
-import { Gauge } from 'lucide-react';
+import { Gauge, Save, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Header } from '@/components/Header';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -14,14 +24,27 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { toast } from 'sonner';
 import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
+import { useAthletes } from '@/hooks/useAthletes';
+import { useVbtSets } from '@/hooks/useVbtSets';
 import { VBTCamera } from '@/components/vbt/VBTCamera';
 import { velocityLossPercent, velocityZone, type VbtRep } from '@/lib/vbt';
 
 export default function VBT() {
   const { hasPremium, loading } = usePremiumAccess();
   const [reps, setReps] = useState<VbtRep[]>([]);
+  const { athletes } = useAthletes();
+  const [athleteId, setAthleteId] = useState<string>('none');
+  const [exerciseName, setExerciseName] = useState('Back Squat');
+  const [loadKg, setLoadKg] = useState<string>('');
+  const [sessionDate, setSessionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [saving, setSaving] = useState(false);
+  const { sets, loading: setsLoading, saveSet, deleteSet } = useVbtSets(
+    athleteId === 'none' ? null : athleteId,
+  );
+
 
   const bestMpv = useMemo(() => reps.reduce((m, r) => Math.max(m, r.mpv), 0), [reps]);
   const avgMpv = useMemo(
@@ -29,6 +52,25 @@ export default function VBT() {
     [reps],
   );
   const lastLoss = reps.length ? velocityLossPercent(bestMpv, reps[reps.length - 1].mpv) : 0;
+
+  const handleSave = async () => {
+    if (!exerciseName.trim()) {
+      toast.error('Isi nama latihan terlebih dahulu');
+      return;
+    }
+    setSaving(true);
+    const res = await saveSet({
+      athleteId: athleteId === 'none' ? null : athleteId,
+      exerciseName: exerciseName.trim(),
+      sessionDate,
+      loadKg: loadKg ? Number(loadKg) : null,
+      reps,
+      source: 'camera',
+    });
+    setSaving(false);
+    if (res) setReps([]);
+  };
+
 
   if (loading) {
     return (
@@ -133,11 +175,125 @@ export default function VBT() {
                 Rata-rata MPV set ini: <span className="font-semibold">{avgMpv.toFixed(2)} m/s</span>
               </p>
             )}
+
+            {/* Simpan set */}
+            <div className="space-y-3 rounded-lg border p-3">
+              <p className="text-sm font-semibold">Simpan Set</p>
+              <div className="space-y-1">
+                <Label className="text-xs">Atlet</Label>
+                <Select value={athleteId} onValueChange={setAthleteId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tanpa atlet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tanpa atlet (pribadi)</SelectItem>
+                    {athletes.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nama latihan</Label>
+                <Input
+                  value={exerciseName}
+                  onChange={(e) => setExerciseName(e.target.value)}
+                  placeholder="Back Squat"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Beban (kg)</Label>
+                  <Input
+                    type="number"
+                    value={loadKg}
+                    onChange={(e) => setLoadKg(e.target.value)}
+                    placeholder="100"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Tanggal</Label>
+                  <Input
+                    type="date"
+                    value={sessionDate}
+                    onChange={(e) => setSessionDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button
+                className="w-full gap-2"
+                onClick={handleSave}
+                disabled={saving || reps.length === 0}
+              >
+                <Save className="h-4 w-4" />
+                {saving ? 'Menyimpan...' : 'Simpan Set ke Database'}
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Set yang disimpan otomatis ikut menghitung otot terkena di Peta Otot.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Riwayat set tersimpan */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Riwayat Set Tersimpan</CardTitle>
+          <CardDescription>
+            {athleteId === 'none'
+              ? 'Semua set VBT milik Anda.'
+              : `Set VBT untuk ${athletes.find((a) => a.id === athleteId)?.name ?? 'atlet terpilih'}.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {setsLoading ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Memuat riwayat...</p>
+          ) : sets.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              Belum ada set VBT tersimpan.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Latihan</TableHead>
+                    <TableHead>Beban</TableHead>
+                    <TableHead>Rep</TableHead>
+                    <TableHead>Best MPV</TableHead>
+                    <TableHead>Avg MPV</TableHead>
+                    <TableHead>Vel. Loss</TableHead>
+                    <TableHead className="w-10" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sets.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell>{s.session_date}</TableCell>
+                      <TableCell className="font-medium">{s.exercise_name}</TableCell>
+                      <TableCell>{s.load_kg ? `${s.load_kg} kg` : '—'}</TableCell>
+                      <TableCell>{s.reps.length}</TableCell>
+                      <TableCell>{s.best_mpv?.toFixed(2) ?? '—'}</TableCell>
+                      <TableCell>{s.avg_mpv?.toFixed(2) ?? '—'}</TableCell>
+                      <TableCell>{s.velocity_loss?.toFixed(0) ?? '—'}%</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => deleteSet(s.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
+
 
   return (
     <SidebarProvider>

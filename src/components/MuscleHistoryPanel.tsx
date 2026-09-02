@@ -23,14 +23,18 @@ const COLORS = [
   '#8b5cf6', '#ec4899', '#14b8a6', '#a3e635', '#f43f5e', '#0ea5e9',
 ];
 
-export function MuscleHistoryPanel() {
-  const { entries, dates, loading, aggregate } = useMuscleHistory();
+export function MuscleHistoryPanel({ athleteId }: { athleteId?: string | null }) {
+  const { entries, dates, loading, aggregate } = useMuscleHistory(athleteId);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [range, setRange] = useState<string>('30');
   const [hovered, setHovered] = useState<MuscleId | null>(null);
 
   useEffect(() => {
-    if (!selectedDate && dates.length > 0) setSelectedDate(dates[0]);
+    if (dates.length === 0) {
+      if (selectedDate) setSelectedDate('');
+      return;
+    }
+    if (!selectedDate || !dates.includes(selectedDate)) setSelectedDate(dates[0]);
   }, [dates, selectedDate]);
 
   const dayEntries = useMemo(
