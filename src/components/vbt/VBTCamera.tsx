@@ -152,7 +152,8 @@ export function VBTCamera({ onRepsChange }: Props) {
         }
 
         if (mpp) {
-          const t = (performance.now() - startTimeRef.current) / 1000;
+          const t =
+            mode === 'video' ? video.currentTime : (performance.now() - startTimeRef.current) / 1000;
           // canvas y grows downward -> invert so upward is positive
           const yMeters = (CANVAS_H - blob.y) * mpp;
           const buf = samplesRef.current;
@@ -191,7 +192,7 @@ export function VBTCamera({ onRepsChange }: Props) {
     }
 
     rafRef.current = requestAnimationFrame(loop);
-  }, [target, tolerance, autoScale, locked, refDiameter, manualScale]);
+  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode]);
 
   useEffect(() => {
     if (!active) return;
@@ -303,7 +304,13 @@ export function VBTCamera({ onRepsChange }: Props) {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="relative overflow-hidden rounded-lg border bg-black">
-            <video ref={videoRef} playsInline muted className="hidden" />
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className="hidden"
+              onEnded={() => setActive(false)}
+            />
             <canvas
               ref={canvasRef}
               width={CANVAS_W}
@@ -344,7 +351,7 @@ export function VBTCamera({ onRepsChange }: Props) {
               </Button>
             ) : (
               <Button variant="destructive" onClick={stop} className="gap-2">
-                <CameraOff className="h-4 w-4" /> Stop
+                <CameraOff className="h-4 w-4" /> {mode === 'video' ? 'Stop Video' : 'Stop Kamera'}
               </Button>
             )}
             <input
