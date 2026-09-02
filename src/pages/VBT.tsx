@@ -53,6 +53,25 @@ export default function VBT() {
   );
   const lastLoss = reps.length ? velocityLossPercent(bestMpv, reps[reps.length - 1].mpv) : 0;
 
+  const handleSave = async () => {
+    if (!exerciseName.trim()) {
+      toast.error('Isi nama latihan terlebih dahulu');
+      return;
+    }
+    setSaving(true);
+    const res = await saveSet({
+      athleteId: athleteId === 'none' ? null : athleteId,
+      exerciseName: exerciseName.trim(),
+      sessionDate,
+      loadKg: loadKg ? Number(loadKg) : null,
+      reps,
+      source: 'camera',
+    });
+    setSaving(false);
+    if (res) setReps([]);
+  };
+
+
   if (loading) {
     return (
       <SidebarProvider>
