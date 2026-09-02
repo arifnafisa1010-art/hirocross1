@@ -250,9 +250,33 @@ export default function MuscleMap() {
         <TabsContent value="simulasi" className="mt-4">
           {simulator}
         </TabsContent>
-        <TabsContent value="riwayat" className="mt-4">
-          <MuscleHistoryPanel />
+        <TabsContent value="riwayat" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" /> Pilih Atlet
+              </CardTitle>
+              <CardDescription>
+                Lihat riwayat otot tiap atlet tanpa perlu login ke akun atlet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select value={athleteFilter} onValueChange={setAthleteFilter}>
+                <SelectTrigger className="max-w-sm">
+                  <SelectValue placeholder="Semua atlet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Atlet</SelectItem>
+                  {athletes.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+          <MuscleHistoryPanel athleteId={athleteFilter === 'all' ? null : athleteFilter} />
         </TabsContent>
+
       </Tabs>
     </div>
   );
