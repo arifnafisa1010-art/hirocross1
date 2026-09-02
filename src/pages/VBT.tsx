@@ -1,11 +1,21 @@
 import { useMemo, useState } from 'react';
-import { Gauge } from 'lucide-react';
+import { Gauge, Save, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Header } from '@/components/Header';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -14,14 +24,27 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { toast } from 'sonner';
 import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
+import { useAthletes } from '@/hooks/useAthletes';
+import { useVbtSets } from '@/hooks/useVbtSets';
 import { VBTCamera } from '@/components/vbt/VBTCamera';
 import { velocityLossPercent, velocityZone, type VbtRep } from '@/lib/vbt';
 
 export default function VBT() {
   const { hasPremium, loading } = usePremiumAccess();
   const [reps, setReps] = useState<VbtRep[]>([]);
+  const { athletes } = useAthletes();
+  const [athleteId, setAthleteId] = useState<string>('none');
+  const [exerciseName, setExerciseName] = useState('Back Squat');
+  const [loadKg, setLoadKg] = useState<string>('');
+  const [sessionDate, setSessionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [saving, setSaving] = useState(false);
+  const { sets, loading: setsLoading, saveSet, deleteSet } = useVbtSets(
+    athleteId === 'none' ? null : athleteId,
+  );
+
 
   const bestMpv = useMemo(() => reps.reduce((m, r) => Math.max(m, r.mpv), 0), [reps]);
   const avgMpv = useMemo(
