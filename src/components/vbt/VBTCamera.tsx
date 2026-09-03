@@ -44,6 +44,8 @@ export function VBTCamera({ onRepsChange }: Props) {
   const alertedRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const sizeBufRef = useRef<number[]>([]);
+  const calibStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,10 @@ export function VBTCamera({ onRepsChange }: Props) {
   const [alertOn, setAlertOn] = useState(true);
   const [mode, setMode] = useState<'camera' | 'video'>('camera');
   const [videoName, setVideoName] = useState<string | null>(null);
+  const [calibMode, setCalibMode] = useState(false);
+  const [calibLine, setCalibLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [blobPx, setBlobPx] = useState(0);
+
 
   const bestMpv = reps.length ? Math.max(...reps.map((r) => r.mpv)) : 0;
   const lastRep = reps[reps.length - 1];
