@@ -145,19 +145,29 @@ export function VBTCamera({ onRepsChange }: Props) {
       const blob = trackMarker(frame.data, CANVAS_W, CANVAS_H, target, tolerance);
 
       if (blob) {
-        // --- automatic scale calibration from reference object size ---
+        // --- dynamic scale calibration from reference object size ---
+        // Ukuran blob difilter dengan median bergerak sehingga tetap stabil
+        // saat plate miring, blur, atau jarak kamera berubah di tengah video.
         let mpp = scaleRef.current;
+        const size = Math.max(blob.width, blob.height);
+        setBlobPx(Math.round(size));
         if (autoScale && !locked) {
-          const size = Math.max(blob.width, blob.height);
-          const est = metersPerPixel(size, refDiameter);
+          const sb = sizeBufRef.current;
+          sb.push(size);
+          if (sb.length > 24) sb.shift();
+          const stable = median(sb);
+          const est = metersPerPixel(stable, refDiameter);
           if (est) {
-            mpp = smoothScale(scaleRef.current, est);
+            // adaptasi cepat saat awal, halus setelah stabil
+            const alpha = sb.length < 10 ? 0.4 : 0.12;
+            mpp = smoothScale(scaleRef.current, est, alpha);
             scaleRef.current = mpp;
             setScale(mpp);
           }
         } else if (!autoScale) {
           mpp = manualScale;
           scaleRef.current = mpp;
+          setScale(mpp);
         }
 
         if (mpp) {
@@ -188,7 +198,7 @@ export function VBTCamera({ onRepsChange }: Props) {
         octx.strokeStyle = '#22d3ee';
         octx.lineWidth = 2;
         octx.beginPath();
-        octx.arc(blob.x, blob.y, Math.max(8, Math.max(blob.width, blob.height) / 2), 0, Math.PI * 2);
+        octx.arc(blob.x, blob.y, Math.max(8, size / 2), 0, Math.PI * 2);
         octx.stroke();
         octx.beginPath();
         octx.moveTo(0, blob.y);
@@ -200,8 +210,19 @@ export function VBTCamera({ onRepsChange }: Props) {
       }
     }
 
+    // garis kalibrasi manual (drag) selalu digambar di atas
+    if (calibLine) {
+      octx.strokeStyle = '#f59e0b';
+      octx.lineWidth = 2;
+      octx.beginPath();
+      octx.moveTo(calibLine.x1, calibLine.y1);
+      octx.lineTo(calibLine.x2, calibLine.y2);
+      octx.stroke();
+    }
+
     rafRef.current = requestAnimationFrame(loop);
-  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode]);
+  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode, calibLine]);
+
 
   useEffect(() => {
     if (!active) return;
