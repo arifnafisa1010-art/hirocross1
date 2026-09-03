@@ -419,12 +419,18 @@ export function VBTCamera({ onRepsChange }: Props) {
                 <p className="px-6">Kamera belum aktif — mulai kamera atau unggah video lama</p>
               </div>
             )}
-            {active && !target && (
+            {active && calibMode && (
+              <div className="absolute bottom-2 left-2 right-2 rounded-md bg-amber-500/90 px-3 py-2 text-xs text-black">
+                Mode kalibrasi: tarik garis melintasi diameter plate ({refDiameter} cm).
+              </div>
+            )}
+            {active && !target && !calibMode && (
               <div className="absolute bottom-2 left-2 right-2 rounded-md bg-background/85 px-3 py-2 text-xs">
                 Ketuk area marker (stiker warna terang) pada gambar untuk mengunci warna.
               </div>
             )}
           </div>
+
 
           {error && (
             <p className="flex items-start gap-2 text-sm text-destructive">
