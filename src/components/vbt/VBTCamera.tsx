@@ -296,18 +296,73 @@ export function VBTCamera({ onRepsChange }: Props) {
     }
   };
 
-  const pickColor = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const canvasPoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor(((e.clientX - rect.left) / rect.width) * CANVAS_W);
-    const y = Math.floor(((e.clientY - rect.top) / rect.height) * CANVAS_H);
+    return {
+      x: Math.floor(((e.clientX - rect.left) / rect.width) * CANVAS_W),
+      y: Math.floor(((e.clientY - rect.top) / rect.height) * CANVAS_H),
+    };
+  };
+
+  const pickColor = (x: number, y: number) => {
+    const ctx = canvasRef.current?.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
     const d = ctx.getImageData(x, y, 1, 1).data;
     setTarget({ r: d[0], g: d[1], b: d[2] });
     samplesRef.current = [];
+    sizeBufRef.current = [];
+    scaleRef.current = null;
     toast.success('Marker terkunci', { description: 'Gerakkan barbel — pelacakan dimulai.' });
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const p = canvasPoint(e);
+    if (!p) return;
+    if (calibMode) {
+      calibStartRef.current = p;
+      setCalibLine({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } else {
+      pickColor(p.x, p.y);
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!calibMode || !calibStartRef.current) return;
+    const p = canvasPoint(e);
+    if (!p) return;
+    const s = calibStartRef.current;
+    setCalibLine({ x1: s.x, y1: s.y, x2: p.x, y2: p.y });
+  };
+
+  const onPointerUp = () => {
+    if (!calibMode || !calibStartRef.current || !calibLine) return;
+    const len = Math.hypot(calibLine.x2 - calibLine.x1, calibLine.y2 - calibLine.y1);
+    calibStartRef.current = null;
+    const mpp = scaleFromLine(len, refDiameter);
+    if (!mpp) {
+      toast.error('Garis terlalu pendek', { description: 'Tarik garis melintasi diameter plate.' });
+      return;
+    }
+    setAutoScale(false);
+    setManualScale(Number(mpp.toFixed(6)));
+    scaleRef.current = mpp;
+    setScale(mpp);
+    setCalibMode(false);
+    toast.success(`Skala terkalibrasi: ${(mpp * 1000).toFixed(2)} mm/px`, {
+      description: `${len.toFixed(0)} px = ${refDiameter} cm`,
+    });
+  };
+
+  const recalibrate = () => {
+    sizeBufRef.current = [];
+    scaleRef.current = null;
+    setScale(null);
+    setAutoScale(true);
+    setLocked(false);
+    toast.info('Kalibrasi skala di-reset — plate akan diukur ulang otomatis.');
   };
 
   const reset = () => {
@@ -317,6 +372,7 @@ export function VBTCamera({ onRepsChange }: Props) {
     alertedRef.current = false;
     startTimeRef.current = performance.now();
   };
+
 
   const zone = lastRep ? velocityZone(lastRep.mpv) : null;
 
