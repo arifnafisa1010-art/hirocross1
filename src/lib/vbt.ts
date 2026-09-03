@@ -169,3 +169,102 @@ export function velocityZone(mpv: number): { label: string; hint: string; tone: 
   if (mpv >= 0.5) return { label: 'Strength-Speed', hint: '~75-85% 1RM · kekuatan cepat', tone: 'amber' };
   return { label: 'Absolute Strength', hint: '>85% 1RM · kekuatan maksimal', tone: 'red' };
 }
+
+/* ------------------------------------------------------------------ */
+/* Estimasi 1RM berbasis kecepatan (Load-Velocity Profile)             */
+/* ------------------------------------------------------------------ */
+
+export type LvExercise = 'squat' | 'bench' | 'deadlift' | 'row' | 'press' | 'generic';
+
+export const LV_EXERCISES: { id: LvExercise; label: string }[] = [
+  { id: 'squat', label: 'Back Squat' },
+  { id: 'bench', label: 'Bench Press' },
+  { id: 'deadlift', label: 'Deadlift' },
+  { id: 'row', label: 'Bent-over Row' },
+  { id: 'press', label: 'Overhead Press' },
+  { id: 'generic', label: 'Umum / lainnya' },
+];
+
+/** Koefisien regresi kuadratik %1RM = a·MPV² + b·MPV + c (Gonzalez-Badillo dkk.) */
+const LV_COEF: Record<LvExercise, [number, number, number]> = {
+  squat: [-5.961, -50.71, 117.0],
+  bench: [-7.5312, -75.882, 131.75],
+  deadlift: [-8.2, -60.5, 122.0],
+  row: [-6.5, -63.0, 124.0],
+  press: [-7.0, -70.0, 128.0],
+  generic: [-7.0, -62.0, 122.0],
+};
+
+/** Tebak jenis latihan dari namanya untuk memilih profil L-V. */
+export function guessLvExercise(name: string): LvExercise {
+  const n = name.toLowerCase();
+  if (n.includes('squat')) return 'squat';
+  if (n.includes('bench') || n.includes('chest press')) return 'bench';
+  if (n.includes('deadlift') || n.includes('dl')) return 'deadlift';
+  if (n.includes('row')) return 'row';
+  if (n.includes('press') || n.includes('ohp')) return 'press';
+  return 'generic';
+}
+
+/** %1RM yang diprediksi dari MPV. */
+export function percent1RMFromMpv(mpv: number, exercise: LvExercise = 'generic'): number {
+  const [a, b, c] = LV_COEF[exercise];
+  const pct = a * mpv * mpv + b * mpv + c;
+  return Math.min(100, Math.max(20, pct));
+}
+
+export interface OneRmEstimate {
+  /** estimasi 1RM (kg) */
+  oneRm: number;
+  /** persentase 1RM dari beban yang dipakai */
+  percent: number;
+  /** koreksi kelelahan berdasarkan velocity loss */
+  fatigueAdjusted: number;
+  exercise: LvExercise;
+}
+
+/**
+ * Estimasi 1RM dari beban + MPV terbaik set. Velocity loss dipakai sebagai
+ * faktor koreksi kelelahan (set yang sangat lelah cenderung meremehkan 1RM).
+ */
+export function estimate1RMFromVbt(
+  loadKg: number,
+  bestMpv: number,
+  velocityLoss = 0,
+  exercise: LvExercise = 'generic',
+): OneRmEstimate | null {
+  if (!loadKg || loadKg <= 0 || !bestMpv || bestMpv <= 0) return null;
+  const percent = percent1RMFromMpv(bestMpv, exercise);
+  const oneRm = (loadKg * 100) / percent;
+  // tiap 10% velocity loss ≈ 1.5% underestimation
+  const fatigueAdjusted = oneRm * (1 + Math.min(30, Math.max(0, velocityLoss)) * 0.0015);
+  return {
+    oneRm: Number(oneRm.toFixed(1)),
+    percent: Number(percent.toFixed(1)),
+    fatigueAdjusted: Number(fatigueAdjusted.toFixed(1)),
+    exercise,
+  };
+}
+
+/** Beban target (kg) untuk mencapai MPV tertentu dari 1RM yang diketahui. */
+export function loadForTargetVelocity(
+  oneRm: number,
+  targetMpv: number,
+  exercise: LvExercise = 'generic',
+): number {
+  return Number(((oneRm * percent1RMFromMpv(targetMpv, exercise)) / 100).toFixed(1));
+}
+
+/** Median (robust terhadap outlier) — dipakai untuk kalibrasi skala dinamis. */
+export function median(values: number[]): number {
+  if (!values.length) return 0;
+  const s = [...values].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/** Skala meter/piksel dari panjang garis kalibrasi manual (px) di canvas. */
+export function scaleFromLine(pixelLength: number, realCm: number): number | null {
+  if (pixelLength < 4 || realCm <= 0) return null;
+  return realCm / 100 / pixelLength;
+}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, Crosshair, RotateCcw, Ruler, TriangleAlert, Upload } from 'lucide-react';
+import { Camera, CameraOff, Crosshair, Move, RotateCcw, Ruler, TriangleAlert, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   detectRep,
+  median,
   metersPerPixel,
+  scaleFromLine,
   smoothScale,
   trackMarker,
   velocityLossPercent,
@@ -20,6 +22,7 @@ import {
   type VbtRep,
   type VbtSample,
 } from '@/lib/vbt';
+
 
 const CANVAS_W = 320;
 const CANVAS_H = 240;
@@ -41,6 +44,8 @@ export function VBTCamera({ onRepsChange }: Props) {
   const alertedRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const sizeBufRef = useRef<number[]>([]);
+  const calibStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +62,10 @@ export function VBTCamera({ onRepsChange }: Props) {
   const [alertOn, setAlertOn] = useState(true);
   const [mode, setMode] = useState<'camera' | 'video'>('camera');
   const [videoName, setVideoName] = useState<string | null>(null);
+  const [calibMode, setCalibMode] = useState(false);
+  const [calibLine, setCalibLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [blobPx, setBlobPx] = useState(0);
+
 
   const bestMpv = reps.length ? Math.max(...reps.map((r) => r.mpv)) : 0;
   const lastRep = reps[reps.length - 1];
@@ -136,19 +145,29 @@ export function VBTCamera({ onRepsChange }: Props) {
       const blob = trackMarker(frame.data, CANVAS_W, CANVAS_H, target, tolerance);
 
       if (blob) {
-        // --- automatic scale calibration from reference object size ---
+        // --- dynamic scale calibration from reference object size ---
+        // Ukuran blob difilter dengan median bergerak sehingga tetap stabil
+        // saat plate miring, blur, atau jarak kamera berubah di tengah video.
         let mpp = scaleRef.current;
+        const size = Math.max(blob.width, blob.height);
+        setBlobPx(Math.round(size));
         if (autoScale && !locked) {
-          const size = Math.max(blob.width, blob.height);
-          const est = metersPerPixel(size, refDiameter);
+          const sb = sizeBufRef.current;
+          sb.push(size);
+          if (sb.length > 24) sb.shift();
+          const stable = median(sb);
+          const est = metersPerPixel(stable, refDiameter);
           if (est) {
-            mpp = smoothScale(scaleRef.current, est);
+            // adaptasi cepat saat awal, halus setelah stabil
+            const alpha = sb.length < 10 ? 0.4 : 0.12;
+            mpp = smoothScale(scaleRef.current, est, alpha);
             scaleRef.current = mpp;
             setScale(mpp);
           }
         } else if (!autoScale) {
           mpp = manualScale;
           scaleRef.current = mpp;
+          setScale(mpp);
         }
 
         if (mpp) {
@@ -179,7 +198,7 @@ export function VBTCamera({ onRepsChange }: Props) {
         octx.strokeStyle = '#22d3ee';
         octx.lineWidth = 2;
         octx.beginPath();
-        octx.arc(blob.x, blob.y, Math.max(8, Math.max(blob.width, blob.height) / 2), 0, Math.PI * 2);
+        octx.arc(blob.x, blob.y, Math.max(8, size / 2), 0, Math.PI * 2);
         octx.stroke();
         octx.beginPath();
         octx.moveTo(0, blob.y);
@@ -191,8 +210,19 @@ export function VBTCamera({ onRepsChange }: Props) {
       }
     }
 
+    // garis kalibrasi manual (drag) selalu digambar di atas
+    if (calibLine) {
+      octx.strokeStyle = '#f59e0b';
+      octx.lineWidth = 2;
+      octx.beginPath();
+      octx.moveTo(calibLine.x1, calibLine.y1);
+      octx.lineTo(calibLine.x2, calibLine.y2);
+      octx.stroke();
+    }
+
     rafRef.current = requestAnimationFrame(loop);
-  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode]);
+  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode, calibLine]);
+
 
   useEffect(() => {
     if (!active) return;
@@ -266,18 +296,73 @@ export function VBTCamera({ onRepsChange }: Props) {
     }
   };
 
-  const pickColor = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const canvasPoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor(((e.clientX - rect.left) / rect.width) * CANVAS_W);
-    const y = Math.floor(((e.clientY - rect.top) / rect.height) * CANVAS_H);
+    return {
+      x: Math.floor(((e.clientX - rect.left) / rect.width) * CANVAS_W),
+      y: Math.floor(((e.clientY - rect.top) / rect.height) * CANVAS_H),
+    };
+  };
+
+  const pickColor = (x: number, y: number) => {
+    const ctx = canvasRef.current?.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
     const d = ctx.getImageData(x, y, 1, 1).data;
     setTarget({ r: d[0], g: d[1], b: d[2] });
     samplesRef.current = [];
+    sizeBufRef.current = [];
+    scaleRef.current = null;
     toast.success('Marker terkunci', { description: 'Gerakkan barbel — pelacakan dimulai.' });
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const p = canvasPoint(e);
+    if (!p) return;
+    if (calibMode) {
+      calibStartRef.current = p;
+      setCalibLine({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } else {
+      pickColor(p.x, p.y);
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!calibMode || !calibStartRef.current) return;
+    const p = canvasPoint(e);
+    if (!p) return;
+    const s = calibStartRef.current;
+    setCalibLine({ x1: s.x, y1: s.y, x2: p.x, y2: p.y });
+  };
+
+  const onPointerUp = () => {
+    if (!calibMode || !calibStartRef.current || !calibLine) return;
+    const len = Math.hypot(calibLine.x2 - calibLine.x1, calibLine.y2 - calibLine.y1);
+    calibStartRef.current = null;
+    const mpp = scaleFromLine(len, refDiameter);
+    if (!mpp) {
+      toast.error('Garis terlalu pendek', { description: 'Tarik garis melintasi diameter plate.' });
+      return;
+    }
+    setAutoScale(false);
+    setManualScale(Number(mpp.toFixed(6)));
+    scaleRef.current = mpp;
+    setScale(mpp);
+    setCalibMode(false);
+    toast.success(`Skala terkalibrasi: ${(mpp * 1000).toFixed(2)} mm/px`, {
+      description: `${len.toFixed(0)} px = ${refDiameter} cm`,
+    });
+  };
+
+  const recalibrate = () => {
+    sizeBufRef.current = [];
+    scaleRef.current = null;
+    setScale(null);
+    setAutoScale(true);
+    setLocked(false);
+    toast.info('Kalibrasi skala di-reset — plate akan diukur ulang otomatis.');
   };
 
   const reset = () => {
@@ -287,6 +372,7 @@ export function VBTCamera({ onRepsChange }: Props) {
     alertedRef.current = false;
     startTimeRef.current = performance.now();
   };
+
 
   const zone = lastRep ? velocityZone(lastRep.mpv) : null;
 
@@ -315,8 +401,11 @@ export function VBTCamera({ onRepsChange }: Props) {
               ref={canvasRef}
               width={CANVAS_W}
               height={CANVAS_H}
-              onClick={pickColor}
-              className="w-full cursor-crosshair"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              className={cn('w-full touch-none', calibMode ? 'cursor-cell' : 'cursor-crosshair')}
+
             />
             <canvas
               ref={overlayRef}
@@ -330,12 +419,18 @@ export function VBTCamera({ onRepsChange }: Props) {
                 <p className="px-6">Kamera belum aktif — mulai kamera atau unggah video lama</p>
               </div>
             )}
-            {active && !target && (
+            {active && calibMode && (
+              <div className="absolute bottom-2 left-2 right-2 rounded-md bg-amber-500/90 px-3 py-2 text-xs text-black">
+                Mode kalibrasi: tarik garis melintasi diameter plate ({refDiameter} cm).
+              </div>
+            )}
+            {active && !target && !calibMode && (
               <div className="absolute bottom-2 left-2 right-2 rounded-md bg-background/85 px-3 py-2 text-xs">
                 Ketuk area marker (stiker warna terang) pada gambar untuk mengunci warna.
               </div>
             )}
           </div>
+
 
           {error && (
             <p className="flex items-start gap-2 text-sm text-destructive">
