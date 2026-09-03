@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, Crosshair, RotateCcw, Ruler, TriangleAlert, Upload } from 'lucide-react';
+import { Camera, CameraOff, Crosshair, Move, RotateCcw, Ruler, TriangleAlert, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   detectRep,
+  median,
   metersPerPixel,
+  scaleFromLine,
   smoothScale,
   trackMarker,
   velocityLossPercent,
@@ -20,6 +22,7 @@ import {
   type VbtRep,
   type VbtSample,
 } from '@/lib/vbt';
+
 
 const CANVAS_W = 320;
 const CANVAS_H = 240;
