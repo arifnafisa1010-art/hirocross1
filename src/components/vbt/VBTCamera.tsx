@@ -401,8 +401,11 @@ export function VBTCamera({ onRepsChange }: Props) {
               ref={canvasRef}
               width={CANVAS_W}
               height={CANVAS_H}
-              onClick={pickColor}
-              className="w-full cursor-crosshair"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              className={cn('w-full touch-none', calibMode ? 'cursor-cell' : 'cursor-crosshair')}
+
             />
             <canvas
               ref={overlayRef}
