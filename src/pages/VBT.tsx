@@ -38,6 +38,7 @@ export default function VBT() {
   const { hasPremium, loading } = usePremiumAccess();
   const [reps, setReps] = useState<VbtRep[]>([]);
   const { athletes } = useAthletes();
+  const [sourceMode, setSourceMode] = useState<'camera' | 'sensor'>('camera');
   const [athleteId, setAthleteId] = useState<string>('none');
   const [exerciseName, setExerciseName] = useState('Back Squat');
   const [loadKg, setLoadKg] = useState<string>('');
