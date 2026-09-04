@@ -228,6 +228,14 @@ export function VBTCamera({ onRepsChange }: Props) {
         octx.lineTo(CANVAS_W, blob.y);
         octx.strokeStyle = 'rgba(34,211,238,0.4)';
         octx.stroke();
+
+        if (roiOn && roiFollow) {
+          setRoiCenter((c) => {
+            const nx = c.x + (blob.x - c.x) * 0.25;
+            const ny = c.y + (blob.y - c.y) * 0.25;
+            return Math.abs(nx - c.x) < 0.5 && Math.abs(ny - c.y) < 0.5 ? c : { x: nx, y: ny };
+          });
+        }
       } else {
         setLive({ v: 0, found: false });
       }
@@ -244,7 +252,22 @@ export function VBTCamera({ onRepsChange }: Props) {
     }
 
     rafRef.current = requestAnimationFrame(loop);
-  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode, calibLine]);
+  }, [
+    target,
+    tolerance,
+    autoScale,
+    locked,
+    refDiameter,
+    manualScale,
+    mode,
+    calibLine,
+    calibMode,
+    roiOn,
+    roiSize,
+    roiCenter,
+    roiFollow,
+  ]);
+
 
 
   useEffect(() => {
