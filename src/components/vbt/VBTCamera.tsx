@@ -628,9 +628,55 @@ export function VBTCamera({ onRepsChange }: Props) {
                 />
               </div>
             )}
+            <div className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="roion" className="text-sm">Area marker (kotak deteksi)</Label>
+                <Switch id="roion" checked={roiOn} onCheckedChange={setRoiOn} />
+              </div>
+              {roiOn && (
+                <>
+                  <Label className="text-xs">Ukuran area: {roiSize} px</Label>
+                  <Slider
+                    value={[roiSize]}
+                    min={40}
+                    max={480}
+                    step={10}
+                    onValueChange={([v]) => setRoiSize(v)}
+                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="roifollow" className="text-sm">Ikuti plate otomatis</Label>
+                    <Switch id="roifollow" checked={roiFollow} onCheckedChange={setRoiFollow} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Kecilkan area agar hanya plate yang terbaca — ketuk gambar untuk memindahkan kotak.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={calibMode ? 'default' : 'outline'}
+                onClick={() => {
+                  setCalibMode((v) => !v);
+                  setCalibLine(null);
+                }}
+              >
+                {calibMode ? 'Batal Ukur' : 'Ukur Diameter Plate'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={recalibrate}>
+                Kalibrasi Ulang
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Lebar plate terdeteksi: {blobPx ? `${blobPx} px` : '—'}
+            </p>
             <p className="text-xs text-muted-foreground">
               Skala aktif: {scale ? `${(scale * 1000).toFixed(2)} mm/px` : '—'}
             </p>
+
           </CardContent>
         </Card>
 
