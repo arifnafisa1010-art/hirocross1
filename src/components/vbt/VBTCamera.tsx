@@ -145,9 +145,27 @@ export function VBTCamera({ onRepsChange }: Props) {
     ctx.drawImage(video, 0, 0, CANVAS_W, CANVAS_H);
     octx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
+    const roi = roiOn
+      ? {
+          x: roiCenter.x - roiSize / 2,
+          y: roiCenter.y - roiSize / 2,
+          w: roiSize,
+          h: roiSize,
+        }
+      : null;
+
+    if (roi) {
+      octx.strokeStyle = calibMode ? '#f59e0b' : '#a3e635';
+      octx.lineWidth = 2;
+      octx.setLineDash([6, 4]);
+      octx.strokeRect(roi.x, roi.y, roi.w, roi.h);
+      octx.setLineDash([]);
+    }
+
     if (target) {
       const frame = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
-      const blob = trackMarker(frame.data, CANVAS_W, CANVAS_H, target, tolerance);
+      const blob = trackMarker(frame.data, CANVAS_W, CANVAS_H, target, tolerance, roi);
+
 
       if (blob) {
         // --- dynamic scale calibration from reference object size ---
