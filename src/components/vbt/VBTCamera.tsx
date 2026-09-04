@@ -65,6 +65,11 @@ export function VBTCamera({ onRepsChange }: Props) {
   const [calibMode, setCalibMode] = useState(false);
   const [calibLine, setCalibLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [blobPx, setBlobPx] = useState(0);
+  const [roiOn, setRoiOn] = useState(false);
+  const [roiSize, setRoiSize] = useState(160); // px pada canvas
+  const [roiCenter, setRoiCenter] = useState({ x: CANVAS_W / 2, y: CANVAS_H / 2 });
+  const [roiFollow, setRoiFollow] = useState(true);
+
 
 
   const bestMpv = reps.length ? Math.max(...reps.map((r) => r.mpv)) : 0;
