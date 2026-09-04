@@ -279,6 +279,7 @@ export function VBTCamera({ onRepsChange }: Props) {
     roiSize,
     roiCenter,
     roiFollow,
+    roiEdit,
   ]);
 
 
