@@ -99,8 +99,20 @@ export default function VBT() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
-          <VBTCamera onRepsChange={setReps} />
+          <Tabs value={sourceMode} onValueChange={(v) => setSourceMode(v as 'camera' | 'sensor')}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="camera">Kamera / Video</TabsTrigger>
+              <TabsTrigger value="sensor">Sensor HP</TabsTrigger>
+            </TabsList>
+            <TabsContent value="camera">
+              <VBTCamera onRepsChange={setReps} />
+            </TabsContent>
+            <TabsContent value="sensor">
+              <VBTSensor onRepsChange={setReps} />
+            </TabsContent>
+          </Tabs>
         </div>
+
 
         <Card className="xl:col-span-1">
           <CardHeader className="flex flex-row items-start justify-between gap-2">
