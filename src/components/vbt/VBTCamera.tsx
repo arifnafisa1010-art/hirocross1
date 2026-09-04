@@ -386,18 +386,37 @@ export function VBTCamera({ onRepsChange }: Props) {
       calibStartRef.current = p;
       setCalibLine({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
       e.currentTarget.setPointerCapture(e.pointerId);
+    } else if (roiOn && roiEdit) {
+      const half = roiSize / 2;
+      const nearCorner =
+        Math.hypot(p.x - (roiCenter.x + half), p.y - (roiCenter.y + half)) < 22 ||
+        Math.hypot(p.x - (roiCenter.x - half), p.y - (roiCenter.y - half)) < 22;
+      roiDragRef.current = nearCorner ? 'resize' : 'move';
+      if (!nearCorner) setRoiCenter(p);
+      e.currentTarget.setPointerCapture(e.pointerId);
     } else {
       pickColor(p.x, p.y);
     }
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!calibMode || !calibStartRef.current) return;
     const p = canvasPoint(e);
     if (!p) return;
+    if (roiDragRef.current) {
+      if (roiDragRef.current === 'move') {
+        setRoiCenter(p);
+      } else {
+        const d = Math.max(Math.abs(p.x - roiCenter.x), Math.abs(p.y - roiCenter.y)) * 2;
+        setRoiSize(Math.round(Math.min(480, Math.max(30, d))));
+      }
+      return;
+    }
+    if (!calibMode || !calibStartRef.current) return;
     const s = calibStartRef.current;
     setCalibLine({ x1: s.x, y1: s.y, x2: p.x, y2: p.y });
   };
+
+
 
   const onPointerUp = () => {
     if (!calibMode || !calibStartRef.current || !calibLine) return;
