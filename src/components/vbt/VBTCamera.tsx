@@ -357,6 +357,8 @@ export function VBTCamera({ onRepsChange }: Props) {
     if (!ctx) return;
     const d = ctx.getImageData(x, y, 1, 1).data;
     setTarget({ r: d[0], g: d[1], b: d[2] });
+    setRoiCenter({ x, y });
+
     samplesRef.current = [];
     sizeBufRef.current = [];
     scaleRef.current = null;
