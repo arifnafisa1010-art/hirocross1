@@ -161,12 +161,19 @@ export function VBTCamera({ onRepsChange }: Props) {
       : null;
 
     if (roi) {
-      octx.strokeStyle = calibMode ? '#f59e0b' : '#a3e635';
+      octx.strokeStyle = calibMode ? '#f59e0b' : roiEdit ? '#38bdf8' : '#a3e635';
       octx.lineWidth = 2;
       octx.setLineDash([6, 4]);
       octx.strokeRect(roi.x, roi.y, roi.w, roi.h);
       octx.setLineDash([]);
+      if (roiEdit) {
+        // gagang untuk memperbesar / memperkecil area
+        octx.fillStyle = '#38bdf8';
+        octx.fillRect(roi.x + roi.w - 8, roi.y + roi.h - 8, 12, 12);
+        octx.fillRect(roi.x - 4, roi.y - 4, 12, 12);
+      }
     }
+
 
     if (target) {
       const frame = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
