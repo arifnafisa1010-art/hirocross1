@@ -69,6 +69,12 @@ export function VBTCamera({ onRepsChange }: Props) {
   const [roiSize, setRoiSize] = useState(160); // px pada canvas
   const [roiCenter, setRoiCenter] = useState({ x: CANVAS_W / 2, y: CANVAS_H / 2 });
   const [roiFollow, setRoiFollow] = useState(true);
+  const [roiEdit, setRoiEdit] = useState(false);
+  const roiDragRef = useRef<'move' | 'resize' | null>(null);
+  const [vTime, setVTime] = useState(0);
+  const [vDur, setVDur] = useState(0);
+  const [vPaused, setVPaused] = useState(false);
+
 
 
 
