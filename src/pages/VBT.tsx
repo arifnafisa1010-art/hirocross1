@@ -29,7 +29,9 @@ import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useVbtSets } from '@/hooks/useVbtSets';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VBTCamera } from '@/components/vbt/VBTCamera';
+import { VBTSensor } from '@/components/vbt/VBTSensor';
 import { velocityLossPercent, velocityZone, type VbtRep } from '@/lib/vbt';
 
 export default function VBT() {
