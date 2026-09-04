@@ -50,12 +50,20 @@ export function colorDistance(a: RgbColor, b: RgbColor): number {
  * Finds the centroid + bounding box of pixels matching `target` colour.
  * `tolerance` is 0..1 (higher = looser match). Sub-samples every 2px for speed.
  */
+export interface Roi {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export function trackMarker(
   data: Uint8ClampedArray,
   width: number,
   height: number,
   target: RgbColor,
   tolerance: number,
+  roi?: Roi | null,
 ): TrackResult | null {
   let sumX = 0;
   let sumY = 0;
@@ -66,8 +74,13 @@ export function trackMarker(
   let maxY = 0;
   const step = 2;
 
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
+  const x0 = Math.max(0, Math.floor(roi ? roi.x : 0));
+  const y0 = Math.max(0, Math.floor(roi ? roi.y : 0));
+  const x1 = Math.min(width, Math.ceil(roi ? roi.x + roi.w : width));
+  const y1 = Math.min(height, Math.ceil(roi ? roi.y + roi.h : height));
+
+  for (let y = y0; y < y1; y += step) {
+    for (let x = x0; x < x1; x += step) {
       const i = (y * width + x) * 4;
       const px = { r: data[i], g: data[i + 1], b: data[i + 2] };
       if (colorDistance(px, target) <= tolerance) {
@@ -82,7 +95,8 @@ export function trackMarker(
     }
   }
 
-  if (count < 12) return null;
+  if (count < 6) return null;
+
 
   return {
     x: sumX / count,

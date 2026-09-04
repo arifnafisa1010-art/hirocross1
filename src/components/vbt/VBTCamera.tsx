@@ -65,6 +65,11 @@ export function VBTCamera({ onRepsChange }: Props) {
   const [calibMode, setCalibMode] = useState(false);
   const [calibLine, setCalibLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [blobPx, setBlobPx] = useState(0);
+  const [roiOn, setRoiOn] = useState(false);
+  const [roiSize, setRoiSize] = useState(160); // px pada canvas
+  const [roiCenter, setRoiCenter] = useState({ x: CANVAS_W / 2, y: CANVAS_H / 2 });
+  const [roiFollow, setRoiFollow] = useState(true);
+
 
 
   const bestMpv = reps.length ? Math.max(...reps.map((r) => r.mpv)) : 0;
@@ -140,9 +145,27 @@ export function VBTCamera({ onRepsChange }: Props) {
     ctx.drawImage(video, 0, 0, CANVAS_W, CANVAS_H);
     octx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
+    const roi = roiOn
+      ? {
+          x: roiCenter.x - roiSize / 2,
+          y: roiCenter.y - roiSize / 2,
+          w: roiSize,
+          h: roiSize,
+        }
+      : null;
+
+    if (roi) {
+      octx.strokeStyle = calibMode ? '#f59e0b' : '#a3e635';
+      octx.lineWidth = 2;
+      octx.setLineDash([6, 4]);
+      octx.strokeRect(roi.x, roi.y, roi.w, roi.h);
+      octx.setLineDash([]);
+    }
+
     if (target) {
       const frame = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
-      const blob = trackMarker(frame.data, CANVAS_W, CANVAS_H, target, tolerance);
+      const blob = trackMarker(frame.data, CANVAS_W, CANVAS_H, target, tolerance, roi);
+
 
       if (blob) {
         // --- dynamic scale calibration from reference object size ---
@@ -205,6 +228,14 @@ export function VBTCamera({ onRepsChange }: Props) {
         octx.lineTo(CANVAS_W, blob.y);
         octx.strokeStyle = 'rgba(34,211,238,0.4)';
         octx.stroke();
+
+        if (roiOn && roiFollow) {
+          setRoiCenter((c) => {
+            const nx = c.x + (blob.x - c.x) * 0.25;
+            const ny = c.y + (blob.y - c.y) * 0.25;
+            return Math.abs(nx - c.x) < 0.5 && Math.abs(ny - c.y) < 0.5 ? c : { x: nx, y: ny };
+          });
+        }
       } else {
         setLive({ v: 0, found: false });
       }
@@ -221,7 +252,22 @@ export function VBTCamera({ onRepsChange }: Props) {
     }
 
     rafRef.current = requestAnimationFrame(loop);
-  }, [target, tolerance, autoScale, locked, refDiameter, manualScale, mode, calibLine]);
+  }, [
+    target,
+    tolerance,
+    autoScale,
+    locked,
+    refDiameter,
+    manualScale,
+    mode,
+    calibLine,
+    calibMode,
+    roiOn,
+    roiSize,
+    roiCenter,
+    roiFollow,
+  ]);
+
 
 
   useEffect(() => {
@@ -311,6 +357,8 @@ export function VBTCamera({ onRepsChange }: Props) {
     if (!ctx) return;
     const d = ctx.getImageData(x, y, 1, 1).data;
     setTarget({ r: d[0], g: d[1], b: d[2] });
+    setRoiCenter({ x, y });
+
     samplesRef.current = [];
     sizeBufRef.current = [];
     scaleRef.current = null;
@@ -580,9 +628,55 @@ export function VBTCamera({ onRepsChange }: Props) {
                 />
               </div>
             )}
+            <div className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="roion" className="text-sm">Area marker (kotak deteksi)</Label>
+                <Switch id="roion" checked={roiOn} onCheckedChange={setRoiOn} />
+              </div>
+              {roiOn && (
+                <>
+                  <Label className="text-xs">Ukuran area: {roiSize} px</Label>
+                  <Slider
+                    value={[roiSize]}
+                    min={40}
+                    max={480}
+                    step={10}
+                    onValueChange={([v]) => setRoiSize(v)}
+                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="roifollow" className="text-sm">Ikuti plate otomatis</Label>
+                    <Switch id="roifollow" checked={roiFollow} onCheckedChange={setRoiFollow} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Kecilkan area agar hanya plate yang terbaca — ketuk gambar untuk memindahkan kotak.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={calibMode ? 'default' : 'outline'}
+                onClick={() => {
+                  setCalibMode((v) => !v);
+                  setCalibLine(null);
+                }}
+              >
+                {calibMode ? 'Batal Ukur' : 'Ukur Diameter Plate'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={recalibrate}>
+                Kalibrasi Ulang
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Lebar plate terdeteksi: {blobPx ? `${blobPx} px` : '—'}
+            </p>
             <p className="text-xs text-muted-foreground">
               Skala aktif: {scale ? `${(scale * 1000).toFixed(2)} mm/px` : '—'}
             </p>
+
           </CardContent>
         </Card>
 
