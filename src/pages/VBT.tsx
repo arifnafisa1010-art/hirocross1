@@ -68,7 +68,7 @@ export default function VBT() {
       sessionDate,
       loadKg: loadKg ? Number(loadKg) : null,
       reps,
-      source: 'camera',
+      source: sourceMode,
     });
     setSaving(false);
     if (res) setReps([]);
