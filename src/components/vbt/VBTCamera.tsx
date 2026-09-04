@@ -69,6 +69,12 @@ export function VBTCamera({ onRepsChange }: Props) {
   const [roiSize, setRoiSize] = useState(160); // px pada canvas
   const [roiCenter, setRoiCenter] = useState({ x: CANVAS_W / 2, y: CANVAS_H / 2 });
   const [roiFollow, setRoiFollow] = useState(true);
+  const [roiEdit, setRoiEdit] = useState(false);
+  const roiDragRef = useRef<'move' | 'resize' | null>(null);
+  const [vTime, setVTime] = useState(0);
+  const [vDur, setVDur] = useState(0);
+  const [vPaused, setVPaused] = useState(false);
+
 
 
 
@@ -155,12 +161,19 @@ export function VBTCamera({ onRepsChange }: Props) {
       : null;
 
     if (roi) {
-      octx.strokeStyle = calibMode ? '#f59e0b' : '#a3e635';
+      octx.strokeStyle = calibMode ? '#f59e0b' : roiEdit ? '#38bdf8' : '#a3e635';
       octx.lineWidth = 2;
       octx.setLineDash([6, 4]);
       octx.strokeRect(roi.x, roi.y, roi.w, roi.h);
       octx.setLineDash([]);
+      if (roiEdit) {
+        // gagang untuk memperbesar / memperkecil area
+        octx.fillStyle = '#38bdf8';
+        octx.fillRect(roi.x + roi.w - 8, roi.y + roi.h - 8, 12, 12);
+        octx.fillRect(roi.x - 4, roi.y - 4, 12, 12);
+      }
     }
+
 
     if (target) {
       const frame = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
@@ -266,6 +279,7 @@ export function VBTCamera({ onRepsChange }: Props) {
     roiSize,
     roiCenter,
     roiFollow,
+    roiEdit,
   ]);
 
 
@@ -372,18 +386,37 @@ export function VBTCamera({ onRepsChange }: Props) {
       calibStartRef.current = p;
       setCalibLine({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
       e.currentTarget.setPointerCapture(e.pointerId);
+    } else if (roiOn && roiEdit) {
+      const half = roiSize / 2;
+      const nearCorner =
+        Math.hypot(p.x - (roiCenter.x + half), p.y - (roiCenter.y + half)) < 22 ||
+        Math.hypot(p.x - (roiCenter.x - half), p.y - (roiCenter.y - half)) < 22;
+      roiDragRef.current = nearCorner ? 'resize' : 'move';
+      if (!nearCorner) setRoiCenter(p);
+      e.currentTarget.setPointerCapture(e.pointerId);
     } else {
       pickColor(p.x, p.y);
     }
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!calibMode || !calibStartRef.current) return;
     const p = canvasPoint(e);
     if (!p) return;
+    if (roiDragRef.current) {
+      if (roiDragRef.current === 'move') {
+        setRoiCenter(p);
+      } else {
+        const d = Math.max(Math.abs(p.x - roiCenter.x), Math.abs(p.y - roiCenter.y)) * 2;
+        setRoiSize(Math.round(Math.min(480, Math.max(30, d))));
+      }
+      return;
+    }
+    if (!calibMode || !calibStartRef.current) return;
     const s = calibStartRef.current;
     setCalibLine({ x1: s.x, y1: s.y, x2: p.x, y2: p.y });
   };
+
+
 
   const onPointerUp = () => {
     if (!calibMode || !calibStartRef.current || !calibLine) return;
