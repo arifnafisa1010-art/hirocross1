@@ -59,6 +59,9 @@ export function VBTSensor({ onRepsChange }: Props) {
   const [sensitivity, setSensitivity] = useState(0.35); // m/s² noise gate
   const [cutoff, setCutoff] = useState(20);
   const [alertOn, setAlertOn] = useState(true);
+  const [metric, setMetric] = useState<MetricId>('live');
+  const [loadKg, setLoadKg] = useState<string>('');
+  const [lvExercise, setLvExercise] = useState<LvExercise>('squat');
 
   const vRef = useRef(0);
   const yRef = useRef(0);
