@@ -104,6 +104,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/coach"
+                element={
+                  <ProtectedRoute>
+                    <CoachDashboard />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
