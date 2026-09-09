@@ -345,7 +345,56 @@ export function VBTSensor({ onRepsChange }: Props) {
               />
             </div>
           </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Jenis latihan (profil beban–kecepatan)</Label>
+            <Select value={lvExercise} onValueChange={(v) => setLvExercise(v as LvExercise)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LV_EXERCISES.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {oneRm ? (
+            <div className="rounded-lg border bg-background p-3 space-y-1">
+              <p className="text-sm font-semibold">Estimasi 1RM</p>
+              <p className="text-2xl font-bold">{oneRm.fatigueAdjusted} kg</p>
+              <p className="text-xs text-muted-foreground">
+                Beban {mass} kg ≈ {oneRm.percent}% 1RM (best MPV {bestMpv.toFixed(2)} m/s)
+              </p>
+              <div className="grid grid-cols-3 gap-2 pt-1 text-center text-xs">
+                <div className="rounded-md border p-2">
+                  <p className="text-muted-foreground">Kekuatan (0.5 m/s)</p>
+                  <p className="font-semibold">
+                    {loadForTargetVelocity(oneRm.fatigueAdjusted, 0.5, lvExercise)} kg
+                  </p>
+                </div>
+                <div className="rounded-md border p-2">
+                  <p className="text-muted-foreground">Power (0.75 m/s)</p>
+                  <p className="font-semibold">
+                    {loadForTargetVelocity(oneRm.fatigueAdjusted, 0.75, lvExercise)} kg
+                  </p>
+                </div>
+                <div className="rounded-md border p-2">
+                  <p className="text-muted-foreground">Cepat (1.0 m/s)</p>
+                  <p className="font-semibold">
+                    {loadForTargetVelocity(oneRm.fatigueAdjusted, 1.0, lvExercise)} kg
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              Isi beban dan rekam minimal satu repetisi untuk melihat estimasi 1RM.
+            </p>
+          )}
         </div>
+
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Metric label="Kecepatan live" value={`${liveV.toFixed(2)} m/s`} />
