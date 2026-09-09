@@ -16,7 +16,15 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { velocityLossPercent, velocityZone, type VbtRep } from '@/lib/vbt';
+import {
+  estimate1RMFromVbt,
+  LV_EXERCISES,
+  loadForTargetVelocity,
+  velocityLossPercent,
+  velocityZone,
+  type LvExercise,
+  type VbtRep,
+} from '@/lib/vbt';
 import { VelocityGauge } from '@/components/vbt/VelocityGauge';
 
 interface Props {
