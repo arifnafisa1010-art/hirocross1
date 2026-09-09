@@ -28,6 +28,7 @@ const premiumTabItems: { id: TabId; label: string; icon: React.ElementType }[] =
 ];
 
 const premiumRouteItems = [
+  { path: '/coach', label: 'Dashboard Pelatih', icon: LayoutDashboard },
   { path: '/monitoring-atlet', label: 'Monitoring Atlet', icon: Crown },
   { path: '/monitoring-plan', label: 'Monitoring Plan', icon: Activity },
   { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
