@@ -90,6 +90,7 @@ export function VBTSensor({ onRepsChange }: Props) {
   const meanPower = mass * G * (lastRep?.mpv ?? 0);
   const peakPower = mass * G * (reps.length ? Math.max(...reps.map((r) => r.peak)) : 0);
   const lastRom = (lastRep?.rom ?? 0) * 100;
+  const oneRm = estimate1RMFromVbt(mass, bestMpv, vLoss, lvExercise);
 
   const gauge = (() => {
     switch (metric) {
