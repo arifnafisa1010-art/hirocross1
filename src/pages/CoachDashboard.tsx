@@ -28,22 +28,28 @@ import { calculateSessionLoad } from '@/hooks/useTrainingLoads';
 import { cn } from '@/lib/utils';
 
 interface LoadRow {
+  id: string;
   athlete_id: string | null;
   session_date: string;
   duration_minutes: number;
   rpe: number;
   session_load: number | null;
   training_type: string;
+  notes: string | null;
 }
 
 interface VbtRow {
+  id: string;
   athlete_id: string | null;
   session_date: string;
   exercise_name: string;
   load_kg: number | null;
   best_mpv: number | null;
+  avg_mpv: number | null;
   velocity_loss: number | null;
   source: string;
+  reps: unknown;
+  notes: string | null;
 }
 
 function acwrTone(acwr: number) {
@@ -75,13 +81,13 @@ export default function CoachDashboard() {
       const [{ data: l }, { data: v }] = await Promise.all([
         supabase
           .from('training_loads')
-          .select('athlete_id, session_date, duration_minutes, rpe, session_load, training_type')
+          .select('id, athlete_id, session_date, duration_minutes, rpe, session_load, training_type, notes')
           .eq('user_id', user.id)
           .gte('session_date', from)
           .lte('session_date', wEnd),
         supabase
           .from('vbt_sets')
-          .select('athlete_id, session_date, exercise_name, load_kg, best_mpv, velocity_loss, source')
+          .select('id, athlete_id, session_date, exercise_name, load_kg, best_mpv, avg_mpv, velocity_loss, source, reps, notes')
           .eq('user_id', user.id)
           .gte('session_date', wStart)
           .lte('session_date', wEnd),
