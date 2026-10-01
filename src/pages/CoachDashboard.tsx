@@ -571,3 +571,12 @@ function Summary({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium break-words">{value}</p>
+    </div>
+  );
+}
