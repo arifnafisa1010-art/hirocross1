@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, LayoutDashboard, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutDashboard, Pencil, Users } from 'lucide-react';
+import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import type { Athlete } from '@/hooks/useAthletes';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Header } from '@/components/Header';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -28,22 +34,28 @@ import { calculateSessionLoad } from '@/hooks/useTrainingLoads';
 import { cn } from '@/lib/utils';
 
 interface LoadRow {
+  id: string;
   athlete_id: string | null;
   session_date: string;
   duration_minutes: number;
   rpe: number;
   session_load: number | null;
   training_type: string;
+  notes: string | null;
 }
 
 interface VbtRow {
+  id: string;
   athlete_id: string | null;
   session_date: string;
   exercise_name: string;
   load_kg: number | null;
   best_mpv: number | null;
+  avg_mpv: number | null;
   velocity_loss: number | null;
   source: string;
+  reps: unknown;
+  notes: string | null;
 }
 
 function acwrTone(acwr: number) {
@@ -57,11 +69,18 @@ function acwrTone(acwr: number) {
 export default function CoachDashboard() {
   const { user } = useAuth();
   const { hasPremium, loading: premiumLoading } = usePremiumAccess();
-  const { athletes, loading: athletesLoading } = useAthletes();
+  const { athletes, loading: athletesLoading, updateAthlete } = useAthletes();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [loads, setLoads] = useState<LoadRow[]>([]);
   const [vbt, setVbt] = useState<VbtRow[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Athlete | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '', sport: '', position: '', weight: '', height: '', resting_hr: '', notes: '',
+  });
+  const [sessionDetail, setSessionDetail] = useState<LoadRow | null>(null);
+  const [vbtDetail, setVbtDetail] = useState<VbtRow | null>(null);
 
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
   const from = format(subDays(weekStart, 21), 'yyyy-MM-dd');
@@ -75,13 +94,13 @@ export default function CoachDashboard() {
       const [{ data: l }, { data: v }] = await Promise.all([
         supabase
           .from('training_loads')
-          .select('athlete_id, session_date, duration_minutes, rpe, session_load, training_type')
+          .select('id, athlete_id, session_date, duration_minutes, rpe, session_load, training_type, notes')
           .eq('user_id', user.id)
           .gte('session_date', from)
           .lte('session_date', wEnd),
         supabase
           .from('vbt_sets')
-          .select('athlete_id, session_date, exercise_name, load_kg, best_mpv, velocity_loss, source')
+          .select('id, athlete_id, session_date, exercise_name, load_kg, best_mpv, avg_mpv, velocity_loss, source, reps, notes')
           .eq('user_id', user.id)
           .gte('session_date', wStart)
           .lte('session_date', wEnd),
@@ -149,6 +168,55 @@ export default function CoachDashboard() {
   );
 
   const athleteVbt = vbt.filter((s) => s.athlete_id === activeAthlete);
+  const athleteSessions = loads
+    .filter((l) => l.athlete_id === activeAthlete && l.session_date >= wStart && l.session_date <= wEnd)
+    .sort((a, b) => (a.session_date < b.session_date ? -1 : 1));
+
+  const chartData = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = format(addDays(weekStart, i), 'yyyy-MM-dd');
+        const tss = loads
+          .filter((l) => l.athlete_id === activeAthlete && l.session_date === d)
+          .reduce((s, r) => s + (r.session_load || calculateSessionLoad(r.duration_minutes, r.rpe)), 0);
+        const sets = vbt.filter((v) => v.athlete_id === activeAthlete && v.session_date === d).length;
+        return { day: format(addDays(weekStart, i), 'EEE', { locale: idLocale }), tss, sets };
+      }),
+    [loads, vbt, activeAthlete, weekStart],
+  );
+
+  const openEdit = (a: Athlete) => {
+    setEditForm({
+      name: a.name ?? '',
+      sport: a.sport ?? '',
+      position: a.position ?? '',
+      weight: a.weight?.toString() ?? '',
+      height: a.height?.toString() ?? '',
+      resting_hr: a.resting_hr?.toString() ?? '',
+      notes: a.notes ?? '',
+    });
+    setEditing(a);
+  };
+
+  const saveEdit = async () => {
+    if (!editing || !editForm.name.trim()) return;
+    setSaving(true);
+    const num = (v: string) => (v.trim() === '' ? null : Number(v));
+    const ok = await updateAthlete(editing.id, {
+      name: editForm.name.trim(),
+      sport: editForm.sport || null,
+      position: editForm.position || null,
+      weight: num(editForm.weight),
+      height: num(editForm.height),
+      resting_hr: num(editForm.resting_hr),
+      notes: editForm.notes || null,
+    });
+    setSaving(false);
+    if (ok) setEditing(null);
+  };
+
+  const vbtReps = (r: unknown) =>
+    (Array.isArray(r) ? r : []) as { mpv?: number; peak?: number; peakVelocity?: number; rom?: number }[];
 
   if (premiumLoading || athletesLoading) {
     return (
@@ -239,7 +307,20 @@ export default function CoachDashboard() {
                           activeAthlete === s.athlete.id && 'bg-muted/50',
                         )}
                       >
-                        <TableCell className="font-medium">{s.athlete.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {s.athlete.name}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              aria-label="Perbarui atlet"
+                              onClick={(e) => { e.stopPropagation(); openEdit(s.athlete); }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
                         <TableCell>{s.sessions}</TableCell>
                         <TableCell>{s.tss}</TableCell>
                         <TableCell className={cn('font-semibold', acwrTone(s.acwr))}>
@@ -282,6 +363,57 @@ export default function CoachDashboard() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Grafik Mingguan</CardTitle>
+            <CardDescription>TSS harian (batang) dan jumlah set VBT (garis) — mengikuti minggu & atlet terpilih.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis yAxisId="l" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis yAxisId="r" orientation="right" allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))' }} />
+                <Bar yAxisId="l" dataKey="tss" name="TSS" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="r" dataKey="sets" name="Set VBT" stroke="hsl(var(--accent-foreground))" strokeWidth={2} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Sesi Minggu Ini</CardTitle>
+            <CardDescription>Klik sesi untuk melihat detail.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {athleteSessions.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Tidak ada sesi pada minggu ini.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>Tanggal</TableHead><TableHead>Jenis</TableHead><TableHead>Durasi</TableHead><TableHead>RPE</TableHead><TableHead>TSS</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {athleteSessions.map((s) => (
+                    <TableRow key={s.id} className="cursor-pointer" onClick={() => setSessionDetail(s)}>
+                      <TableCell>{s.session_date}</TableCell>
+                      <TableCell className="font-medium">{s.training_type}</TableCell>
+                      <TableCell>{s.duration_minutes} mnt</TableCell>
+                      <TableCell>{s.rpe}</TableCell>
+                      <TableCell>{s.session_load || calculateSessionLoad(s.duration_minutes, s.rpe)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Set VBT Minggu Ini</CardTitle>
@@ -309,7 +441,7 @@ export default function CoachDashboard() {
                 </TableHeader>
                 <TableBody>
                   {athleteVbt.map((s, i) => (
-                    <TableRow key={`${s.session_date}-${i}`}>
+                    <TableRow key={s.id ?? i} className="cursor-pointer" onClick={() => setVbtDetail(s)}>
                       <TableCell>{s.session_date}</TableCell>
                       <TableCell className="font-medium">{s.exercise_name}</TableCell>
                       <TableCell>{s.load_kg ? `${s.load_kg} kg` : '—'}</TableCell>
@@ -326,6 +458,84 @@ export default function CoachDashboard() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Perbarui Atlet</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              ['name', 'Nama', 'text'], ['sport', 'Cabang olahraga', 'text'],
+              ['position', 'Posisi', 'text'], ['weight', 'Berat (kg)', 'number'],
+              ['height', 'Tinggi (cm)', 'number'], ['resting_hr', 'HR istirahat', 'number'],
+            ] as const).map(([k, l, t]) => (
+              <div key={k} className="space-y-1">
+                <Label className="text-xs">{l}</Label>
+                <Input type={t} value={editForm[k]} onChange={(e) => setEditForm({ ...editForm, [k]: e.target.value })} />
+              </div>
+            ))}
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs">Catatan</Label>
+              <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Batal</Button>
+            <Button onClick={saveEdit} disabled={saving || !editForm.name.trim()}>
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!sessionDetail} onOpenChange={(o) => !o && setSessionDetail(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Detail Sesi</DialogTitle></DialogHeader>
+          {sessionDetail && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <Detail label="Tanggal" value={sessionDetail.session_date} />
+              <Detail label="Jenis" value={sessionDetail.training_type} />
+              <Detail label="Durasi" value={`${sessionDetail.duration_minutes} menit`} />
+              <Detail label="RPE" value={String(sessionDetail.rpe)} />
+              <Detail label="TSS / Load" value={String(sessionDetail.session_load || calculateSessionLoad(sessionDetail.duration_minutes, sessionDetail.rpe))} />
+              <div className="col-span-2"><Detail label="Catatan" value={sessionDetail.notes || '—'} /></div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!vbtDetail} onOpenChange={(o) => !o && setVbtDetail(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Detail Set VBT</DialogTitle></DialogHeader>
+          {vbtDetail && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-3 gap-3">
+                <Detail label="Latihan" value={vbtDetail.exercise_name} />
+                <Detail label="Beban" value={vbtDetail.load_kg ? `${vbtDetail.load_kg} kg` : '—'} />
+                <Detail label="Tanggal" value={vbtDetail.session_date} />
+                <Detail label="Best MPV" value={vbtDetail.best_mpv ? `${vbtDetail.best_mpv.toFixed(2)} m/s` : '—'} />
+                <Detail label="Avg MPV" value={vbtDetail.avg_mpv ? `${vbtDetail.avg_mpv.toFixed(2)} m/s` : '—'} />
+                <Detail label="Vel. Loss" value={vbtDetail.velocity_loss != null ? `${vbtDetail.velocity_loss.toFixed(0)}%` : '—'} />
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>Rep</TableHead><TableHead>MPV</TableHead><TableHead>Peak</TableHead><TableHead>ROM</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vbtReps(vbtDetail.reps).map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{r.mpv?.toFixed(2) ?? '—'}</TableCell>
+                      <TableCell>{(r.peakVelocity ?? r.peak)?.toFixed(2) ?? '—'}</TableCell>
+                      <TableCell>{r.rom != null ? `${(r.rom * 100).toFixed(0)} cm` : '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {vbtDetail.notes && <Detail label="Catatan" value={vbtDetail.notes} />}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 
@@ -358,6 +568,15 @@ function Summary({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border bg-muted/30 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-2xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium break-words">{value}</p>
     </div>
   );
 }
