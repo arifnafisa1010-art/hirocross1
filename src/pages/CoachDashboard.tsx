@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, LayoutDashboard, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutDashboard, Pencil, Users } from 'lucide-react';
+import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import type { Athlete } from '@/hooks/useAthletes';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Header } from '@/components/Header';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -63,11 +69,18 @@ function acwrTone(acwr: number) {
 export default function CoachDashboard() {
   const { user } = useAuth();
   const { hasPremium, loading: premiumLoading } = usePremiumAccess();
-  const { athletes, loading: athletesLoading } = useAthletes();
+  const { athletes, loading: athletesLoading, updateAthlete } = useAthletes();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [loads, setLoads] = useState<LoadRow[]>([]);
   const [vbt, setVbt] = useState<VbtRow[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Athlete | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '', sport: '', position: '', weight: '', height: '', resting_hr: '', notes: '',
+  });
+  const [sessionDetail, setSessionDetail] = useState<LoadRow | null>(null);
+  const [vbtDetail, setVbtDetail] = useState<VbtRow | null>(null);
 
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
   const from = format(subDays(weekStart, 21), 'yyyy-MM-dd');
@@ -155,6 +168,55 @@ export default function CoachDashboard() {
   );
 
   const athleteVbt = vbt.filter((s) => s.athlete_id === activeAthlete);
+  const athleteSessions = loads
+    .filter((l) => l.athlete_id === activeAthlete && l.session_date >= wStart && l.session_date <= wEnd)
+    .sort((a, b) => (a.session_date < b.session_date ? -1 : 1));
+
+  const chartData = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = format(addDays(weekStart, i), 'yyyy-MM-dd');
+        const tss = loads
+          .filter((l) => l.athlete_id === activeAthlete && l.session_date === d)
+          .reduce((s, r) => s + (r.session_load || calculateSessionLoad(r.duration_minutes, r.rpe)), 0);
+        const sets = vbt.filter((v) => v.athlete_id === activeAthlete && v.session_date === d).length;
+        return { day: format(addDays(weekStart, i), 'EEE', { locale: idLocale }), tss, sets };
+      }),
+    [loads, vbt, activeAthlete, weekStart],
+  );
+
+  const openEdit = (a: Athlete) => {
+    setEditForm({
+      name: a.name ?? '',
+      sport: a.sport ?? '',
+      position: a.position ?? '',
+      weight: a.weight?.toString() ?? '',
+      height: a.height?.toString() ?? '',
+      resting_hr: a.resting_hr?.toString() ?? '',
+      notes: a.notes ?? '',
+    });
+    setEditing(a);
+  };
+
+  const saveEdit = async () => {
+    if (!editing || !editForm.name.trim()) return;
+    setSaving(true);
+    const num = (v: string) => (v.trim() === '' ? null : Number(v));
+    const ok = await updateAthlete(editing.id, {
+      name: editForm.name.trim(),
+      sport: editForm.sport || null,
+      position: editForm.position || null,
+      weight: num(editForm.weight),
+      height: num(editForm.height),
+      resting_hr: num(editForm.resting_hr),
+      notes: editForm.notes || null,
+    });
+    setSaving(false);
+    if (ok) setEditing(null);
+  };
+
+  const vbtReps = (r: unknown) =>
+    (Array.isArray(r) ? r : []) as { mpv?: number; peak?: number; peakVelocity?: number; rom?: number }[];
 
   if (premiumLoading || athletesLoading) {
     return (
