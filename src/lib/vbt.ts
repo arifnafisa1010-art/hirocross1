@@ -303,3 +303,60 @@ export function scaleFromLine(pixelLength: number, realCm: number): number | nul
   if (pixelLength < 4 || realCm <= 0) return null;
   return realCm / 100 / pixelLength;
 }
+
+/** Minimum velocity threshold (MPV saat 1RM) per latihan. */
+export const MVT: Record<LvExercise, number> = {
+  squat: 0.3, bench: 0.17, deadlift: 0.15, row: 0.45, press: 0.2, generic: 0.25,
+};
+
+export interface LvProfile {
+  /** MPV = intercept + slope · load */
+  intercept: number;
+  slope: number;
+  r2: number;
+  n: number;
+  mvt: number;
+  /** estimasi 1RM (kg) = beban saat MPV = MVT */
+  oneRm: number | null;
+  /** L0: beban teoritis saat kecepatan 0 */
+  l0: number | null;
+  /** V0: kecepatan teoritis tanpa beban */
+  v0: number;
+}
+
+/** Regresi linear load–velocity individual dari titik (beban, MPV). */
+export function buildLvProfile(
+  points: { load: number; mpv: number }[],
+  exercise: LvExercise = 'generic',
+): LvProfile | null {
+  const pts = points.filter((p) => p.load > 0 && p.mpv > 0);
+  if (new Set(pts.map((p) => p.load)).size < 2) return null;
+  const n = pts.length;
+  const mx = pts.reduce((s, p) => s + p.load, 0) / n;
+  const my = pts.reduce((s, p) => s + p.mpv, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (const p of pts) {
+    sxy += (p.load - mx) * (p.mpv - my);
+    sxx += (p.load - mx) ** 2;
+    syy += (p.mpv - my) ** 2;
+  }
+  const slope = sxy / sxx;
+  const intercept = my - slope * mx;
+  const r2 = syy > 0 ? (sxy * sxy) / (sxx * syy) : 1;
+  const mvt = MVT[exercise];
+  const oneRm = slope < 0 ? (mvt - intercept) / slope : null;
+  const l0 = slope < 0 ? -intercept / slope : null;
+  return {
+    intercept, slope, r2, n, mvt,
+    oneRm: oneRm && oneRm > 0 ? Number(oneRm.toFixed(1)) : null,
+    l0: l0 && l0 > 0 ? Number(l0.toFixed(1)) : null,
+    v0: Number(intercept.toFixed(2)),
+  };
+}
+
+/** Beban (kg) untuk target MPV berdasarkan profil individual. */
+export function loadFromProfile(p: LvProfile, targetMpv: number): number | null {
+  if (p.slope >= 0) return null;
+  const l = (targetMpv - p.intercept) / p.slope;
+  return l > 0 ? Number(l.toFixed(1)) : null;
+}

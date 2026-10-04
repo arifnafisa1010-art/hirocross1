@@ -17,6 +17,8 @@ import Readiness from "./pages/Readiness";
 import MuscleMap from "./pages/MuscleMap";
 import VBT from "./pages/VBT";
 import CoachDashboard from "./pages/CoachDashboard";
+import LiveSession from "./pages/LiveSession";
+import LvProfile from "./pages/LvProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -112,6 +114,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/live-session" element={<ProtectedRoute><LiveSession /></ProtectedRoute>} />
+              <Route path="/lv-profile" element={<ProtectedRoute><LvProfile /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

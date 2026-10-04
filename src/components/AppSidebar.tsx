@@ -1,3 +1,4 @@
+import { Radio, LineChart } from 'lucide-react';
 import { Settings, Calendar, CalendarDays, ClipboardList, Crown, Activity, HeartPulse, Dumbbell, Gauge, LayoutDashboard } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTrainingStore } from '@/stores/trainingStore';
@@ -34,6 +35,8 @@ const premiumRouteItems = [
   { path: '/readiness', label: 'Readiness Check', icon: HeartPulse },
   { path: '/muscle-map', label: 'Peta Otot Latihan', icon: Dumbbell },
   { path: '/vbt', label: 'VBT Kamera', icon: Gauge },
+  { path: '/live-session', label: 'Live Session', icon: Radio },
+  { path: '/lv-profile', label: 'Profil Load–Velocity', icon: LineChart },
 ];
 
 export function AppSidebar() {
