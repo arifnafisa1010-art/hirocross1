@@ -1,0 +1,1 @@
+- Use optional `enabled` flags for selection-dependent data hooks so pages avoid broad queries before a user selects a record.
