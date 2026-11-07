@@ -31,13 +31,17 @@ export interface SaveVbtSetInput {
   notes?: string | null;
 }
 
-export function useVbtSets(athleteId?: string | null) {
+export function useVbtSets(
+  athleteId?: string | null,
+  options: { enabled?: boolean } = {},
+) {
   const { user } = useAuth();
+  const enabled = options.enabled ?? true;
   const [sets, setSets] = useState<VbtSet[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!user) {
+    if (!user || !enabled) {
       setSets([]);
       setLoading(false);
       return;
@@ -69,7 +73,7 @@ export function useVbtSets(athleteId?: string | null) {
       );
     }
     setLoading(false);
-  }, [user?.id, athleteId]);
+  }, [user?.id, athleteId, enabled]);
 
   useEffect(() => {
     load();
@@ -128,11 +132,16 @@ export function useVbtSets(athleteId?: string | null) {
         training_type: 'strength',
         notes: `VBT ${input.exerciseName}${input.loadKg ? ` ${input.loadKg} kg` : ''} · ${input.reps.length} rep · best MPV ${best.toFixed(2)} m/s · VL ${vLoss.toFixed(0)}%`,
       });
-      if (loadError) console.error('Gagal sinkron TSS dari VBT:', loadError);
-
-      toast.success('Set VBT tersimpan', {
-        description: `Masuk Peta Otot & beban latihan ${sessionLoad} TSS (RPE ${rpe}, ${durationMinutes} menit).`,
-      });
+      if (loadError) {
+        console.error('Gagal sinkron TSS dari VBT:', loadError);
+        toast.warning('Set VBT tersimpan, tetapi TSS belum tercatat', {
+          description: 'Coba simpan ulang set ini atau periksa koneksi sebelum mengandalkan data ACWR.',
+        });
+      } else {
+        toast.success('Set VBT tersimpan', {
+          description: `Masuk Peta Otot & beban latihan ${sessionLoad} TSS (RPE ${rpe}, ${durationMinutes} menit).`,
+        });
+      }
       await load();
       return data;
     },

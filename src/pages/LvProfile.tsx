@@ -27,9 +27,9 @@ const ZONES = [
 
 export default function LvProfile() {
   const { hasPremium, loading } = usePremiumAccess();
-  const { athletes } = useAthletes();
+  const { athletes, loading: athletesLoading } = useAthletes();
   const [athleteId, setAthleteId] = useState<string>('');
-  const { sets } = useVbtSets(athleteId || null);
+  const { sets, loading: setsLoading } = useVbtSets(athleteId || null, { enabled: Boolean(athleteId) });
   const exercises = useMemo(
     () => Array.from(new Set(sets.filter((s) => s.load_kg).map((s) => s.exercise_name))),
     [sets],
@@ -46,6 +46,7 @@ export default function LvProfile() {
     [sets, ex],
   );
   const profile = useMemo(() => buildLvProfile(points, lvType), [points, lvType]);
+  const distinctLoads = new Set(points.map((p) => p.load)).size;
 
   const chartData = useMemo(() => {
     if (!points.length) return [];
@@ -75,8 +76,8 @@ export default function LvProfile() {
       <div className="grid sm:grid-cols-2 gap-4 max-w-2xl">
         <div className="space-y-1">
           <Label>Atlet</Label>
-          <Select value={athleteId} onValueChange={setAthleteId}>
-            <SelectTrigger><SelectValue placeholder="Pilih atlet" /></SelectTrigger>
+          <Select value={athleteId} onValueChange={setAthleteId} disabled={athletesLoading || athletes.length === 0}>
+            <SelectTrigger><SelectValue placeholder={athletesLoading ? 'Memuat atlet...' : 'Pilih atlet'} /></SelectTrigger>
             <SelectContent>
               {athletes.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
             </SelectContent>
@@ -94,10 +95,22 @@ export default function LvProfile() {
       </div>
 
       {!athleteId ? (
-        <p className="text-muted-foreground text-sm">Pilih atlet untuk melihat profilnya.</p>
+        <p className="text-muted-foreground text-sm">
+          {athletesLoading ? 'Memuat daftar atlet...' : athletes.length === 0 ? 'Belum ada atlet. Tambahkan atlet terlebih dahulu untuk melihat profil.' : 'Pilih atlet untuk melihat profilnya.'}
+        </p>
+      ) : setsLoading ? (
+        <p className="text-muted-foreground text-sm">Memuat riwayat VBT atlet...</p>
+      ) : exercises.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
+          Belum ada set VBT dengan beban tercatat untuk atlet ini. Rekam set melalui VBT Kamera atau Live Session dengan mengisi beban.
+        </CardContent></Card>
       ) : !profile ? (
         <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Butuh minimal 2 set dengan beban berbeda (dan beban terisi) untuk latihan ini. Rekam set di VBT Kamera atau Live Session.
+          {points.length < 2
+            ? `Ada ${points.length} set dengan beban dan MPV yang dapat dipakai. Dibutuhkan minimal 2 set pada beban berbeda untuk membentuk profil.`
+            : distinctLoads < 2
+              ? 'Semua set yang tersedia memakai beban sama. Rekam set pada beban berbeda untuk membentuk profil.'
+              : 'Data belum membentuk tren beban–kecepatan yang dapat dipakai. Periksa MPV dan beban pada set VBT.'}
         </CardContent></Card>
       ) : (
         <>

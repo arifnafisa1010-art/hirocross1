@@ -29,6 +29,8 @@ import { VelocityGauge } from '@/components/vbt/VelocityGauge';
 
 interface Props {
   onRepsChange?: (reps: VbtRep[]) => void;
+  cutoff?: number;
+  active?: boolean;
 }
 
 interface MotionEventCtor {
@@ -57,7 +59,7 @@ const METRICS: { id: MetricId; label: string }[] = [
  * HP diikat di barbel / sabuk, akselerasi vertikal diintegrasikan menjadi
  * kecepatan, dengan zero-velocity update (ZUPT) untuk menahan drift.
  */
-export function VBTSensor({ onRepsChange }: Props) {
+export function VBTSensor({ onRepsChange, cutoff: cutoffOverride, active = true }: Props) {
   const [supported, setSupported] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export function VBTSensor({ onRepsChange }: Props) {
   const [liveV, setLiveV] = useState(0);
   const [liveA, setLiveA] = useState(0);
   const [sensitivity, setSensitivity] = useState(0.35); // m/s² noise gate
-  const [cutoff, setCutoff] = useState(20);
+  const [localCutoff, setLocalCutoff] = useState(20);
   const [alertOn, setAlertOn] = useState(true);
   const [metric, setMetric] = useState<MetricId>('live');
   const [loadKg, setLoadKg] = useState<string>('');
@@ -86,6 +88,7 @@ export function VBTSensor({ onRepsChange }: Props) {
   const zone = lastRep ? velocityZone(lastRep.mpv) : null;
 
   const avgMpv = reps.length ? reps.reduce((s, r) => s + r.mpv, 0) / reps.length : 0;
+  const cutoff = cutoffOverride ?? localCutoff;
   const mass = Number(loadKg) > 0 ? Number(loadKg) : 0;
   const meanPower = mass * G * (lastRep?.mpv ?? 0);
   const peakPower = mass * G * (reps.length ? Math.max(...reps.map((r) => r.peak)) : 0);
@@ -260,6 +263,10 @@ export function VBTSensor({ onRepsChange }: Props) {
     setRunning(false);
   }, [handleMotion]);
 
+  useEffect(() => {
+    if (!active && running) stop();
+  }, [active, running, stop]);
+
   useEffect(() => () => window.removeEventListener('devicemotion', handleMotion), [handleMotion]);
 
   const reset = () => {
@@ -297,7 +304,7 @@ export function VBTSensor({ onRepsChange }: Props) {
 
         <div className="flex flex-wrap gap-2">
           {!running ? (
-            <Button onClick={start} disabled={!supported} className="gap-2">
+            <Button onClick={start} disabled={!supported || !active} className="gap-2">
               <Play className="h-4 w-4" /> Mulai Sensor
             </Button>
           ) : (
@@ -465,8 +472,12 @@ export function VBTSensor({ onRepsChange }: Props) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs">Cutoff velocity loss: {cutoff}%</Label>
-          <Slider value={[cutoff]} min={5} max={50} step={1} onValueChange={([v]) => setCutoff(v)} />
+          {cutoffOverride === undefined && (
+            <>
+              <Label className="text-xs">Cutoff velocity loss: {cutoff}%</Label>
+              <Slider value={[cutoff]} min={5} max={50} step={1} onValueChange={([v]) => setLocalCutoff(v)} />
+            </>
+          )}
           <div className="flex items-center justify-between">
             <Label htmlFor="sensor-alert" className="text-sm">Notifikasi real-time (getar)</Label>
             <Switch id="sensor-alert" checked={alertOn} onCheckedChange={setAlertOn} />

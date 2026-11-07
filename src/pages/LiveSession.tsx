@@ -193,7 +193,19 @@ export default function LiveSession() {
             </div>
           </CardContent>
         </Card>
-        <VBTSensor key={`${exIdx}-${setIdx}`} onRepsChange={setReps} />
+        <div className="space-y-2">
+          {(saving || rest > 0) && (
+            <p className="text-xs text-muted-foreground">
+              Sensor dijeda selama penyimpanan dan waktu istirahat.
+            </p>
+          )}
+          <VBTSensor
+            key={`${exIdx}-${setIdx}`}
+            onRepsChange={setReps}
+            cutoff={cutoff}
+            active={!saving && rest === 0}
+          />
+        </div>
       </div>
       <Card>
         <CardHeader><CardTitle>Set Selesai</CardTitle><CardDescription>Otomatis masuk riwayat VBT, TSS & ACWR</CardDescription></CardHeader>
